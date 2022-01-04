@@ -1,0 +1,123 @@
+name: Maven Deploy and Docker Package
+
+on:
+  workflow_call:
+    inputs: 
+      exec-project:
+        description: The main executable project
+        required: false
+        type: string
+        default: '.'
+      ecr-repository:
+        description: Name of ECR repository for project
+        required: true
+        type: string
+      java-version:
+        description: JDK version (defaults to 8)
+        required: false
+        type: string
+        default: '8'
+      maven-command:
+        description: The maven command to execute for main build
+        required: false
+        type: string
+        default: 'mvn -B deploy -ntp'
+    secrets:
+      nexus-username:
+        required: true
+      nexus-password:
+        required: true
+      aws-access-key-id: 
+        required: true
+      aws-secret-access-key:
+        required: true
+
+jobs:
+  build:
+    name: Maven build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.4.0
+      
+      - name: Setup Java JDK
+        uses: actions/setup-java@v2.3.0
+        with:
+          distribution: 'temurin'
+          java-version: ${{ inputs.java-version }}
+          cache: 'maven'
+
+      - name: Setting up maven settings.xml
+        uses: whelk-io/maven-settings-xml-action@v7
+        with:
+          servers: '[{ "id": "river-nexus", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" },{ "id": "platform-snapshots", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" },{ "id": "platform-releases", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" }]'
+          mirrors: '[{ "id": "river-nexus", "mirrorOf": "*", "url": "https://nexus.riverigaming.tech/repository/maven-public/" }]'
+          repositories: '[{ "id": "river-nexus", "url": "https://nexus.riverigaming.tech/repository/platform-releases" }]'
+
+      - name: Cache
+        uses: actions/cache@v2.1.6
+        with:
+          path: |
+            ~/.m2/repository
+            !~/.m2/repository/com/river
+            !~/.m2/repository/com/bejig
+          key: river-cache
+          restore-keys: river-cache
+
+      - name: Build with Maven
+        run: ${{ inputs.maven-command }}
+
+      - name: Get release version
+        with: 
+          PROJECT_NAME: ${{ inputs.ecr-repository }}
+        run: |
+          BRANCH=${GITHUB_REF#refs/heads/}
+          BUILD_NUMBER=${{ github.run_number}}
+          case $BRANCH in
+            master)
+              PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
+              VERSION=$BRANCH-$PROJECT_VERSION
+              ;;
+            develop)
+              PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
+              VERSION=$(echo $BRANCH-$PROJECT_VERSION | sed "s/-SNAPSHOT/-$BUILD_NUMBER/")
+              ;;
+            *)
+              VERSION=$BRANCH-$BUILD_NUMBER
+              ;;
+          esac
+          RELEASE_TAG=$( echo $VERSION | sed "s/[^[:alnum:]#._-]/-/g" )
+          echo "VERSION=$RELEASE_TAG" >> $GITHUB_ENV
+          echo "::notice::Setting $PROJECT_NAME version to: $RELEASE_TAG"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: eu-west-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ env.VERSION }}
+          EXEC_PROJECT: ${{ inputs.exec-project }}
+          ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        run: |
+          REPO=$(git config --get remote.origin.url)
+          DATE=$(date --utc +%FT%TZ)
+          docker build \
+          --build-arg JAR_FILE=$EXEC_PROJECT/target/*-exec.jar \
+          --build-arg GIT_HASH=${{ github.sha }} \
+          --build-arg DATE="$DATE" \
+          --build-arg GIT_REPO=$REPO \
+          --build-arg GIT_REF=${{ github.ref }} \
+          --build-arg VERSION=${{ env.VERSION }} \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      - name: Logout of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
