@@ -68,8 +68,6 @@ jobs:
         run: ${{ inputs.maven-command }}
 
       - name: Get release version
-        env: 
-          PROJECT_NAME: ${{ inputs.ecr-repository }}
         run: |
           BRANCH=${GITHUB_REF#refs/heads/}
           BUILD_NUMBER=${{ github.run_number}}
@@ -88,7 +86,7 @@ jobs:
           esac
           RELEASE_TAG=$( echo $VERSION | sed "s/[^[:alnum:]#._-]/-/g" )
           echo "VERSION=$RELEASE_TAG" >> $GITHUB_ENV
-          echo "::notice::Setting $PROJECT_NAME version to: $RELEASE_TAG"
+          echo "::notice::Setting ${{ inputs.ecr-repository }} version to: $RELEASE_TAG"
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
