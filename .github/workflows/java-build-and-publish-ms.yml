@@ -68,7 +68,7 @@ jobs:
         run: ${{ inputs.maven-command }}
 
       - name: Get release version
-        with: 
+        env: 
           PROJECT_NAME: ${{ inputs.ecr-repository }}
         run: |
           BRANCH=${GITHUB_REF#refs/heads/}
