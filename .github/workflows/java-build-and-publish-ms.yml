@@ -22,11 +22,6 @@ on:
         required: false
         type: string
         default: 'mvn -B deploy -ntp'
-      sonar-host-url:
-        description: SonarQube host URL
-        required: false
-        type: string
-        default: https://sonar.rivertech.dev
     secrets:
       nexus-username:
         required: true
@@ -35,8 +30,6 @@ on:
       aws-access-key-id:
         required: true
       aws-secret-access-key:
-        required: true
-      sonar-token:
         required: true
 
 jobs:
@@ -72,11 +65,6 @@ jobs:
 
       - name: Build with Maven
         run: ${{ inputs.maven-command }}
-      - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v1.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.sonar-token }}
-          SONAR_HOST_URL: ${{ inputs.sonar-host-url }}
 
       - name: Get release version
         run: |
