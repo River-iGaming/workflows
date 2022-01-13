@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: '5.0.x'
+      publish:
+        description: whether the docker image should be pushed
+        required: false
+        type: boolean
+        default: true
     secrets:
       aws-access-key-id:
         required: true
@@ -72,12 +77,13 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build, tag, and push image to Amazon ECR
+        if: ${{ inputs.publish }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}          
           GIT_COMMIT: ${{ github.sha }}          
         run: |
          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
-#         docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
+         docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
       - name: Create git tag for release
         run: |
           git tag $APP_VERSION
