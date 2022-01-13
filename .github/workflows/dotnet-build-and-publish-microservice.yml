@@ -12,7 +12,7 @@ on:
         description: whether the docker image should be pushed
         required: false
         type: boolean
-        default: true
+        default: false
     secrets:
       aws-access-key-id:
         required: true
