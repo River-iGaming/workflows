@@ -54,6 +54,7 @@ jobs:
           repositories: '[{ "id": "river-nexus", "url": "https://nexus.riverigaming.tech/repository/platform-releases" }]'
 
       - name: Cache
+        if: ${{ github.run_attempt == 1 }}
         uses: actions/cache@v2.1.6
         with:
           path: |
