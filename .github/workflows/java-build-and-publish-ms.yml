@@ -53,15 +53,15 @@ jobs:
           mirrors: '[{ "id": "river-nexus", "mirrorOf": "*", "url": "https://nexus.riverigaming.tech/repository/maven-public/" }]'
           repositories: '[{ "id": "river-nexus", "url": "https://nexus.riverigaming.tech/repository/platform-releases" }]'
 
-      - name: Cache
-        uses: actions/cache@v2.1.6
-        with:
-          path: |
-            ~/.m2/repository
-            !~/.m2/repository/com/river
-            !~/.m2/repository/com/bejig
-          key: river-cache
-          restore-keys: river-cache
+#       - name: Cache
+#         uses: actions/cache@v2.1.6
+#         with:
+#           path: |
+#             ~/.m2/repository
+#             !~/.m2/repository/com/river
+#             !~/.m2/repository/com/bejig
+#           key: river-cache
+#           restore-keys: river-cache
 
       - name: Build with Maven
         run: ${{ inputs.maven-command }}
