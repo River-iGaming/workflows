@@ -1,0 +1,103 @@
+name: .NET Build and Publish
+
+on:
+  workflow_call:
+    inputs:
+      dotnet-version:
+        description: dotnet version to use (defaults to 5.0.x)
+        required: false
+        type: string
+        default: '5.0.x'
+      dotnet-publish-version:
+        description: dotnet version to use for publish (defaults to net5.0)
+        required: false
+        type: string
+        default: net5.0
+      solution:
+        description: path to project solution
+        required: true
+        type: string        
+      publish:
+        description: whether the docker image should be pushed
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      aws-access-key-id:
+        required: true
+      aws-secret-access-key:
+        required: true
+jobs:
+  build:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    env: 
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      PUBLISH_PATH: specs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.4.0
+      - name: Setup environmental variables
+        run: |
+          echo "SOLUTION=${{ inputs.solution }}" >> $GITHUB_ENV
+          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV   
+      - name: Get Version
+        id: version
+        uses: River-iGaming/actions/dotnet/versions@feature/mw-ms-version
+        with:
+          type: deploy
+          package-version: ${{ env.PACKAGE_VERSION }}
+      - name: Check if Git Tag exists
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+        run: |
+          if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
+              echo "::error::tag $APP_VERSION already exists."
+              exit 1
+          fi
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v1.9.0
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+      - uses: actions/cache@v2.1.7
+        name: Setup Cache
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-          
+      - name: Restore
+        run: dotnet restore $SOLUTION /p:Configuration=Release
+
+      - name: Publish
+        run: dotnet publish $SOLUTION -f ${{ inputs.dotnet-publish-version }} -c Release -o ./$PUBLISH_PATH
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: eu-west-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        if: ${{ inputs.publish }}
+        env:
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}          
+          GIT_COMMIT: ${{ github.sha }}          
+        run: |
+         docker-compose -f docker-compose.yml build
+         docker-compose -f docker-compose.yml push
+      - name: Create git tag for release
+        run: |
+          git tag $APP_VERSION
+          git push origin $APP_VERSION
+          echo "::notice::Pushed image for $APP_NAME: $APP_VERSION"
+      - name: Logout of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
