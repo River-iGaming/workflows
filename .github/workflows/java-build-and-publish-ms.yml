@@ -22,6 +22,10 @@ on:
         required: false
         type: string
         default: 'mvn -B deploy -ntp'
+      maven-extra-args:
+        description: Additional maven arguments to be appended to command
+        required: false
+        type: string
     secrets:
       nexus-username:
         required: true
@@ -66,11 +70,11 @@ jobs:
           restore-keys: river-cache
 
       - name: Build with Maven
-        run: ${{ inputs.maven-command }}
+        run: ${{ inputs.maven-command }} ${{ inputs.maven-extra-args }}
 
       - name: Run SonarQube if enabled
         if: env.SONAR_TOKEN
-        run: mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN
+        run: mvn -ntp sonar:sonar -Dsonar.login=$SONAR_TOKEN
         env:
           SONAR_TOKEN: ${{ secrets.sonar-token }}
 
