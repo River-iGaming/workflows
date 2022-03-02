@@ -69,8 +69,10 @@ jobs:
         run: ${{ inputs.maven-command }}
 
       - name: Run SonarQube if enabled
-        if: ${{ secrets.sonar-token }}
-        run:  mvn sonar:sonar -Dsonar.login=${{ secrets.sonar-token }}
+        if: env.SONAR_TOKEN
+        run: mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN
+        env:
+          SONAR_TOKEN: ${{ secrets.sonar-token }}
 
       - name: Get release version
         run: |
