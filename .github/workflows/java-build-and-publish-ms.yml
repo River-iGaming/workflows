@@ -31,7 +31,8 @@ on:
         required: true
       aws-secret-access-key:
         required: true
-
+      sonar-token:
+        required: true
 jobs:
   build:
     name: Maven build
@@ -64,8 +65,13 @@ jobs:
           key: river-cache
           restore-keys: river-cache
 
+      - name: Check if SONAR_TOKEN is defined
+        run:  echo "MAVEN_EXTRA_ARGS=' -Psonar sonar:sonar -Dsonar.login=${{ secrets.sonar-token }}'" >> $GITHUB_ENV
+
       - name: Build with Maven
-        run: ${{ inputs.maven-command }}
+        run: ${{ inputs.maven-command }} $MAVEN_EXTRA_ARGS
+        env:
+          MAVEN_EXTRA_ARGS: ${{ env.MAVEN_EXTRA_ARGS }}
 
       - name: Get release version
         run: |
