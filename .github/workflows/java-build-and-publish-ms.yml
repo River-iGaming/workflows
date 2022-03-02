@@ -32,7 +32,7 @@ on:
       aws-secret-access-key:
         required: true
       sonar-token:
-        required: true
+        required: false
 jobs:
   build:
     name: Maven build
