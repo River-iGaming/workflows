@@ -77,20 +77,20 @@ jobs:
           key: river-cache
           restore-keys: river-cache
 
-#       - name: Build with Maven        
-#         run: ${{ inputs.maven-command }} ${{ inputs.maven-extra-args }}
+      - name: Build with Maven        
+        run: ${{ inputs.maven-command }} ${{ inputs.maven-extra-args }}
 
-#       - name: Run SonarQube if enabled
-#         if: env.SONAR_TOKEN
-#         run: mvn -ntp sonar:sonar -Dsonar.login=$SONAR_TOKEN
-#         env:
-#           SONAR_TOKEN: ${{ secrets.sonar-token }}
+      - name: Run SonarQube if enabled
+        if: env.SONAR_TOKEN
+        run: mvn -ntp sonar:sonar -Dsonar.login=$SONAR_TOKEN
+        env:
+          SONAR_TOKEN: ${{ secrets.sonar-token }}
 
       - name: Get release version
-        id: versioning
+        id: versioning        
         run: |
           PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
-          BRANCH=${GITHUB_REF#refs/heads/}
+          BRANCH=${{ github.ref_name }}
           BUILD_NUMBER=${{ github.run_number}}
           case $BRANCH in
             master)              
@@ -104,39 +104,38 @@ jobs:
               ;;
           esac
           RELEASE_TAG=$( echo $VERSION | sed "s/[^[:alnum:]#._-]/-/g" )
-          echo "VERSION=$RELEASE_TAG" >> $GITHUB_ENV
           echo "::notice::Setting ${{ inputs.ecr-repository }} version to: $RELEASE_TAG"
           echo "::set-output name=project-version::$PROJECT_VERSION"
-          echo "::set-output name=final-version::$VERSION"
-#       - name: Configure AWS credentials
-#         uses: aws-actions/configure-aws-credentials@v1
-#         with:
-#           aws-access-key-id: ${{ secrets.aws-access-key-id }}
-#           aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
-#           aws-region: eu-west-1
+          echo "::set-output name=final-version::$RELEASE_TAG"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: eu-west-1
 
-#       - name: Login to Amazon ECR
-#         id: login-ecr
-#         uses: aws-actions/amazon-ecr-login@v1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-#       - name: Build, tag, and push image to Amazon ECR
-#         env:
-#           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#           IMAGE_TAG: ${{ env.VERSION }}
-#           EXEC_PROJECT: ${{ inputs.exec-project }}
-#           ECR_REPOSITORY: ${{ inputs.ecr-repository }}
-#         run: |
-#           REPO=$(git config --get remote.origin.url)
-#           DATE=$(date --utc +%FT%TZ)
-#           docker build \
-#           --build-arg JAR_FILE=$EXEC_PROJECT/target/*-exec.jar \
-#           --build-arg GIT_HASH=${{ github.sha }} \
-#           --build-arg DATE="$DATE" \
-#           --build-arg GIT_REPO=$REPO \
-#           --build-arg GIT_REF=${{ github.ref }} \
-#           --build-arg VERSION=${{ env.VERSION }} \
-#           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-#           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-#       - name: Logout of Amazon ECR
-#         if: always()
-#         run: docker logout ${{ steps.login-ecr.outputs.registry }}
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.versioning.outputs.final-version }}
+          EXEC_PROJECT: ${{ inputs.exec-project }}
+          ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        run: |
+          REPO=$(git config --get remote.origin.url)
+          DATE=$(date --utc +%FT%TZ)
+          docker build \
+          --build-arg JAR_FILE=$EXEC_PROJECT/target/*-exec.jar \
+          --build-arg GIT_HASH=${{ github.sha }} \
+          --build-arg DATE="$DATE" \
+          --build-arg GIT_REPO=$REPO \
+          --build-arg GIT_REF=${{ github.ref }} \
+          --build-arg VERSION=${{ env.VERSION }} \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      - name: Logout of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
