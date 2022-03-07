@@ -37,10 +37,18 @@ on:
         required: true
       sonar-token:
         required: false
+    outputs:
+      project-version:
+        value: ${{ jobs.build.ouptus.project-version }}
+      image-version:
+        value: ${{ jobs.build.ouptus.image-version }}
 jobs:
   build:
     name: Maven build
     runs-on: ubuntu-latest
+    outputs:
+      project-version: ${{ env.PROJECT_VERSION }}
+      image-version: ${{ env.IMAGE_VERSION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2.4.0
@@ -98,6 +106,7 @@ jobs:
           RELEASE_TAG=$( echo $VERSION | sed "s/[^[:alnum:]#._-]/-/g" )
           echo "VERSION=$RELEASE_TAG" >> $GITHUB_ENV
           echo "::notice::Setting ${{ inputs.ecr-repository }} version to: $RELEASE_TAG"
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -127,6 +136,7 @@ jobs:
           --build-arg VERSION=${{ env.VERSION }} \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "IMAGE-VERSION=$IMAGE_TAG" >> $GITHUB_ENV
       - name: Logout of Amazon ECR
         if: always()
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
