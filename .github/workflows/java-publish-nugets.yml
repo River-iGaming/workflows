@@ -1,0 +1,70 @@
+name: Publish Avro Nugets
+
+on:
+  workflow_call:
+    inputs:
+      project-version:
+        description: Project version
+        type: string
+        required: true
+      project-namespace:
+        description: Namespace for generated models
+        type: string
+        required: true
+      avro-path:
+        description: Relative path for avro schema files
+        type: string
+        required: true
+        default: ./realtime/src/main/avro
+      nuget-server-url:
+        description: Url for Nuget server
+        required: true
+        type: string
+    secrets:
+      nuget-server-token:
+        description: Access token for Nuget server
+        required: true
+
+jobs:
+  publish_nugets:
+    name: Publish Nuget Packages
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true   
+      NUGET_AUTH_TOKEN: ${{ nuget-server-token }}
+    steps:
+      - name: Getting Nuget release version
+        env:
+          PROJECT_VERSION: ${{ inputs.project-version }}
+        run: |
+          BUILD_NUMBER=${{ github.run_number}}
+          VERSION=$(echo "${PROJECT_VERSION/SNAPSHOT/dev-$BUILD_NUMBER}")
+          echo "NUGET_VERSION=$VERSION" >> $GITHUB_ENV
+          echo Setting version to: $VERSION
+      - uses: actions/setup-dotnet@v1.7.2
+        with:
+          source-url: ${{ inputs.nuget-server-url }}
+          dotnet-version: '2.1.x'
+      - name: Checkout
+        uses: actions/checkout@v2.4.0
+        
+      - name: Setup Avro Generator
+        run: dotnet tool install sucrose.avro.codegen -g
+
+      - name: Generate Avro nuget package
+        env: 
+          PACKAGE: ${{ inputs.project-namespace }}
+          NUGET_VERSION: ${{ env.NUGET_VERSION }}
+        run: |
+          # Create class library and clean out default file
+          dotnet new classlib --output out/$PACKAGE
+          rm out/$PACKAGE/Class1.cs
+          # Generate .NET classes from Avro Schema
+          avromagic --schema-path ${{ inputs.avro-path }} --output-dir ./out/$PACKAGE
+          dotnet add ./out/$PACKAGE package Confluent.Apache.Avro --version 1.7.7.7
+          dotnet pack -c Release -p:PackageVersion=$NUGET_VERSION ./out/$PACKAGE -o ./nupkg/
+      - name: Push Nuget package to Nexus
+        run: |
+          dotnet nuget push ./out/$PACKAGE/nupkg/*.nupkg -k $NUGET_AUTH_TOKEN
