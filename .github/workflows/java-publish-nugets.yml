@@ -33,6 +33,7 @@ jobs:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true   
       NUGET_AUTH_TOKEN: ${{ secrets.nuget-server-token }}
+      PACKAGE: ${{ inputs.project-namespace }}
     steps:
       - name: Getting Nuget release version
         env:
@@ -54,7 +55,6 @@ jobs:
 
       - name: Generate Avro nuget package
         env: 
-          PACKAGE: ${{ inputs.project-namespace }}
           NUGET_VERSION: ${{ env.NUGET_VERSION }}
         run: |
           # Create class library and clean out default file
