@@ -37,10 +37,18 @@ on:
         required: true
       sonar-token:
         required: false
+    outputs:
+      project-version:
+        value: ${{ jobs.build.outputs.project-version }}
+      image-version:
+        value: ${{ jobs.build.outputs.final-version }}
 jobs:
   build:
     name: Maven build
     runs-on: ubuntu-latest
+    outputs:
+      project-version: ${{ steps.versioning.outputs.project-version }}
+      image-version: ${{ steps.versioning.outputs.final-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2.4.0
@@ -79,16 +87,16 @@ jobs:
           SONAR_TOKEN: ${{ secrets.sonar-token }}
 
       - name: Get release version
+        id: versioning        
         run: |
-          BRANCH=${GITHUB_REF#refs/heads/}
+          PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
+          BRANCH=${{ github.ref_name }}
           BUILD_NUMBER=${{ github.run_number}}
           case $BRANCH in
-            master)
-              PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
+            master)              
               VERSION=$BRANCH-$PROJECT_VERSION
               ;;
             develop)
-              PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
               VERSION=$(echo $BRANCH-$PROJECT_VERSION | sed "s/-SNAPSHOT/-$BUILD_NUMBER/")
               ;;
             *)
@@ -96,8 +104,9 @@ jobs:
               ;;
           esac
           RELEASE_TAG=$( echo $VERSION | sed "s/[^[:alnum:]#._-]/-/g" )
-          echo "VERSION=$RELEASE_TAG" >> $GITHUB_ENV
           echo "::notice::Setting ${{ inputs.ecr-repository }} version to: $RELEASE_TAG"
+          echo "::set-output name=project-version::$PROJECT_VERSION"
+          echo "::set-output name=final-version::$RELEASE_TAG"
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -112,7 +121,7 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ env.VERSION }}
+          IMAGE_TAG: ${{ steps.versioning.outputs.final-version }}
           EXEC_PROJECT: ${{ inputs.exec-project }}
           ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         run: |
