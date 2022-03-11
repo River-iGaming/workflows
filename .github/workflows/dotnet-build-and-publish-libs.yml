@@ -66,7 +66,9 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.app-version }}          
         run: |
           dotnet pack $SOLUTION -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=$PACKAGE_VERSION -o ./ -c release          
-          dotnet nuget push *.nupkg -k ${{ secrets.nuget-server-token }} -s ${{ inputs.nuget-server-url }}
+          find *.nupkg | xargs -i dotnet nuget push {} -k $API_KEY -s https://www.myget.org/F/river-tech/api/v2/package
+          # dotnet nuget push *.nupkg -k ${{ secrets.nuget-server-token }} -s ${{ inputs.nuget-server-url }}
+          find *.nupkg | xargs -i -n 1 -P 8 dotnet nuget push {} -k ${{ secrets.nuget-server-token }} -s ${{ inputs.nuget-server-url }}
       - name: Git Tag
         if: inputs.publishable
         run: |
