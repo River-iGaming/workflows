@@ -39,6 +39,8 @@ on:
         required: true
       aws-secret-access-key:
         required: true
+      github-token:
+        required: true
 jobs:
   build:
     name: Build and publish library
@@ -99,7 +101,7 @@ jobs:
         with: 
           tag: ${{ steps.lerna.outputs.tag }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.github-token }}
 
       - name: Inform if tag exists
         if: ${{ steps.tag.outputs.exists == 'true' }}
