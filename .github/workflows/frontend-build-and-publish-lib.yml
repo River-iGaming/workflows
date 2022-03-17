@@ -7,6 +7,16 @@ on:
         required: false
         type: string
         default: '14'
+      npm-registry-url:
+        description: The url address for npm registry (defaults to https://www.myget.org/F/river-tech/npm/)
+        required: false
+        type: string
+        default: https://www.myget.org/F/river-tech/npm/
+      npm-registry-scope:
+        description: The name of the npm scope (defaults to @odin)
+        required: false
+        type: string
+        default: '@odin'
       junit-report-path:
         description: The path to unit test report (defaults to ./junit/)
         required: false
@@ -39,8 +49,8 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           always-auth: true
-          registry-url: https://www.myget.org/F/river-tech/npm/
-          scope: '@odin'
+          registry-url: ${{ inputs.npm-registry-url }}
+          scope: ${{ inputs.npm-registry-scope }}
 
       - name: Print environment versions
         run: |
@@ -71,30 +81,32 @@ jobs:
         run: |
           if git log --format=%B -n 1 | egrep "^(style|test|docs)"; then
             echo "::set-output name=publishable::false"
-            echo "This update doesn't need to be published; finishing build..."
+            echo "::notice ::This update doesn't need to be published."
           else 
             echo "::set-output name=publishable::true"
           fi
 
-      - name: Fetch git tags
-        if: ${{ steps.commit.outputs.publishable == 'true' }}
-        run: |
-          git fetch --prune --unshallow --tags
-
-      - name: Check if tag exists
-        id: tag
+      - name: Fetch tag from lerna
+        id: lerna
         if: ${{ steps.commit.outputs.publishable == 'true' }}
         run: |
           TAG=$(node -p "require('./lerna.json').version")
-          if git tag --list | grep "^$TAG$"; then
-            echo "::set-output name=publishable::false"
-            echo "Tag already exists. Please make sure you bump version!"
-          else
-            echo "::set-output name=publishable::true"
-          fi
+          echo "::set-output name=tag::${TAG}"
+
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with: 
+          tag: ${{ steps.lerna.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Inform if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: echo "::notice ::Tag already exists. Please make sure you bump version!"
 
       - name: Configure AWS credentials
-        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.publishable == 'true' }}
+        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
@@ -103,11 +115,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.publishable == 'true' }}
+        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Publish storybook
-        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.publishable == 'true' }}
+        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }} 
         run: |
@@ -123,7 +135,7 @@ jobs:
           [[ $ECR_HOST =~ ^([0-9]*) ]] && REGISTRY=${BASH_REMATCH[1]}
 
           if aws ecr describe-images --repository-name=odin.ngx-storybook --registry-id $REGISTRY --image-ids=imageTag=$TAG > /dev/null 2>&1; then
-            echo "$TAG already exists on remote... skipping..."
+            echo "::notice ::$TAG already exists on remote... skipping..."
             exit 0
           fi
 
@@ -132,17 +144,12 @@ jobs:
           TAG=$TAG docker-compose build
           TAG=$TAG docker-compose push
 
-          if ! ([ $GITHUB_REF_NAME = "master" ] || [[ $GITHUB_REF_NAME =~ ^([0-9].*)\.x$ ]]); then
-            echo "PUBLISHABLE=false" >> $GITHUB_ENV
-            echo "Non-publishable branch; finishing build..."
-          fi
-
       - name: Logout of Amazon ECR
-        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.publishable == 'true' }}
+        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Deploy
-        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.publishable == 'true' }}
+        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         run: |
           echo "git tag"
           PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
@@ -154,8 +161,8 @@ jobs:
         uses: actions/upload-artifact@v3
         if: failure()
         with:
-          name: ${{ env.junit-report-name }}
-          path: ${{ env.junit-report-path }}
+          name: ${{ inputs.junit-report-name }}
+          path: ${{ inputs.junit-report-path }}
           retention-days: 2
 
       - name: Store npm artifact
