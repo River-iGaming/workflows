@@ -22,11 +22,6 @@ on:
         required: false
         type: string
         default: ./junit/
-      has-storybook:
-        description: Whether storybook exists in project (defaults to false)
-        required: false
-        type: boolean
-        default: false
       junit-report-name:
         description: The file name for unit test report (defaults to test-results.xml)
         required: false
@@ -37,6 +32,11 @@ on:
         required: false
         type: string
         default: eu-west-1
+      has-storybook:
+        description: Whether storybook exists in project (defaults to false)
+        required: false
+        type: boolean
+        default: false
     secrets:
       npm-token:
         required: true
