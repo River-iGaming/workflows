@@ -140,6 +140,7 @@ jobs:
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create Git tag for release
+        if: ${{ steps.tag.outputs.exists == 'false' }}
         run: |
           git tag $APP_VERSION
           git push --tags
