@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: eu-west-1
+      dotnet-version:
+        description: dotnet version to use (defaults to 6.0.x)
+        required: false
+        type: string
+        default: '6.0.x'
     secrets:
       npm-token:
         required: true
@@ -48,6 +53,11 @@ jobs:
           always-auth: true
           registry-url: ${{ inputs.npm-registry-url }}
           scope: ${{ inputs.npm-registry-scope }}
+      
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v2.0.0
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
 
       - name: Print environment versions
         run: |
