@@ -1,0 +1,180 @@
+name: Frontend Build and Publish Library
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node version to use (defaults to 14)
+        required: false
+        type: string
+        default: '14'
+      npm-registry-url:
+        description: The url address for npm registry (defaults to https://www.myget.org/F/river-tech/npm/)
+        required: false
+        type: string
+        default: https://www.myget.org/F/river-tech/npm/
+      npm-registry-scope:
+        description: The name of the npm scope (defaults to @odin)
+        required: false
+        type: string
+        default: '@odin'
+      junit-report-path:
+        description: The path to unit test report (defaults to ./junit/)
+        required: false
+        type: string
+        default: ./junit/
+      junit-report-name:
+        description: The file name for unit test report (defaults to test-results.xml)
+        required: false
+        type: string
+        default: test-results.xml
+      aws-region:
+        description: Which AWS region to use for publish storybook (defaults to eu-west-1)
+        required: false
+        type: string
+        default: eu-west-1
+      has-storybook:
+        description: Whether storybook exists in project (defaults to false)
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      npm-token:
+        required: true
+      aws-access-key-id:
+        required: true
+      aws-secret-access-key:
+        required: true
+      github-token:
+        required: true
+jobs:
+  build:
+    name: Build and publish library
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node-version }}
+          always-auth: true
+          registry-url: ${{ inputs.npm-registry-url }}
+          scope: ${{ inputs.npm-registry-scope }}
+
+      - name: Print environment versions
+        run: |
+          NODE_V=$(node --version)
+          NPM_V=$(npm -v)
+          echo node version':' $NODE_V
+          echo npm version':' $NPM_V
+
+      - name: Checkout
+        uses: actions/checkout@v3.0.0
+
+      - name: Install npm
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
+
+      - name: Build storybook
+        if: inputs.has-storybook
+        run: npm run build:storybook
+
+      - name: Check if commit is publishable
+        id: commit
+        run: |
+          if git log --format=%B -n 1 | egrep "^(style|test|docs)"; then
+            echo "::set-output name=publishable::false"
+            echo "::notice ::This update doesn't need to be published."
+          else 
+            echo "::set-output name=publishable::true"
+          fi
+
+      - name: Fetch tag from lerna
+        id: lerna
+        if: ${{ steps.commit.outputs.publishable == 'true' }}
+        run: |
+          TAG=$(node -p "require('./lerna.json').version")
+          echo "::set-output name=tag::${TAG}"
+
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with: 
+          tag: ${{ steps.lerna.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+
+      - name: Inform if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: echo "::notice ::Tag already exists. Please make sure you bump version!"
+
+      - name: Configure AWS credentials
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Publish storybook
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        env:
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }} 
+        run: |
+          TAG=$(node -p "require('./storybook/package.json').version")
+          if $GITHUB_REF_NAME == 'develop'
+          then
+            TAG=$TAG-dev-$GITHUB_RUN_ID
+          elif [[ $GITHUB_REF_NAME =~ ^feature\/(.*)$ ]]
+          then
+            TAG=$TAG-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID
+          fi
+
+          [[ $ECR_HOST =~ ^([0-9]*) ]] && REGISTRY=${BASH_REMATCH[1]}
+
+          if aws ecr describe-images --repository-name=odin.ngx-storybook --registry-id $REGISTRY --image-ids=imageTag=$TAG > /dev/null 2>&1; then
+            echo "::notice ::$TAG already exists on remote... skipping..."
+            exit 0
+          fi
+
+          TAG=$TAG docker-compose build
+          TAG=$TAG docker-compose push
+
+      - name: Logout of Amazon ECR
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
+
+      - name: Deploy
+        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        run: |
+          echo "git tag"
+          PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
+          git tag $PACKAGE_VERSION
+          git push --tags
+          npm run publish:rel
+
+      - name: Store tests artifact
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: ${{ inputs.junit-report-name }}
+          path: ${{ inputs.junit-report-path }}
+          retention-days: 2
+
+      - name: Store npm artifact
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: npm-logs
+          path: ~/.npm/_logs/*
+          retention-days: 2
