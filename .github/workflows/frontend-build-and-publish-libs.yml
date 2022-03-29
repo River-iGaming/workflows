@@ -172,6 +172,8 @@ jobs:
           git tag $PACKAGE_VERSION
           git push --tags
           npm run publish:rel
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Store tests artifact
         uses: actions/upload-artifact@v3
