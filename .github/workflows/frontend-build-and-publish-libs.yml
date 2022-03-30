@@ -58,7 +58,18 @@ jobs:
           always-auth: true
           registry-url: ${{ inputs.npm-registry-url }}
           scope: ${{ inputs.npm-registry-scope }}
-
+      
+      - name: Extract branch name
+        id: branch
+        run: |
+          EVENT=${{ github.event_name }}
+          if $EVENT = "pull_request"; then
+            BRANCH_NAME=${{github.head_ref}}
+            echo "::set-output name=name::${BRANCH_NAME}"
+          else
+            echo "::set-output name=name::${GITHUB_REF_NAME}"
+          fi
+      
       - name: Print environment versions
         run: |
           NODE_V=$(node --version)
@@ -85,9 +96,9 @@ jobs:
       #   run: npm run build:storybook
 
       - name: Check if branch is publishable
-        id: branch
+        id: check-branch
         run: |
-          echo "::notice ::${{github.head_ref}} branch, ${{github.event_name}} event"
+          echo "::notice ::${{steps.commit.outputs.publishable}} branch, ${{github.event_name}} event"
           if ! ([ $GITHUB_REF_NAME = "master" ] || [[ "$GITHUB_REF_NAME" =~ ^([0-9].*)\.x$ ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch; finishing build."
@@ -168,7 +179,7 @@ jobs:
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Deploy
-        if: ${{ steps.branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         run: |
           echo "git tag"
           PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
