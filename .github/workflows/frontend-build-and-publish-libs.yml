@@ -145,7 +145,7 @@ jobs:
           if $GITHUB_REF_NAME == 'develop'
           then
             TAG=$TAG-dev-$GITHUB_RUN_ID
-          elif [[ $GITHUB_REF_NAME =~ ^feature\/(.*)$ ]]
+          elif [[ "$GITHUB_REF_NAME" =~ ^feature\/(.*)$ ]]
           then
             TAG=$TAG-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID
           fi
