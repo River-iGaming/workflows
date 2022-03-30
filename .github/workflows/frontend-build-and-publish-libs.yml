@@ -63,7 +63,6 @@ jobs:
         id: branch
         run: |
           EVENT=${{ github.event_name }}
-          echo "::notice ::$EVENT event"
           if [ $EVENT == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
             echo "::set-output name=name::${BRANCH_NAME}"
@@ -99,8 +98,8 @@ jobs:
       - name: Check if branch is publishable
         id: check-branch
         run: |
-          echo "::notice ::${{steps.branch.outputs.name}} branch, ${{github.event_name}} event"
-          if ! ([ $GITHUB_REF_NAME = "master" ] || [[ "$GITHUB_REF_NAME" =~ ^([0-9].*)\.x$ ]]); then
+          BRANCH_NAME=${{steps.branch.outputs.name}}
+          if ! ([ $BRANCH_NAME = "master" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch; finishing build."
           else 
@@ -154,16 +153,17 @@ jobs:
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }} 
         run: |
+          BRANCH_NAME=${{steps.branch.outputs.name}}
           TAG=$(node -p "require('./storybook/package.json').version")
-          if $GITHUB_REF_NAME == 'develop'
+          if $BRANCH_NAME == 'develop'
           then
             TAG=$TAG-dev-$GITHUB_RUN_ID
-          elif [[ "$GITHUB_REF_NAME" =~ ^feature\/(.*)$ ]]
+          elif [[ "BRANCH_NAME" =~ ^feature\/(.*)$ ]]
           then
             TAG=$TAG-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID
           fi
 
-          echo "::notice ::$GITHUB_REF_NAME already exists on remote... skipping..."
+          echo "::notice ::$BRANCH_NAME already exists on remote... skipping..."
 
           [[ $ECR_HOST =~ ^([0-9]*) ]] && REGISTRY=${BASH_REMATCH[1]}
 
