@@ -87,7 +87,7 @@ jobs:
       - name: Check if branch is publishable
         id: branch
         run: |
-          echo "::notice ::${{github.head_ref}} branch, ${{github.event}} event"
+          echo "::notice ::${{github.head_ref}} branch, ${{github.event_name}} event"
           if ! ([ $GITHUB_REF_NAME = "master" ] || [[ "$GITHUB_REF_NAME" =~ ^([0-9].*)\.x$ ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch; finishing build."
