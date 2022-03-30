@@ -58,7 +58,7 @@ jobs:
           always-auth: true
           registry-url: ${{ inputs.npm-registry-url }}
           scope: ${{ inputs.npm-registry-scope }}
-      
+
       - name: Print environment versions
         run: |
           NODE_V=$(node --version)
