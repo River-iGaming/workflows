@@ -74,19 +74,20 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      - name: Build
-        run: npm run build
+      # - name: Build
+      #   run: npm run build
 
-      - name: Test
-        run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
+      # - name: Test
+      #   run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
 
-      - name: Build storybook
-        if: inputs.has-storybook
-        run: npm run build:storybook
+      # - name: Build storybook
+      #   if: inputs.has-storybook
+      #   run: npm run build:storybook
 
       - name: Check if branch is publishable
         id: branch
         run: |
+          echo "::notice ::${GITHUB_REF#refs/heads/} branch"
           if ! ([ $GITHUB_REF_NAME = "master" ] || [[ "$GITHUB_REF_NAME" =~ ^([0-9].*)\.x$ ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch; finishing build."
@@ -101,7 +102,7 @@ jobs:
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
           else 
-            echo "::set-output name=publishable::true"
+            echo "::set-output name=publishable::false"
           fi
 
       - name: Fetch tag from lerna
