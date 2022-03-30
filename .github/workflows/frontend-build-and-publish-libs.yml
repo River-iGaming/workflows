@@ -59,6 +59,16 @@ jobs:
           registry-url: ${{ inputs.npm-registry-url }}
           scope: ${{ inputs.npm-registry-scope }}
       
+      - name: Print environment versions
+        run: |
+          NODE_V=$(node --version)
+          NPM_V=$(npm -v)
+          echo node version':' $NODE_V
+          echo npm version':' $NPM_V
+
+      - name: Checkout
+        uses: actions/checkout@v3.0.0
+
       - name: Extract branch name
         id: branch
         run: |
@@ -69,16 +79,6 @@ jobs:
           else
             echo "::set-output name=name::${GITHUB_REF_NAME}"
           fi
-      
-      - name: Print environment versions
-        run: |
-          NODE_V=$(node --version)
-          NPM_V=$(npm -v)
-          echo node version':' $NODE_V
-          echo npm version':' $NPM_V
-
-      - name: Checkout
-        uses: actions/checkout@v3.0.0
 
       - name: Install npm
         run: npm ci
@@ -100,7 +100,7 @@ jobs:
         run: |
           BRANCH_NAME=${{steps.branch.outputs.name}}
           echo "::notice ::Branch name: $BRANCH_NAME"
-          
+
           if ! ([ $BRANCH_NAME = "master" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch; finishing build."
