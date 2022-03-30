@@ -80,20 +80,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3.0.0
 
-      # - name: Install npm
-      #   run: npm ci
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+      - name: Install npm
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      # - name: Build
-      #   run: npm run build
+      - name: Build
+        run: npm run build
 
-      # - name: Test
-      #   run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
+      - name: Test
+        run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
 
-      # - name: Build storybook
-      #   if: inputs.has-storybook
-      #   run: npm run build:storybook
+      - name: Build storybook
+        if: inputs.has-storybook
+        run: npm run build:storybook
 
       - name: Check if branch is publishable
         id: check-branch
@@ -113,7 +113,7 @@ jobs:
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
           else 
-            echo "::set-output name=publishable::false"
+            echo "::set-output name=publishable::true"
           fi
 
       - name: Fetch tag from lerna
