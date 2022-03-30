@@ -103,7 +103,7 @@ jobs:
 
           if ! ([ $BRANCH_NAME = "master" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             echo "::set-output name=publishable::false"
-            echo "::notice ::Non-publishable branch; finishing build."
+            echo "::notice ::Non-publishable branch."
           else 
             echo "::set-output name=publishable::true"
           fi
