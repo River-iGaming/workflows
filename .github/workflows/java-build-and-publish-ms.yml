@@ -56,8 +56,7 @@ jobs:
         uses: actions/setup-java@v2.3.0
         with:
           distribution: 'temurin'
-          java-version: ${{ inputs.java-version }}
-          cache: 'maven'
+          java-version: ${{ inputs.java-version }}          
 
       - name: Setting up maven settings.xml
         uses: whelk-io/maven-settings-xml-action@v7
