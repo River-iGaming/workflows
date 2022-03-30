@@ -69,6 +69,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3.0.0
 
+      - name: Extract branch name
+        id: branch
+        run: |
+          EVENT=${{ github.event_name }}
+          if [ $EVENT == "pull_request" ]; then
+            BRANCH_NAME=${{github.head_ref}}
+            echo "::set-output name=name::${BRANCH_NAME}"
+          else
+            echo "::set-output name=name::${GITHUB_REF_NAME}"
+          fi
+
       - name: Install npm
         run: npm ci
         env:
@@ -85,11 +96,14 @@ jobs:
         run: npm run build:storybook
 
       - name: Check if branch is publishable
-        id: branch
+        id: check-branch
         run: |
-          if ! ([ $GITHUB_REF_NAME = "master" ] || [[ "$GITHUB_REF_NAME" =~ ^([0-9].*)\.x$ ]]); then
+          BRANCH_NAME=${{steps.branch.outputs.name}}
+          echo "::notice ::Branch name: $BRANCH_NAME"
+
+          if ! ([ $BRANCH_NAME = "master" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             echo "::set-output name=publishable::false"
-            echo "::notice ::Non-publishable branch; finishing build."
+            echo "::notice ::Non-publishable branch."
           else 
             echo "::set-output name=publishable::true"
           fi
@@ -141,11 +155,12 @@ jobs:
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }} 
         run: |
+          BRANCH_NAME=${{steps.branch.outputs.name}}
           TAG=$(node -p "require('./storybook/package.json').version")
-          if $GITHUB_REF_NAME == 'develop'
+          if $BRANCH_NAME == 'develop'
           then
             TAG=$TAG-dev-$GITHUB_RUN_ID
-          elif [[ $GITHUB_REF_NAME =~ ^feature\/(.*)$ ]]
+          elif [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
           then
             TAG=$TAG-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID
           fi
@@ -165,7 +180,7 @@ jobs:
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Deploy
-        if: ${{ steps.branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         run: |
           echo "git tag"
           PACKAGE_VERSION=$(node -p "require('./lerna.json').version")

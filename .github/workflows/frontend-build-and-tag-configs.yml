@@ -54,18 +54,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3.0.0
 
-      - name: Check if branch is publishable
+      - name: Extract branch name
         id: branch
         run: |
-            if ! ([[ $GITHUB_REF_NAME =~ ^([0-9].*)\.x$ ]]); then
-              echo "::set-output name=publishable::false"
-              echo "::notice ::Non-publishable branch."
-            else 
-              echo "::set-output name=publishable::true"
-            fi
+          EVENT=${{ github.event_name }}
+          if [ $EVENT == "pull_request" ]; then
+            BRANCH_NAME=${{github.head_ref}}
+            echo "::set-output name=name::${BRANCH_NAME}"
+          else
+            echo "::set-output name=name::${GITHUB_REF_NAME}"
+          fi
+
+      - name: Check if branch is publishable
+        id: check-branch
+        run: |
+          BRANCH_NAME=${{steps.branch.outputs.name}}
+          if ! ([[ $BRANCH_NAME =~ ^([0-9].*)\.x$ ]]); then
+            echo "::set-output name=publishable::false"
+            echo "::notice ::Non-publishable branch."
+          else 
+            echo "::set-output name=publishable::true"
+          fi
 
       - name: Git Tag
-        if: ${{ steps.branch.outputs.publishable == 'true' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           git tag $PACKAGE_VERSION
