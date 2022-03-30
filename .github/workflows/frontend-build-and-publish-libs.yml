@@ -150,6 +150,8 @@ jobs:
             TAG=$TAG-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID
           fi
 
+          echo "::notice ::$GITHUB_REF_NAME already exists on remote... skipping..."
+
           [[ $ECR_HOST =~ ^([0-9]*) ]] && REGISTRY=${BASH_REMATCH[1]}
 
           if aws ecr describe-images --repository-name=odin.ngx-storybook --registry-id $REGISTRY --image-ids=imageTag=$TAG > /dev/null 2>&1; then
