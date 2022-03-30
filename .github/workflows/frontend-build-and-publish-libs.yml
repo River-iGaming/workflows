@@ -63,9 +63,9 @@ jobs:
         id: branch
         run: |
           EVENT=${{ github.event_name }}
+          echo "::notice ::$EVENT event"
           if $EVENT == "pull_request"; then
             BRANCH_NAME=${{github.head_ref}}
-
             echo "::set-output name=name::${BRANCH_NAME}"
           else
             echo "::set-output name=name::${GITHUB_REF_NAME}"
