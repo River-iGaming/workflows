@@ -157,7 +157,7 @@ jobs:
         run: |
           BRANCH_NAME=${{steps.branch.outputs.name}}
           TAG=$(node -p "require('./storybook/package.json').version")
-          if $BRANCH_NAME == 'develop'
+          if [ $BRANCH_NAME = 'develop' ]
           then
             TAG=$TAG-dev-$GITHUB_RUN_ID
           elif [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
