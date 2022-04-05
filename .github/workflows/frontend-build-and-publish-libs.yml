@@ -185,7 +185,7 @@ jobs:
           echo "git tag"
           PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
           git tag $PACKAGE_VERSION
-          git push --tags
+          git push origin $PACKAGE_VERSION
           npm run publish:rel
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}

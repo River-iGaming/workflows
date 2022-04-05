@@ -81,4 +81,4 @@ jobs:
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           git tag $PACKAGE_VERSION
-          git push --tags
+          git push origin $PACKAGE_VERSION
