@@ -98,46 +98,46 @@ jobs:
             echo "::set-output name=publishable::true"
           fi
 
-      # - name: Install npm
-      #   run: npm ci
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+      - name: Install npm
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      # - name: Lint
-      #   run: npm run lint
+      - name: Lint
+        run: npm run lint
 
-      # - name: Build
-      #   run: npm run build:rel
+      - name: Build
+        run: npm run build:rel
 
-      # - name: Install tools
-      #   run: npm i -g @odin/infra.ci@0.1.22
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+      - name: Install tools
+        run: npm i -g @odin/infra.ci@0.1.22
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      # - name: Dotnet restore/publish
-      #   run: |
-      #       SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
-      #       dotnet restore $SOLUTION /p:Configuration=Release
-      #       dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
+      - name: Dotnet restore/publish
+        run: |
+            SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
+            dotnet restore $SOLUTION /p:Configuration=Release
+            dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
-      # - name: Set environment variables
-      #   run: |
-      #     BRANCH_NAME=${{steps.branch.outputs.name}}
-      #     echo "::notice ::Branch name: $BRANCH_NAME"
+      - name: Set environment variables
+        run: |
+          BRANCH_NAME=${{steps.branch.outputs.name}}
+          echo "::notice ::Branch name: $BRANCH_NAME"
 
-      #     PACKAGE_VERSION=$(node -p "require('./package.json').version")
-      #     echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-      #     echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
+          echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-      #     if [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
-      #     then
-      #       echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-      #     elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
-      #     then
-      #       echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-      #     else
-      #       echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)" >> $GITHUB_ENV
-      #     fi
+          if [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
+          then
+            echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+          elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
+          then
+            echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+          else
+            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)" >> $GITHUB_ENV
+          fi
 
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
@@ -151,42 +151,42 @@ jobs:
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: echo "::notice ::Tag already exists."
 
-      # - name: Configure AWS credentials
-      #   if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
-      #   uses: aws-actions/configure-aws-credentials@v1
-      #   with:
-      #     aws-access-key-id: ${{ secrets.aws-access-key-id }}
-      #     aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
-      #     aws-region: ${{ inputs.aws-region }}
+      - name: Configure AWS credentials
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: ${{ inputs.aws-region }}
 
-      # - name: Login to Amazon ECR
-      #   id: login-ecr
-      #   if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
-      #   uses: aws-actions/amazon-ecr-login@v1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        uses: aws-actions/amazon-ecr-login@v1
 
-      # - name: Deploy
-      #   if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
-      #   env:
-      #     ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
-      #   run: |
-      #     docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
-      #     docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
+      - name: Deploy
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        env:
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
+          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
 
-      # - name: Logout of Amazon ECR
-      #   if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
-      #   run: docker logout ${{ steps.login-ecr.outputs.registry }}
+      - name: Logout of Amazon ECR
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
-      # - name: Create Git tag for release
-      #   if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
-      #   run: |
-      #     git tag $APP_VERSION
-      #     git push origin $APP_VERSION
+      - name: Create Git tag for release
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        run: |
+          git tag $APP_VERSION
+          git push origin $APP_VERSION
 
       - name: Checkout develop
         uses: actions/checkout@v3
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         with:
-          ref: refs/heads/feature/test2
+          ref: refs/heads/develop
           fetch-depth: 0
           token: ${{ secrets.github-token }}
 
@@ -195,25 +195,25 @@ jobs:
         run:  |
           BRANCH_NAME=${{steps.branch.outputs.name}}
 
-          if [ "$BRANCH_NAME" != "feature/test" ]
+          if [ "$BRANCH_NAME" != "master" ]
           then
             echo "::notice ::Skipping downmerge. Branch is not master."
             exit 0
           fi
 
           git fetch
-          git checkout feature/test2
+          git checkout develop
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
 
-          if git merge --no-commit --no-ff --no-edit origin/feature/test
+          if git merge --no-commit --no-ff --no-edit origin/master
           then
             if [ -z "$(git status --porcelain)" ]
             then
               echo "::notice ::Nothing to commit"
             else
               git commit --no-edit
-              git push origin feature/test2
+              git push origin develop
             fi
           else
             if git merge HEAD
