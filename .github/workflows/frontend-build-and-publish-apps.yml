@@ -98,13 +98,13 @@ jobs:
             echo "::set-output name=publishable::true"
           fi
 
-      - name: Install npm
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+      # - name: Install npm
+      #   run: npm ci
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      - name: Lint
-        run: npm run lint
+      # - name: Lint
+      #   run: npm run lint
 
       # - name: Build
       #   run: npm run build:rel
@@ -176,11 +176,11 @@ jobs:
       #   if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
       #   run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
-      - name: Create Git tag for release
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
-        run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
+      # - name: Create Git tag for release
+      #   if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+      #   run: |
+      #     git tag $APP_VERSION
+      #     git push origin $APP_VERSION
 
       - name: Checkout develop
         uses: actions/checkout@v3
