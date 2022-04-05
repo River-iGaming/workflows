@@ -85,6 +85,19 @@ jobs:
             echo "::set-output name=name::${GITHUB_REF_NAME}"
           fi
 
+      - name: Check if branch is publishable
+        id: check-branch
+        run: |
+          BRANCH_NAME=${{steps.branch.outputs.name}}
+          echo "::notice ::Branch name: $BRANCH_NAME"
+
+          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
+            echo "::set-output name=publishable::false"
+            echo "::notice ::Non-publishable branch."
+          else 
+            echo "::set-output name=publishable::true"
+          fi
+
       - name: Install npm
         run: npm ci
         env:
@@ -139,7 +152,7 @@ jobs:
         run: echo "::notice ::Tag already exists."
 
       - name: Configure AWS credentials
-        if: ${{ steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
@@ -148,11 +161,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Deploy
-        if: ${{ steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
         run: |
@@ -160,16 +173,17 @@ jobs:
           docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
 
       - name: Logout of Amazon ECR
-        if: ${{ steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create Git tag for release
-        if: ${{ steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         run: |
           git tag $APP_VERSION
           git push --tags
 
       - name: Downmerge master to develop
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run:  |
           BRANCH_NAME=${{steps.branch.outputs.name}}
 
