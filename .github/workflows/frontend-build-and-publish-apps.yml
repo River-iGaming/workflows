@@ -206,7 +206,7 @@ jobs:
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
 
-          if git merge --no-commit --no-ff --no-edit origin/master
+          if git merge --no-commit --no-ff --no-edit origin/feature/test
           then
             if [ -z "$(git status --porcelain)" ]
             then
