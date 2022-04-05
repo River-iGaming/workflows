@@ -180,7 +180,7 @@ jobs:
         if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
         run: |
           git tag $APP_VERSION
-          git push --tags
+          git push origin $APP_VERSION
 
       - name: Downmerge master to develop
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
