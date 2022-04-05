@@ -182,19 +182,26 @@ jobs:
           git tag $APP_VERSION
           git push origin $APP_VERSION
 
+      - name: Checkout develop
+        uses: actions/checkout@v3
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        with:
+          ref: refs/heads/feature/test2
+          token: ${{ secrets.github-token }}
+
       - name: Downmerge master to develop
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run:  |
           BRANCH_NAME=${{steps.branch.outputs.name}}
 
-          if [ "$BRANCH_NAME" != "master" ]
+          if [ "$BRANCH_NAME" != "feature/test" ]
           then
             echo "::notice ::Skipping downmerge. Branch is not master."
             exit 0
           fi
 
           git fetch
-          git checkout develop
+          git checkout feature/test2
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
 
@@ -205,7 +212,7 @@ jobs:
               echo "::notice ::Nothing to commit"
             else
               git commit --no-edit
-              git push origin develop
+              git push origin feature/test2
             fi
           else
             if git merge HEAD
