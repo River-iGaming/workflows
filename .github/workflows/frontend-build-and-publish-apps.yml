@@ -190,7 +190,6 @@ jobs:
         with:
           ref: refs/heads/develop
           fetch-depth: 0
-          token: ${{ secrets.github-token }}
 
       - name: Downmerge master to develop
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
