@@ -184,13 +184,6 @@ jobs:
           git tag $APP_VERSION
           git push origin $APP_VERSION
 
-      - name: Checkout develop
-        uses: actions/checkout@v3
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
-        with:
-          ref: refs/heads/develop
-          fetch-depth: 0
-
       - name: Downmerge master to develop
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run:  |
