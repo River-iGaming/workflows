@@ -135,7 +135,9 @@ jobs:
 
       - name: Inform if tag exists
         if: ${{ steps.tag.outputs.exists == 'true' }}
-        run: echo "::notice ::Tag already exists. Please make sure you bump version!"
+        run: |
+          echo "::error ::Tag already exists. Please make sure you bump version!"
+          exit 1
 
       - name: Configure AWS credentials
         if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
