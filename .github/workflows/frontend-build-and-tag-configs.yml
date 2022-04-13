@@ -12,6 +12,8 @@ on:
         required: true
       aws-secret-access-key:
         required: true
+      github-token:
+        required: true
 jobs:
   build:
     name: Build
@@ -76,9 +78,27 @@ jobs:
             echo "::set-output name=publishable::true"
           fi
 
+      - name: Extract package version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with:
+          tag: ${{ env.PACKAGE_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+
+      - name: Inform if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "::error ::Tag already exists."
+          exit 1
+
       - name: Git Tag
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
           git tag $PACKAGE_VERSION
           git push origin $PACKAGE_VERSION
