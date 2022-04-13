@@ -78,7 +78,7 @@ jobs:
 
       - name: Extract package version
         run: |
-          PACKAGE_VERSION=${{ github.event_name }}
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Check if tag exists
