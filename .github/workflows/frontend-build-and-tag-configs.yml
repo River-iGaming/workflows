@@ -12,6 +12,8 @@ on:
         required: true
       aws-secret-access-key:
         required: true
+      github-token:
+        required: true
 jobs:
   build:
     name: Build
