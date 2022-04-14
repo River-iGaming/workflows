@@ -157,7 +157,7 @@ jobs:
           exit 1
 
       - name: Configure AWS credentials
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
@@ -166,11 +166,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Deploy
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
         run: |
@@ -178,11 +178,11 @@ jobs:
           docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
 
       - name: Logout of Amazon ECR
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create Git tag for release
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION

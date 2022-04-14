@@ -140,7 +140,7 @@ jobs:
           exit 1
 
       - name: Configure AWS credentials
-        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
@@ -149,11 +149,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Publish storybook
-        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }} 
         run: |
@@ -178,11 +178,11 @@ jobs:
           TAG=$TAG docker-compose push
 
       - name: Logout of Amazon ECR
-        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Deploy
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'false' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' }}
         run: |
           echo "git tag"
           PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
