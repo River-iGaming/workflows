@@ -90,7 +90,12 @@ jobs:
         run: |
           PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
           BRANCH=${{ github.ref_name }}
-          BUILD_NUMBER=${{ github.run_number}}
+          if [ ${{github.run_attempt}} -eq 1 ]
+          then
+            BUILD_NUMBER=${{ github.run_number}}
+          else
+            BUILD_NUMBER=${{ github.run_number}}-${{github.run_attempt}}
+          fi
           case $BRANCH in
             master)              
               VERSION=$BRANCH-$PROJECT_VERSION
