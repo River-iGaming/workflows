@@ -120,7 +120,8 @@ jobs:
           COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
           echo "::notice ::Commit message: $COMMIT_MESSAGE"
-          if $COMMIT_MESSAGE | egrep "^(style|test|docs)"; then
+          echo [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]
+          if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
           else 
