@@ -116,8 +116,9 @@ jobs:
 
       - name: Check if commit is publishable
         id: commit
+        env:
+          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
-          COMMIT_MESSAGE=${steps.git.outputs.commit-message}
           echo "::notice ::Commit message: $COMMIT_MESSAGE"
           if $COMMIT_MESSAGE | egrep "^(style|test|docs)"; then
             echo "::set-output name=publishable::false"
