@@ -112,7 +112,7 @@ jobs:
         id: commit
         run: |
           EXISTS=$(git log --format=%B -n 1 | egrep "^(style|test|docs)")
-          echo $EXISTS
+          echo "::notice ::Commit message: $EXISTS"
           if git log --format=%B -n 1 | egrep "^(style|test|docs)"; then
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
