@@ -111,6 +111,7 @@ jobs:
       - name: Check if commit is publishable
         id: commit
         run: |
+          echo git log --format=%B -n 1 | egrep "^(style|test|docs)"
           if git log --format=%B -n 1 | egrep "^(style|test|docs)"; then
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
