@@ -1,4 +1,4 @@
-name: Perform Config Checks
+name: Config Checks
 
 on:
   workflow_call:
@@ -35,14 +35,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: mshick/add-pr-comment@v1
-        if: ${{ steps.tag.outputs.exists }}
+        if: ${{ steps.tag.outputs.exists == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          message: Tag [**${{ steps.get-version.outputs.package-version }}**] already exists
+          message: |
+            Tag corresponding to package version [**${{ steps.get-version.outputs.package-version }}**] already exists.
+            _Bump version in package.json_.
           allow-repeats: true
       - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists }}
+        if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists."
           exit 1
