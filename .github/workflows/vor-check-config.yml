@@ -5,6 +5,7 @@ on:
 
 jobs:
   checks:    
+    name: JSON Lint and Check Tag
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
