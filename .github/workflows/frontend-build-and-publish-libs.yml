@@ -85,15 +85,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      - name: Build
-        run: npm run build
+      # - name: Build
+      #   run: npm run build
 
-      - name: Test
-        run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
+      # - name: Test
+      #   run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
 
-      - name: Build storybook
-        if: inputs.has-storybook
-        run: npm run build:storybook
+      # - name: Build storybook
+      #   if: inputs.has-storybook
+      #   run: npm run build:storybook
 
       - name: Check if branch is publishable
         id: check-branch
