@@ -1,11 +1,11 @@
-name: Tag config version
+name: Config Versioning
 
 on:
   workflow_call:
 
 jobs:
-  checks:    
-    name: Tag config version
+  tag:
+    name: Tag
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -19,3 +19,4 @@ jobs:
         run: |
           git tag ${{ steps.get-version.outputs.package-version }}
           git push origin ${{ steps.get-version.outputs.package-version }}
+           echo "::notice::Created new tag: ${{ steps.get-version.outputs.package-version }}"
