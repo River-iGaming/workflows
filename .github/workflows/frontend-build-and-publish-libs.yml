@@ -164,11 +164,11 @@ jobs:
       - name: Publish storybook
         if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
         env:
-          ECR_HOST: ${{ steps.login-ecr.outputs.registry }} 
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
           TAG=$(node -p "require('./storybook/package.json').version")
-          if [ "$CIRCLE_BRANCH" = "develop" ]
+          if [ "$BRANCH_NAME" = "develop" ]
           then
             TAG=$TAG-dev-$GITHUB_RUN_ID
           elif [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
