@@ -71,16 +71,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      # - name: Extract branch name
-      #   id: branch
-      #   run: |
-      #     EVENT=${{ github.event_name }}
-      #     if [ $EVENT == "pull_request" ]; then
-      #       BRANCH_NAME=${{github.head_ref}}
-      #       echo "::set-output name=name::${BRANCH_NAME}"
-      #     else
-      #       echo "::set-output name=name::${GITHUB_REF_NAME}"
-      #     fi
+      - name: Get commit message and branch name
+        id: git
+        run: |
+          EVENT=${{ github.event_name }}
+          if [ $EVENT == "pull_request" ]; then
+            BRANCH_NAME=${{github.head_ref}}
+            echo "::set-output name=branch-name::${BRANCH_NAME}"
+            echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD^2)
+          else
+            echo "::set-output name=branch-name::${GITHUB_REF_NAME}"
+            echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD)
+          fi
 
       # - name: Install npm
       #   run: npm ci
@@ -100,7 +102,7 @@ jobs:
       # - name: Check if branch is publishable
       #   id: check-branch
       #   run: |
-      #     BRANCH_NAME=${{steps.branch.outputs.name}}
+      #     BRANCH_NAME=${{steps.git.outputs.branch-name}}
       #     echo "::notice ::Branch name: $BRANCH_NAME"
 
       #     if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
@@ -110,12 +112,13 @@ jobs:
       #       echo "::set-output name=publishable::true"
       #     fi
 
+     
+
       - name: Check if commit is publishable
         id: commit
         run: |
-          SHA=${{ github.sha }}
-          EXISTS=$(git log --format=%B -n 1 $SHA)
-          echo "::notice ::Commit message: $EXISTS"
+          COMMIT_MESSAGE=${{steps.git.outputs.commit-message}}
+          echo "::notice ::Commit message: $COMMIT_MESSAGE"
           if git log --format=%B -n 1 | egrep "^(style|test|docs)"; then
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
