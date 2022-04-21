@@ -99,18 +99,19 @@ jobs:
       #   if: inputs.has-storybook
       #   run: npm run build:storybook
 
-      # - name: Check if branch is publishable
-      #   id: check-branch
-      #   run: |
-      #     BRANCH_NAME=${{steps.git.outputs.branch-name}}
-      #     echo "::notice ::Branch name: $BRANCH_NAME"
+      - name: Check if branch is publishable
+        id: check-branch
+        env:
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
+        run: |
+          echo "::notice ::Branch name: $BRANCH_NAME"
 
-      #     if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
-      #       echo "::set-output name=publishable::false"
-      #       echo "::notice ::Non-publishable branch."
-      #     else 
-      #       echo "::set-output name=publishable::true"
-      #     fi
+          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
+            echo "::set-output name=publishable::false"
+            echo "::notice ::Non-publishable branch."
+          else 
+            echo "::set-output name=publishable::true"
+          fi
 
      
 
@@ -120,6 +121,7 @@ jobs:
           COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
           echo "::notice ::Commit message: $COMMIT_MESSAGE"
+          
           if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
