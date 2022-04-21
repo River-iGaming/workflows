@@ -1,0 +1,48 @@
+name: Perform Config Checks
+
+on:
+  workflow_call:
+
+jobs:
+  checks:    
+    name: JSON Lint and Check Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Prepare linter
+        run: |          
+          npm install -g eslint
+          npm install eslint-plugin-jsonc
+          echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
+      - name: Lint JSON files
+        run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml
+      - name: Output Report
+        if: ${{ failure() }}
+        uses: jwgmeligmeyling/checkstyle-github-action@master
+        with:
+          path: checkstyle-result.xml
+      - name: Get version
+        id: get-version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "::set-output name=package-version::$PACKAGE_VERSION"
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with:
+          tag: ${{ steps.get-version.outputs.package-version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: mshick/add-pr-comment@v1
+        if: ${{ steps.tag.outputs.exists }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          message: Tag [**${{ steps.get-version.outputs.package-version }}**] already exists
+          allow-repeats: true
+      - name: Inform if tag exists
+        if: ${{ steps.tag.outputs.exists }}
+        run: |
+          echo "::error ::Tag already exists."
+          exit 1
