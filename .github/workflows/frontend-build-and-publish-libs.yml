@@ -113,7 +113,8 @@ jobs:
       - name: Check if commit is publishable
         id: commit
         run: |
-          EXISTS=$(git log --format=%B -n 1)
+          SHA=${{ github.sha }}
+          EXISTS=$(git log --format=%B -n 1 $SHA)
           echo "::notice ::Commit message: $EXISTS"
           if git log --format=%B -n 1 | egrep "^(style|test|docs)"; then
             echo "::set-output name=publishable::false"
