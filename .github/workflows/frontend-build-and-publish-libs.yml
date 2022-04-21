@@ -117,9 +117,9 @@ jobs:
       - name: Check if commit is publishable
         id: commit
         run: |
-          COMMIT_MESSAGE=${{steps.git.outputs.commit-message}}
+          COMMIT_MESSAGE=${steps.git.outputs.commit-message}
           echo "::notice ::Commit message: $COMMIT_MESSAGE"
-          if git log --format=%B -n 1 | egrep "^(style|test|docs)"; then
+          if $COMMIT_MESSAGE | egrep "^(style|test|docs)"; then
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
           else 
