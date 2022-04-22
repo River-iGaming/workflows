@@ -69,8 +69,11 @@ jobs:
 
       - name: Check if branch is publishable
         id: check-branch
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name}}
         run: |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
+          echo "::notice ::Branch name: $BRANCH_NAME"
+
           if ! ([[ $BRANCH_NAME =~ ^([0-9].*)\.x$ ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch."

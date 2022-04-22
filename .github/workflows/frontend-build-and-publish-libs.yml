@@ -68,16 +68,20 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v3.0.0
+        with:
+          fetch-depth: 0
 
-      - name: Extract branch name
-        id: branch
+      - name: Get commit message and branch name
+        id: git
         run: |
           EVENT=${{ github.event_name }}
           if [ $EVENT == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
-            echo "::set-output name=name::${BRANCH_NAME}"
+            echo "::set-output name=branch-name::${BRANCH_NAME}"
+            echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD^2)
           else
-            echo "::set-output name=name::${GITHUB_REF_NAME}"
+            echo "::set-output name=branch-name::${GITHUB_REF_NAME}"
+            echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD)
           fi
 
       - name: Install npm
@@ -97,8 +101,9 @@ jobs:
 
       - name: Check if branch is publishable
         id: check-branch
+        env:
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
           echo "::notice ::Branch name: $BRANCH_NAME"
 
           if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
@@ -110,8 +115,12 @@ jobs:
 
       - name: Check if commit is publishable
         id: commit
+        env:
+          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
-          if git log --format=%B -n 1 | egrep "^(style|test|docs)"; then
+          echo "::notice ::Commit message: $COMMIT_MESSAGE"
+
+          if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
             echo "::set-output name=publishable::false"
             echo "::notice ::This update doesn't need to be published."
           else 
@@ -155,11 +164,11 @@ jobs:
       - name: Publish storybook
         if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
         env:
-          ECR_HOST: ${{ steps.login-ecr.outputs.registry }} 
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
           TAG=$(node -p "require('./storybook/package.json').version")
-          if [ "$CIRCLE_BRANCH" = "develop" ]
+          if [ "$BRANCH_NAME" = "develop" ]
           then
             TAG=$TAG-dev-$GITHUB_RUN_ID
           elif [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
