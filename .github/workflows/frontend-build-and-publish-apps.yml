@@ -36,8 +36,8 @@ on:
         required: true
       github-token:
         required: true
-      commit-sha:
-        required: true
+      # commit-sha:
+      #   required: true
 jobs:
   build:
     name: Build and publish
@@ -104,10 +104,10 @@ jobs:
             echo "::set-output name=publishable::true"
           fi
 
-      - name: Install npm
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+      # - name: Install npm
+      #   run: npm ci
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       # - name: Lint
       #   run: npm run lint
@@ -127,8 +127,8 @@ jobs:
       #       dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Set environment variables
-        env:
-          COMMIT_SHA: ${{ secrets.commit-sha }}
+        # env:
+        #   COMMIT_SHA: ${{ secrets.commit-sha }}
         run: |
           BRANCH_NAME=${{steps.branch.outputs.name}}
           echo "::notice ::Branch name: $BRANCH_NAME"
