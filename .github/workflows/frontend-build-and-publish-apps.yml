@@ -109,22 +109,22 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      - name: Lint
-        run: npm run lint
+      # - name: Lint
+      #   run: npm run lint
 
-      - name: Build
-        run: npm run build:rel
+      # - name: Build
+      #   run: npm run build:rel
 
-      - name: Install tools
-        run: npm i -g @odin/infra.ci@0.1.22
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+      # - name: Install tools
+      #   run: npm i -g @odin/infra.ci@0.1.22
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      - name: Dotnet restore/publish
-        run: |
-            SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
-            dotnet restore $SOLUTION /p:Configuration=Release
-            dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
+      # - name: Dotnet restore/publish
+      #   run: |
+      #       SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
+      #       dotnet restore $SOLUTION /p:Configuration=Release
+      #       dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Set environment variables
         env:
@@ -132,6 +132,7 @@ jobs:
         run: |
           BRANCH_NAME=${{steps.branch.outputs.name}}
           echo "::notice ::Branch name: $BRANCH_NAME"
+          echo Ctx: '${{ toJSON(github) }}'
 
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
