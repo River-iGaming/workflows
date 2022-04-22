@@ -36,8 +36,6 @@ on:
         required: true
       github-token:
         required: true
-      # commit-sha:
-      #   required: true
 jobs:
   build:
     name: Build and publish
@@ -104,27 +102,27 @@ jobs:
             echo "::set-output name=publishable::true"
           fi
 
-      # - name: Install npm
-      #   run: npm ci
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+      - name: Install npm
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      # - name: Lint
-      #   run: npm run lint
+      - name: Lint
+        run: npm run lint
 
-      # - name: Build
-      #   run: npm run build:rel
+      - name: Build
+        run: npm run build:rel
 
-      # - name: Install tools
-      #   run: npm i -g @odin/infra.ci@0.1.22
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+      - name: Install tools
+        run: npm i -g @odin/infra.ci@0.1.22
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      # - name: Dotnet restore/publish
-      #   run: |
-      #       SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
-      #       dotnet restore $SOLUTION /p:Configuration=Release
-      #       dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
+      - name: Dotnet restore/publish
+        run: |
+            SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
+            dotnet restore $SOLUTION /p:Configuration=Release
+            dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Set environment variables
         run: |
