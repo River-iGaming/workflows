@@ -131,7 +131,7 @@ jobs:
 
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
           if [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
           then
