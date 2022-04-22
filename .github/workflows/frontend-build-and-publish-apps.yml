@@ -133,6 +133,7 @@ jobs:
           BRANCH_NAME=${{steps.branch.outputs.name}}
           echo "::notice ::Branch name: $BRANCH_NAME"
           echo Ctx: '${{ toJSON(github) }}'
+          echo '${{ github.event.after }}'
 
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
