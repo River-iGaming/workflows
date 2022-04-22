@@ -127,17 +127,13 @@ jobs:
       #       dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Set environment variables
-        # env:
-        #   COMMIT_SHA: ${{ secrets.commit-sha }}
         run: |
           BRANCH_NAME=${{steps.branch.outputs.name}}
           echo "::notice ::Branch name: $BRANCH_NAME"
-          echo Ctxa: '${{ github.event.after }}'
-          echo Ctx: '${{ toJSON(github) }}'
 
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "GIT_COMMIT=$COMMIT_SHA" >> $GITHUB_ENV
+          echo "GIT_COMMIT='${{ github.event.after }}'" >> $GITHUB_ENV
 
           if [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
           then
