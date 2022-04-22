@@ -36,6 +36,8 @@ on:
         required: true
       github-token:
         required: true
+      commit-sha:
+        required: true
 jobs:
   build:
     name: Build and publish
@@ -125,13 +127,15 @@ jobs:
             dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Set environment variables
+        env:
+          COMMIT_SHA: ${{ secrets.commit-sha }}
         run: |
           BRANCH_NAME=${{steps.branch.outputs.name}}
           echo "::notice ::Branch name: $BRANCH_NAME"
 
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
+          echo "GIT_COMMIT=$COMMIT_SHA" >> $GITHUB_ENV
 
           if [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
           then
