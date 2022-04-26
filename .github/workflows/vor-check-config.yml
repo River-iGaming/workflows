@@ -65,4 +65,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4.14.1
         with:
           file_pattern: package.json
-          commit_message: ${{ steps.tag.version-bump.git-comment }} 
+          commit_message: ${{ steps.version-bump.outputs.git-comment }} 
