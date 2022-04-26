@@ -59,7 +59,7 @@ jobs:
           bump
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
           COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
-          echo "::info ::$COMMENT"
+          echo "::notice::$COMMENT"
           echo "::set-output name=git-comment::$COMMENT"         
       - name: Git Auto Commit
         uses: stefanzweifel/git-auto-commit-action@v4.14.1
