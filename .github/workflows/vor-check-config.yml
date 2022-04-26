@@ -48,6 +48,9 @@ jobs:
 #         run: |
 #           echo "::error ::Tag already exists."
 #           exit 1
+      - uses: fregante/setup-git-user@v1
+        name: Setup git user
+        if: ${{ steps.tag.outputs.exists == 'true' }}      
       - name: Bump version
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
