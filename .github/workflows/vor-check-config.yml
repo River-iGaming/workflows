@@ -15,7 +15,6 @@ jobs:
           npm install -g eslint
           npm install eslint-plugin-jsonc
           echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
-          npm uninstall eslint-plugin-jsonc
       - name: Lint JSON files
         run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml
       - name: Output Report
@@ -56,5 +55,6 @@ jobs:
           bump
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "::info ::Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
-          git commit -am "Updated version"
+          git add package.json
+          git commit -m "Updated version"
           git push
