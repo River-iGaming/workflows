@@ -34,23 +34,15 @@ jobs:
           tag: ${{ steps.get-version.outputs.package-version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       - uses: mshick/add-pr-comment@v1
-#         if: ${{ steps.tag.outputs.exists == 'true' }}
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#         with:
-#           message: |
-#             Tag corresponding to package version [**${{ steps.get-version.outputs.package-version }}**] already exists.
-#             _Bump version in package.json_.
-#           allow-repeats: true
-#       - name: Inform if tag exists
-#         if: ${{ steps.tag.outputs.exists == 'true' }}
-#         run: |
-#           echo "::error ::Tag already exists."
-# #           exit 1
-#       - uses: fregante/setup-git-user@v1
-#         name: Setup git user
-#         if: ${{ steps.tag.outputs.exists == 'true' }}      
+      - uses: mshick/add-pr-comment@v1
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          message: |
+            Tag corresponding to package version [**${{ steps.get-version.outputs.package-version }}**] already exists.
+            _Bumping version in package.json_.
+          allow-repeats: true
       - name: Bump version
         id: version-bump
         if: ${{ steps.tag.outputs.exists == 'true' }}
@@ -61,8 +53,9 @@ jobs:
           COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
           echo "::notice::$COMMENT"
           echo "::set-output name=git-comment::$COMMENT"         
-      - name: Git Auto Commit
+      - name: Commit version bump
         uses: stefanzweifel/git-auto-commit-action@v4.14.1
+        if: ${{ steps.tag.outputs.exists == 'true' }}
         with:
           file_pattern: package.json
           commit_message: ${{ steps.version-bump.outputs.git-comment }} 
