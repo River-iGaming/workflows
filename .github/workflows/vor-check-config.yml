@@ -47,17 +47,22 @@ jobs:
 #         if: ${{ steps.tag.outputs.exists == 'true' }}
 #         run: |
 #           echo "::error ::Tag already exists."
-#           exit 1
-      - uses: fregante/setup-git-user@v1
-        name: Setup git user
-        if: ${{ steps.tag.outputs.exists == 'true' }}      
+# #           exit 1
+#       - uses: fregante/setup-git-user@v1
+#         name: Setup git user
+#         if: ${{ steps.tag.outputs.exists == 'true' }}      
       - name: Bump version
+        id: version-bump
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
           npm install -g bump
           bump
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "::info ::Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
-          git add package.json
-          git commit -m "Updated version"
-          git push
+          COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
+          echo "::info ::$COMMENT"
+          echo "::set-output name=git-comment::$COMMENT"         
+      - name: Git Auto Commit
+        uses: stefanzweifel/git-auto-commit-action@v4.14.1
+        with:
+          file_pattern: package.json
+          commit_message: ${{ steps.tag.version-bump.git-comment }} 
