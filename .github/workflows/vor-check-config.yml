@@ -34,17 +34,25 @@ jobs:
           tag: ${{ steps.get-version.outputs.package-version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: mshick/add-pr-comment@v1
-        if: ${{ steps.tag.outputs.exists == 'true' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          message: |
-            Tag corresponding to package version [**${{ steps.get-version.outputs.package-version }}**] already exists.
-            _Bump version in package.json_.
-          allow-repeats: true
-      - name: Inform if tag exists
+#       - uses: mshick/add-pr-comment@v1
+#         if: ${{ steps.tag.outputs.exists == 'true' }}
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         with:
+#           message: |
+#             Tag corresponding to package version [**${{ steps.get-version.outputs.package-version }}**] already exists.
+#             _Bump version in package.json_.
+#           allow-repeats: true
+#       - name: Inform if tag exists
+#         if: ${{ steps.tag.outputs.exists == 'true' }}
+#         run: |
+#           echo "::error ::Tag already exists."
+#           exit 1
+      - name: Bump version
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
-          echo "::error ::Tag already exists."
-          exit 1
+          npm version patch
+          NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "::info ::Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
+          git commit -am "Updated version"
+          git push
