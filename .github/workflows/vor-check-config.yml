@@ -48,6 +48,7 @@ jobs:
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
           npm install -g bump
+          npm remove eslint-plugin-jsonc
           bump
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
           COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
