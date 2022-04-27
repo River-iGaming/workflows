@@ -12,11 +12,10 @@ jobs:
         uses: actions/checkout@v3
       - name: Prepare linter
         run: |          
-          npm install -g eslint
-          npm install eslint-plugin-jsonc
+          npm install -g eslint eslint-plugin-jsonc          
           echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
       - name: Lint JSON files
-        run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml
+        run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
       - name: Output Report
         if: ${{ failure() }}
         uses: jwgmeligmeyling/checkstyle-github-action@master
@@ -35,6 +34,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: mshick/add-pr-comment@v1
+        name: Add PR comment
         if: ${{ steps.tag.outputs.exists == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,7 +48,6 @@ jobs:
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
           npm install -g bump
-          npm remove eslint-plugin-jsonc
           bump
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
           COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
