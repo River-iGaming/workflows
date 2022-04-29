@@ -71,6 +71,9 @@ jobs:
           echo dotnet cli version':' $DOTNET_CLI_V
           git --version
 
+          TEST=${{github.event.pull_request.head.sha}}
+          echo test':' $TEST
+
       - name: Checkout
         uses: actions/checkout@v3.0.0
         if: github.event_name == 'pull_request'
