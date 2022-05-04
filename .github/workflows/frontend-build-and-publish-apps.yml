@@ -87,7 +87,7 @@ jobs:
         run: |
           echo "${NODE_AUTH_TOKEN}" | rev
 
-          echo "_auth = ${{ secrets.npm-token }}" >> $NPM_CONFIG_USERCONFIG
+          echo "\n_auth = ${{ secrets.npm-token }}" >> $NPM_CONFIG_USERCONFIG
 
           cat $NPM_CONFIG_USERCONFIG
 
