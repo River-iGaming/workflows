@@ -106,6 +106,10 @@ jobs:
           npm config set always-auth true
           npm config set _auth ${NODE_AUTH_TOKEN}
 
+          # Disable nuget.org source and river-tech source if present
+          dotnet nuget disable source nuget.org
+          dotnet nuget disable source river-tech
+
           dotnet nuget add source ${{ inputs.nuget-registry-url }} \
             -n nexus \
             -u ${{ secrets.nexus-username }} \
@@ -122,23 +126,21 @@ jobs:
         run: |
           SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
 
-          dotnet nuget disable source nuget.org
-          dotnet nuget disable source river-tech
-
           dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Collect Metadata
         id: metadata
         run: |
-          echo "::notice ::Branch name: $GITHUB_REF_NAME"
+          BRANCH_NAME="${{ github.head_ref }}"
+          echo "::notice ::Branch name: $BRANCH_NAME"
 
           PACKAGE_VERSION=$(cat ./package.json | yq .version)
           APP_NAME=$(cat ./package.json | yq .name)
 
           VERSION_TAG=""
 
-          case "$GITHUB_REF_NAME" in
+          case "$BRANCH_NAME" in
 
             "master")
             echo "::set-output name=publishable::true"
@@ -156,21 +158,21 @@ jobs:
             # feature
             feature\/+(?) )
             echo "::set-output name=publishable::true"
-            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
             ;;
 
             # hotfix
             hotfix\/+(?) )
             echo "::set-output name=publishable::true"
-            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             VERSION_TAG="hotfix-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
             ;;
 
             # named demo branch
             @(demo)\/+(?) )
             echo "::set-output name=publishable::true"
-            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
             ;;
 
@@ -240,9 +242,9 @@ jobs:
       - name: Downmerge master to develop
         if: ${{ inputs.publish }}
         run:  |
-          GITHUB_REF_NAME=${{steps.branch.outputs.name}}
+          BRANCH_NAME=${{steps.branch.outputs.name}}
 
-          if [ "$GITHUB_REF_NAME" != "master" ]
+          if [ "$BRANCH_NAME" != "master" ]
           then
             echo "::notice ::Skipping downmerge. Branch is not master."
             exit 0
