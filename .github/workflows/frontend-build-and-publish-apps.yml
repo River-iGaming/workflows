@@ -87,6 +87,8 @@ jobs:
         run: |
           echo "${NODE_AUTH_TOKEN}" | rev
 
+          echo "_auth = ${{ secrets.npm-token }}" >> $NPM_CONFIG_USERCONFIG
+
           npm config list -l 
 
           npm ci
