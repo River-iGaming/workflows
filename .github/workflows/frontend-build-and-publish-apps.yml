@@ -132,6 +132,9 @@ jobs:
       - name: Collect Metadata
         id: metadata
         run: |
+          # enable bash pattern matching
+          shopt -s extglob;
+
           BRANCH_NAME="${{ github.head_ref }}"
           echo "::notice ::Branch name: $BRANCH_NAME"
 
