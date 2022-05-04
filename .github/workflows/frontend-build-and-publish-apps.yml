@@ -109,8 +109,18 @@ jobs:
           npm run build:rel
 
       - name: Dotnet restore/publish
-        run: |        
+        run: |
           SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
+
+          dotnet nuget disable source nuget.org
+          dotnet nuget disable source river-tech
+
+          dotnet nuget add source https://nexus.rivertech.dev/repository/nuget/index.json \
+            -n nexus \
+            -u ${{ secrets.NEXUS_USERNAME }} \
+            -p ${{ secrets.NEXUS_PASSWORD }} \
+            --store-password-in-clear-text
+
           dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
