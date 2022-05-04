@@ -8,10 +8,15 @@ on:
         type: string
         default: '14'
       npm-registry-url:
-        description: The url address for npm registry (defaults to https://www.myget.org/F/river-tech/npm/)
+        description: The url address for npm registry
         required: false
         type: string
-        default: https://www.myget.org/F/river-tech/npm/
+        default: https://nexus.rivertech.dev/repository/npm/
+      nuget-registry-url:
+        description: The url address for nuget registry
+        required: false
+        type: string
+        default: https://nexus.rivertech.dev/repository/nuget/
       npm-registry-scope:
         description: The name of the npm scope (defaults to @odin)
         required: false
@@ -37,6 +42,10 @@ on:
     secrets:
       npm-token:
         required: true
+      nexus-username:
+        required: true
+      nexus-password:
+        required: true
       aws-access-key-id:
         required: true
       aws-secret-access-key:
@@ -56,14 +65,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.node-version }}
-      
+
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2.0.0
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
       - name: Setup yq environment
-        env:          
+        env:
           BINARY: 'yq_linux_amd64'
           VERSION: 'v4.25.1'
         run: |
@@ -79,6 +88,22 @@ jobs:
           echo "Dotnet cli version: $(dotnet --version)"
           git --version
 
+      - name: Setup build environment
+        run: |
+          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
+
+          echo "${NODE_AUTH_TOKEN}" | rev
+
+          npm config set registry ${{ inputs.npm-registry-url }}
+          npm config set always-auth true
+          npm config set _auth ${{ secrets.npm-token }}
+
+          dotnet nuget add source ${{ inputs.nuget-registry-url }} \
+            -n nexus \
+            -u ${{ secrets.nexus-username }} \
+            -p ${{ secrets.nexus-password }} \
+            --store-password-in-clear-text
+
       - name: Checkout
         uses: actions/checkout@v3.0.0
         with:
@@ -89,23 +114,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
         run: |
           echo "${NODE_AUTH_TOKEN}" | rev
-
-          npm config set registry ${{ inputs.npm-registry-url }}
-          npm config set always-auth true
-          npm config set _auth ${{ secrets.npm-token }}
-
-          echo "xxx"
-
-          cat $NPM_CONFIG_USERCONFIG
-
-          echo "xxx"
-
-          npm config list -l 
-
           npm ci
-
           npm run lint
-
           npm run build:rel
 
       - name: Dotnet restore/publish
@@ -114,12 +124,6 @@ jobs:
 
           dotnet nuget disable source nuget.org
           dotnet nuget disable source river-tech
-
-          dotnet nuget add source https://nexus.rivertech.dev/repository/nuget/index.json \
-            -n nexus \
-            -u ${{ secrets.NEXUS_USERNAME }} \
-            -p ${{ secrets.NEXUS_PASSWORD }} \
-            --store-password-in-clear-text
 
           dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
@@ -137,7 +141,7 @@ jobs:
           case "$GITHUB_REF_NAME" in
 
             "master")
-            echo "::set-output name=publishable::true"    
+            echo "::set-output name=publishable::true"
             ;;
 
             "develop")
@@ -152,21 +156,21 @@ jobs:
             # feature
             feature\/+(?) )
             echo "::set-output name=publishable::true"
-            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )  
+            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )
             VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
             ;;
 
             # hotfix
             hotfix\/+(?) )
             echo "::set-output name=publishable::true"
-            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )  
+            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )
             VERSION_TAG="hotfix-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
             ;;
 
             # named demo branch
             @(demo)\/+(?) )
             echo "::set-output name=publishable::true"
-            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )  
+            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )
             VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
             ;;
 
