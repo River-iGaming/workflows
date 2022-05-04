@@ -89,6 +89,10 @@ jobs:
 
           echo "_auth = ${{ secrets.npm-token }}" >> $NPM_CONFIG_USERCONFIG
 
+          cat $NPM_CONFIG_USERCONFIG
+
+          echo "xxx"
+
           npm config list -l 
 
           npm ci
