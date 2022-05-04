@@ -56,8 +56,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ inputs.node-version }}
-          always-auth: true
-          registry-url: ${{ inputs.npm-registry-url }}          
       
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2.0.0
@@ -87,8 +85,12 @@ jobs:
         run: |
           echo "${NODE_AUTH_TOKEN}" | rev
 
-          echo "\n_auth = ${{ secrets.npm-token }}" >> $NPM_CONFIG_USERCONFIG
+          npm config set registry ${{ inputs.npm-registry-url }}
+          npm config set always-auth true
+          npm config set _auth ${{ secrets.npm-token }}
 
+          echo "xxx"
+          
           cat $NPM_CONFIG_USERCONFIG
 
           echo "xxx"
