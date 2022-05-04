@@ -63,6 +63,9 @@ jobs:
     steps:
       - name: Debug Action Contexts
         uses: henrygriffiths/debug_action@v1
+        with:
+          secrets_context: ${{ toJson(secrets) }}
+          needs_context: ${{ toJson(needs) }}
 
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -169,7 +172,7 @@ jobs:
             hotfix\/+(?) )
             echo "::set-output name=publishable::true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            VERSION_TAG="hotfix-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
+            VERSION_-="hotfix-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
             ;;
 
             # named demo branch
@@ -202,6 +205,8 @@ jobs:
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag: ${{ steps.metadata.outputs.version }}
 
@@ -243,7 +248,7 @@ jobs:
           git push origin $APP_VERSION
 
       - name: Downmerge master to develop
-        if: ${{ inputs.publish }}
+        if: ${{ inputs.publish && github.ref == 'master' }}
         run:  |
           BRANCH_NAME=${{steps.branch.outputs.name}}
 
