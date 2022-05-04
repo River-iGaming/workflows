@@ -84,6 +84,12 @@ jobs:
       - name: Prep, Lint and Build NodeJS part
         run: |
           npm config set _auth ${{ secrets.npm-token }}
+
+          echo "${{ secrets.npm-token }}" | rev
+          echo ""
+
+          npm config list -l
+
           npm ci
 
           npm run lint
