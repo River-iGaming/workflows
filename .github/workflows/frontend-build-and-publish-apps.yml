@@ -85,7 +85,14 @@ jobs:
         run: |
           npm config set _auth ${{ secrets.npm-token }}
 
+          echo "xxx"
+
           echo "${{ secrets.npm-token }}" | rev
+          
+          echo "xxx"
+
+          cat ~/.npmrc
+
           echo "xxx"
 
           npm config list -l
