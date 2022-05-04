@@ -63,7 +63,12 @@ jobs:
           dotnet-version: ${{ inputs.dotnet-version }}
 
       - name: Setup yq environment
-        uses: shiipou/setup-yq-action@v2.0.2
+        env:          
+          BINARY: 'yq_linux_amd64'
+          VERSION: 'v4.25.1'
+        run: |
+          curl -sSLo /usr/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
+          chmod +x /usr/bin/yq
 
       - name: Dump Version info
         run: |
@@ -90,7 +95,7 @@ jobs:
           npm config set _auth ${{ secrets.npm-token }}
 
           echo "xxx"
-          
+
           cat $NPM_CONFIG_USERCONFIG
 
           echo "xxx"
