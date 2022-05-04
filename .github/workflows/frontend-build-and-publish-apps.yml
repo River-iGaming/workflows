@@ -61,6 +61,9 @@ jobs:
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
     steps:
+      - name: Debug Action Contexts
+        uses: henrygriffiths/debug_action@v1
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
@@ -130,8 +133,8 @@ jobs:
         run: |
           echo "::notice ::Branch name: $GITHUB_REF_NAME"
 
-          PACKAGE_VERSION=$(cat ./package.json | yq .version")
-          APP_NAME="$(cat ./package.json | yq .name)"
+          PACKAGE_VERSION=$(cat ./package.json | yq .version)
+          APP_NAME=$(cat ./package.json | yq .name)
 
           VERSION_TAG=""
 
