@@ -27,6 +27,13 @@ on:
         required: false
         type: string
         default: '6.0.x'
+
+      publish:
+        description: Set to true to publish artifacts to docker repository
+        required: false
+        type: boolean
+        default: true
+
     secrets:
       npm-token:
         required: true
@@ -34,8 +41,7 @@ on:
         required: true
       aws-secret-access-key:
         required: true
-      github-token:
-        required: true
+
 jobs:
   build:
     name: Build and publish
@@ -51,105 +57,116 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           always-auth: true
-          registry-url: ${{ inputs.npm-registry-url }}
-          scope: ${{ inputs.npm-registry-scope }}
+          registry-url: ${{ inputs.npm-registry-url }}          
       
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2.0.0
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
-      - name: Print environment versions
+      - name: Setup yq environment
+        uses: shiipou/setup-yq-action@v2.0.2
+
+      - name: Dump Version info
         run: |
-          NODE_V=$(node --version)
-          NPM_V=$(npm -v)
-          echo node version':' $NODE_V
-          echo npm version':' $NPM_V
           docker -v
           docker-compose -v
-          DOTNET_CLI_V=$(dotnet --version)
-          echo dotnet cli version':' $DOTNET_CLI_V
+          echo "Node version: $(node --version)"
+          echo "npm version: $(npm -v)"
+          echo "Dotnet cli version: $(dotnet --version)"
           git --version
 
       - name: Checkout
         uses: actions/checkout@v3.0.0
         with:
           fetch-depth: 0
-          token: ${{ secrets.github-token }}
-      
-      - name: Extract branch name
-        id: branch
+
+      - name: Prep, Lint and Build NodeJS part
         run: |
-          EVENT=${{ github.event_name }}
-          if [ $EVENT == "pull_request" ]; then
-            BRANCH_NAME=${{github.head_ref}}
-            echo "::set-output name=name::${BRANCH_NAME}"
-          else
-            echo "::set-output name=name::${GITHUB_REF_NAME}"
-          fi
+          npm config set _auth ${{ secrets.npm-token }}
+          npm ci
 
-      - name: Check if branch is publishable
-        id: check-branch
-        env:
-          BRANCH_NAME: ${{ steps.branch.outputs.name}}
-        run: |
-          echo "::notice ::Branch name: $BRANCH_NAME"
+          npm run lint
 
-          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
-            echo "::set-output name=publishable::false"
-            echo "::notice ::Non-publishable branch."
-          else 
-            echo "::set-output name=publishable::true"
-          fi
-
-      - name: Install npm
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build:rel
-
-      - name: Install tools
-        run: npm i -g @odin/infra.ci@0.1.22
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+          npm run build:rel
 
       - name: Dotnet restore/publish
+        run: |        
+          SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
+          dotnet restore $SOLUTION /p:Configuration=Release
+          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
+
+      - name: Collect Metadata
+        id: metadata
         run: |
-            SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
-            dotnet restore $SOLUTION /p:Configuration=Release
-            dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
+          echo "::notice ::Branch name: $GITHUB_REF_NAME"
 
-      - name: Set environment variables
-        run: |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
-          echo "::notice ::Branch name: $BRANCH_NAME"
+          PACKAGE_VERSION=$(cat ./package.json | yq .version")
+          APP_NAME="$(cat ./package.json | yq .name)"
 
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
+          VERSION_TAG=""
 
-          if [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-          elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+          case "$GITHUB_REF_NAME" in
+
+            "master")
+            echo "::set-output name=publishable::true"    
+            ;;
+
+            "develop")
+            echo "::set-output name=publishable::true"
+            VERSION_TAG="dev-$GITHUB_RUN_ID"
+            ;;
+
+            "vnext")
+            echo "::set-output name=publishable::true"
+            ;;
+
+            # feature
+            feature\/+(?) )
+            echo "::set-output name=publishable::true"
+            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )  
+            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
+            ;;
+
+            # hotfix
+            hotfix\/+(?) )
+            echo "::set-output name=publishable::true"
+            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )  
+            VERSION_TAG="hotfix-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
+            ;;
+
+            # named demo branch
+            @(demo)\/+(?) )
+            echo "::set-output name=publishable::true"
+            PRETTY_BRANCH_NAME=$(basename $GITHUB_REF_NAME | tr _ - )  
+            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
+            ;;
+
+            # demo only branch
+            "demo")
+            echo "::set-output name=publishable::true"
+            VERSION_TAG="demo-$GITHUB_RUN_ID"
+            ;;
+
+            *)
+            echo "::set-output name=publishable::false"
+            ;;
+          esac
+          shopt -u extglob;
+
+          if [ -z "${VERSION_TAG}" ]; then
+            echo "::set-output name=version::${PACKAGE_VERSION}-${VERSION_TAG}"
           else
-            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)" >> $GITHUB_ENV
+            echo "::set-output name=version::${PACKAGE_VERSION}"
           fi
+
+          echo "::set-output name=app_name::${APP_NAME}"
 
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
         with:
-          tag: ${{ env.APP_VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
+          tag: ${{ steps.metadata.outputs.version }}
 
       - name: Inform if tag exists
         if: ${{ steps.tag.outputs.exists == 'true' }}
@@ -158,7 +175,7 @@ jobs:
           exit 1
 
       - name: Configure AWS credentials
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ inputs.publish }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
@@ -167,11 +184,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ inputs.publish }}
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Deploy
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ inputs.publish }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
         run: |
@@ -179,21 +196,21 @@ jobs:
           docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
 
       - name: Logout of Amazon ECR
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ inputs.publish }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create Git tag for release
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ inputs.publish }}
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
 
       - name: Downmerge master to develop
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ inputs.publish }}
         run:  |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
+          GITHUB_REF_NAME=${{steps.branch.outputs.name}}
 
-          if [ "$BRANCH_NAME" != "master" ]
+          if [ "$GITHUB_REF_NAME" != "master" ]
           then
             echo "::notice ::Skipping downmerge. Branch is not master."
             exit 0
