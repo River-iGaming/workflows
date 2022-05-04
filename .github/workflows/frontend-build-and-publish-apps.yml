@@ -82,21 +82,9 @@ jobs:
           fetch-depth: 0
 
       - name: Prep, Lint and Build NodeJS part
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
         run: |
-          npm config set _auth ${{ secrets.npm-token }}
-
-          echo "xxx"
-
-          echo "${{ secrets.npm-token }}" | rev
-          
-          echo "xxx"
-
-          cat ~/.npmrc
-
-          echo "xxx"
-
-          npm config list -l
-
           npm ci
 
           npm run lint
