@@ -102,6 +102,7 @@ jobs:
       # End 'Prepare Build Metadata and Environment'
 
       - uses: actions/cache@v3
+        if: ${{ github.run_attempt == '1' }}
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
