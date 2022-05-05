@@ -35,6 +35,12 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       PUBLISH_PATH: obj/Docker/publish
     steps:
+      - name: Debug Action Contexts
+        uses: henrygriffiths/debug_action@v1
+        with:
+          secrets_context: ${{ toJson(secrets) }}
+          needs_context: ${{ toJson(needs) }}
+
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2.0.0
         with:
