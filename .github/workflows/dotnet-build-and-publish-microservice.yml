@@ -70,12 +70,6 @@ jobs:
             --store-password-in-clear-text
 
       # Start 'Prepare Build Metadata and Environment'
-      - name: Setup environmental variables
-        run: |
-          echo "SOLUTION=$(node -p "require('./package.json').vsBuildSolution")" >> $GITHUB_ENV
-          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-
       - name: Get Version
         id: version
         uses: River-iGaming/actions/dotnet/versions@feature/mw-ms-version
@@ -83,8 +77,16 @@ jobs:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}
 
+      - name: Setup environmental variables
+        run: |
+          echo "SOLUTION=$(node -p "require('./package.json').vsBuildSolution")" >> $GITHUB_ENV
+          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+
       - name: Check if Git Tag exists
         if: ${{ github.run_attempt == '1' }}
+        id: git-tag-check
         env:
           APP_VERSION: ${{ steps.version.outputs.app-version }}
         run: |
@@ -92,7 +94,6 @@ jobs:
               echo "::error::tag $APP_VERSION already exists."
               exit 1
           fi
-          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
 
       # End 'Prepare Build Metadata and Environment'
 
@@ -136,6 +137,7 @@ jobs:
 
 
       - name: Create git tag for release
+        if: ${{ steps.git-tag-check.conclusion != 'skipped' }}
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
