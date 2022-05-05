@@ -75,7 +75,7 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
-      - name: Setup yq environment
+      - name: Setup yq
         env:
           BINARY: 'yq_linux_amd64'
           VERSION: 'v4.25.1'
@@ -83,24 +83,13 @@ jobs:
           curl -sSLo /usr/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
           chmod +x /usr/bin/yq
 
-      - name: Dump Version info
-        run: |
-
-
       - name: Checkout
         uses: actions/checkout@v3.0.0
         with:
           fetch-depth: 0
 
-      - name: Setup build environment
+      - name: Setup Build Tools
         run: |
-          docker -v
-          docker-compose -v
-          echo "Node version: $(node --version)"
-          echo "npm version: $(npm -v)"
-          echo "Dotnet cli version: $(dotnet --version)"
-          git --version
-
           NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
 
           npm config set registry ${{ inputs.npm-registry-url }}
@@ -117,30 +106,28 @@ jobs:
             -p ${{ secrets.nexus-password }} \
             --store-password-in-clear-text
 
-      - name: Prep, Lint and Build NodeJS part
-        run: |
-          npm ci
-          npm run lint
-          npm run build:rel
-
-      - name: Dotnet restore/publish
-        run: |
-          SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
-
-          dotnet restore $SOLUTION /p:Configuration=Release
-          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
-
-      - name: Collect Metadata
+      - name: Prepare Build Metadata and Environment
         id: metadata
         run: |
           # enable bash pattern matching
           shopt -s extglob;
 
-          BRANCH_NAME="${{ github.head_ref }}"
+          # determine branch name (diff source since this workflow can run either on push or pull_request events)
+          case "${{ github.event_name }}" in
+            "pull_request")
+            BRANCH_NAME="${{ github.head_ref }}"
+            ;;
+            *)
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+            ;;
+          esac
+
+          # determine version + tag
           BASE_PACKAGE_VERSION=$(cat ./package.json | yq .version)
           APP_NAME=$(cat ./package.json | yq .name)
-
           VERSION_TAG=""
+
+          # determine publishability from
 
           case "$BRANCH_NAME" in
 
@@ -150,7 +137,7 @@ jobs:
 
             "develop")
             echo "::set-output name=publishable::true"
-            VERSION_TAG="dev-$GITHUB_RUN_ID"
+            VERSION_TAG="dev-${{ github.run_number }}"
             ;;
 
             "vnext")
@@ -161,27 +148,27 @@ jobs:
             feature\/+(?) )
             echo "::set-output name=publishable::true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
+            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
             ;;
 
             # hotfix
             hotfix\/+(?) )
             echo "::set-output name=publishable::true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            VERSION_-="hotfix-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
+            VERSION_-="hotfix-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
             ;;
 
             # named demo branch
             @(demo)\/+(?) )
             echo "::set-output name=publishable::true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-$GITHUB_RUN_ID"
+            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
             ;;
 
             # demo only branch
             "demo")
             echo "::set-output name=publishable::true"
-            VERSION_TAG="demo-$GITHUB_RUN_ID"
+            VERSION_TAG="demo-${{ github.run_number }}"
             ;;
 
             *)
@@ -196,26 +183,39 @@ jobs:
             PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${VERSION_TAG}
           fi
 
+          # expose metadata as workflow variables
+          echo "::set-output name=branch::${BRANCH_NAME}"
           echo "::set-output name=version::${PACKAGE_VERSION}"
           echo "::set-output name=app_name::${APP_NAME}"
+
+          # expose metadata as environment variables
+          echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
+          echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
+          echo "APP_VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
 
           echo "::notice ::Branch name: $BRANCH_NAME"
           echo "::notice ::App name: $APP_NAME"
           echo "::notice ::Version: $PACKAGE_VERSION"
 
-      - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.0.0
-        id: tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag: ${{ steps.metadata.outputs.version }}
-
-      - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists == 'true' }}
+      - name: Check if Git Tag exists
         run: |
-          echo "::error ::Tag already exists. Please make sure you bump version!"
-          exit 1
+          if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
+              echo "::error::tag $APP_VERSION already exists."
+              exit 1
+          fi
+
+      - name: Prep, Lint and Build NodeJS part
+        run: |
+          npm ci
+          npm run lint
+          npm run build:rel
+
+      - name: Dotnet restore/publish
+        run: |
+          SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
+
+          dotnet restore $SOLUTION /p:Configuration=Release
+          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Configure AWS credentials
         if: ${{ inputs.publish }}
