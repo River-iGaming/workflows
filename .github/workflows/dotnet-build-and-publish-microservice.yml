@@ -113,7 +113,7 @@ jobs:
         run: |
           SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
 
-          dotnet restore $SOLUTION /p:Configuration=Release
+          dotnet restore $SOLUTION /p:Configuration=Release -v detailed
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Configure AWS credentials
