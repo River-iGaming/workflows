@@ -84,7 +84,7 @@ jobs:
           package-version: ${{ env.PACKAGE_VERSION }}
 
       - name: Check if Git Tag exists
-        if: ${{ github.run_attempt == "1" }}
+        if: ${{ github.run_attempt == '1' }}
         env:
           APP_VERSION: ${{ steps.version.outputs.app-version }}
         run: |
