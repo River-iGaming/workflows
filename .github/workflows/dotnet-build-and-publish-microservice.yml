@@ -13,6 +13,11 @@ on:
         required: false
         type: boolean
         default: false
+      nuget-registry-url:
+        description: The url address for nuget registry
+        required: false
+        type: string
+        default: https://nexus.rivertech.dev/repository/nuget/index.json
     secrets:
       nexus-username:
         required: true
