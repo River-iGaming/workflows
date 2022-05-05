@@ -22,7 +22,7 @@ jobs:
   build:
     name: Build and Publish
     runs-on: ubuntu-latest
-    env: 
+    env:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       PUBLISH_PATH: obj/Docker/publish
     steps:
@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "SOLUTION=$(node -p "require('./package.json').vsBuildSolution")" >> $GITHUB_ENV
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV   
+          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
       - name: Get Version
         id: version
         uses: River-iGaming/actions/dotnet/versions@feature/mw-ms-version
@@ -58,7 +58,7 @@ jobs:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-nuget-          
+            ${{ runner.os }}-nuget-
       - name: Restore
         run: dotnet restore $SOLUTION /p:Configuration=Release
 
@@ -79,8 +79,8 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         if: ${{ inputs.publish }}
         env:
-          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}          
-          GIT_COMMIT: ${{ github.sha }}          
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          GIT_COMMIT: ${{ github.sha }}
         run: |
          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push

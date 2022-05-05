@@ -40,8 +40,6 @@ on:
         default: true
 
     secrets:
-      npm-token:
-        required: true
       nexus-username:
         required: true
       nexus-password:
@@ -139,9 +137,7 @@ jobs:
           shopt -s extglob;
 
           BRANCH_NAME="${{ github.head_ref }}"
-          echo "::notice ::Branch name: $BRANCH_NAME"
-
-          PACKAGE_VERSION=$(cat ./package.json | yq .version)
+          BASE_PACKAGE_VERSION=$(cat ./package.json | yq .version)
           APP_NAME=$(cat ./package.json | yq .name)
 
           VERSION_TAG=""
@@ -194,13 +190,18 @@ jobs:
           esac
           shopt -u extglob;
 
-          if [ -z "${VERSION_TAG}" ]; then
-            echo "::set-output name=version::${PACKAGE_VERSION}-${VERSION_TAG}"
-          else
-            echo "::set-output name=version::${PACKAGE_VERSION}"
+          PACKAGE_VERSION=${BASE_PACKAGE_VERSION}
+
+          if [ ! -z "${VERSION_TAG}" ]; then
+            PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${VERSION_TAG}
           fi
 
+          echo "::set-output name=version::${PACKAGE_VERSION}"
           echo "::set-output name=app_name::${APP_NAME}"
+
+          echo "::notice ::Branch name: $BRANCH_NAME"
+          echo "::notice ::App name: $APP_NAME"
+          echo "::notice ::Version: $PACKAGE_VERSION"
 
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
