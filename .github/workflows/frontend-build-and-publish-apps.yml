@@ -127,52 +127,42 @@ jobs:
           APP_NAME=$(cat ./package.json | yq .name)
           VERSION_TAG=""
 
-          # determine publishability from
-
           case "$BRANCH_NAME" in
 
             "master")
-            echo "::set-output name=publishable::true"
             ;;
 
             "develop")
-            echo "::set-output name=publishable::true"
             VERSION_TAG="dev-${{ github.run_number }}"
             ;;
 
             "vnext")
-            echo "::set-output name=publishable::true"
             ;;
 
             # feature
             feature\/+(?) )
-            echo "::set-output name=publishable::true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
             ;;
 
             # hotfix
             hotfix\/+(?) )
-            echo "::set-output name=publishable::true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             VERSION_-="hotfix-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
             ;;
 
             # named demo branch
             @(demo)\/+(?) )
-            echo "::set-output name=publishable::true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
             ;;
 
             # demo only branch
             "demo")
-            echo "::set-output name=publishable::true"
             VERSION_TAG="demo-${{ github.run_number }}"
             ;;
 
             *)
-            echo "::set-output name=publishable::false"
             ;;
           esac
           shopt -u extglob;
