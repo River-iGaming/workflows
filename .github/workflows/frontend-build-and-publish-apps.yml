@@ -188,6 +188,10 @@ jobs:
           echo "::notice ::Version: $PACKAGE_VERSION"
 
       - name: Check if Git Tag exists
+        if: ${{ github.run_attempt == '1' && inputs.publish }}
+        id: git-tag-check
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
         run: |
           if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
               echo "::error::tag $APP_VERSION already exists."
@@ -232,8 +236,9 @@ jobs:
         if: ${{ inputs.publish }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
-      - name: Create Git tag for release
-        if: ${{ inputs.publish }}
+
+      - name: Create git tag for release
+        if: ${{ steps.git-tag-check.conclusion != 'skipped' }}
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
