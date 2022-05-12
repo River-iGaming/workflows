@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: https://nexus.rivertech.dev/repository/nuget/index.json
+      nuget-publish-url:
+        description: The url address where to publish nugets
+        required: false
+        type: string
+        default: https://nexus.rivertech.dev/repository/odin-nuget/index.json
       publishable:
         description: Whether packages should be deployed to Nuget server
         type: boolean
@@ -90,7 +95,7 @@ jobs:
           dotnet pack $SOLUTION -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=$PACKAGE_VERSION -o ./ -c release
           # dotnet nuget push *.nupkg -s ${{ inputs.nuget-registry-url }}
           # Using the following in order to parallelise the nuget package push
-          find *.nupkg | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-registry-url }}
+          find *.nupkg | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
 
       - name: Git Tag
         if: inputs.publishable
