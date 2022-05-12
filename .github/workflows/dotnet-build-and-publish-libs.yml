@@ -10,7 +10,7 @@ on:
         default: '5.0.x'
       nuget-server-url:
         description: Url for Nuget server
-        required: true
+        required: false
         type: string
         default: https://nexus.rivertech.dev/repository/nuget/index.json
       publishable:
