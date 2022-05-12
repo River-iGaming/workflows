@@ -12,6 +12,7 @@ on:
         description: Url for Nuget server
         required: true
         type: string
+        default: https://nexus.rivertech.dev/repository/nuget/index.json
       publishable:
         description: Whether packages should be deployed to Nuget server
         type: boolean
