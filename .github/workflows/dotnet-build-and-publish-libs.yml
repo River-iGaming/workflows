@@ -70,6 +70,12 @@ jobs:
             -p ${{ secrets.nexus-password }} \
             --store-password-in-clear-text
 
+          dotnet nuget add source ${{ inputs.nuget-publish-url }} \
+            -n nexus \
+            -u ${{ secrets.nexus-username }} \
+            -p ${{ secrets.nexus-password }} \
+            --store-password-in-clear-text
+
       - name: Restore
         run: |
           dotnet restore $SOLUTION /p:Configuration=Release
