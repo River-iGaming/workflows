@@ -8,8 +8,8 @@ on:
         required: false
         type: string
         default: '5.0.x'
-      nuget-server-url:
-        description: Url for Nuget server
+      nuget-registry-url:
+        description: The url address for nuget registry
         required: false
         type: string
         default: https://nexus.rivertech.dev/repository/nuget/index.json
