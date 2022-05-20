@@ -74,4 +74,3 @@ jobs:
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
-          echo 'Pushed tag `$APP_VERSION`' >> $GITHUB_STEP_SUMMARY
