@@ -73,4 +73,5 @@ jobs:
         if: inputs.publishable
         run: |
           git tag $APP_VERSION
-          git push --tags
+          git push origin $APP_VERSION
+          echo 'Pushed tag `$APP_VERSION`' >> $GITHUB_STEP_SUMMARY
