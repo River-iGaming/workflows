@@ -144,6 +144,7 @@ jobs:
           fi
 
       - name: Check if tag exists
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
         with:
@@ -152,7 +153,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
       - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists == 'true' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
