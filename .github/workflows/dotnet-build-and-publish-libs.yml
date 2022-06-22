@@ -71,6 +71,8 @@ jobs:
           find *.nupkg | xargs -n 1 -P 8 -i dotnet nuget push {} -k ${{ secrets.nuget-server-token }} -s ${{ inputs.nuget-server-url }}
       - name: Git Tag
         if: inputs.publishable
+        env: 
+          APP_VERSION: ${{ steps.version.outputs.app-version }}    
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
