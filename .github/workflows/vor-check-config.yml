@@ -50,7 +50,7 @@ jobs:
           npm install -g bump
           bump
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if [ $(git ls-remote --exit-code origin refs/tags/$NEW_PACKAGE_VERSION) ]; then
+          if [ $(git ls-remote origin refs/tags/$NEW_PACKAGE_VERSION) ]; then
               echo "::error::Attempted to bump version to [$NEW_PACKAGE_VERSION] but tag already exists"
               exit 1
           else
