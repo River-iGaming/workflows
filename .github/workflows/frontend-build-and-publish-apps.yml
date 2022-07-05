@@ -104,7 +104,7 @@ jobs:
         run: |
           echo "::notice ::Branch name: $BRANCH_NAME"
 
-          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
+          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch."
           else 
@@ -142,7 +142,7 @@ jobs:
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
-          if [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
+          if [[ "$BRANCH_NAME" =~ ^(feature|dependabot)\/(.*)$ ]]
           then
             echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
           elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
