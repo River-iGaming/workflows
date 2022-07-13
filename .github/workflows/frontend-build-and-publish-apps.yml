@@ -149,7 +149,7 @@ jobs:
 
           if [[ "$BRANCH_NAME" =~ ^(feature|dependabot)\/(.*)$ ]]
           then
-            echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+            echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[2]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
           elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
           then
             echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
