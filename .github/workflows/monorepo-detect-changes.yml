@@ -1,0 +1,46 @@
+
+name: Detect Changed Files and Build Matrix
+
+on:
+  workflow_call:
+    inputs:
+      changed-files-filter:
+        description: One or more patterns used to detect what changed.
+        required: true
+        type: string
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup yq
+        env:
+          BINARY: 'yq_linux_amd64'
+          VERSION: 'v4.25.1'
+        run: |
+          mkdir -p ~/.local/bin
+          curl -sSLo ~/.local/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
+          chmod +x ~/.local/bin/yq
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v18.7
+        with:
+          files: ${{ inputs.changed-files-filter }}
+
+      - name: Prepare build matrix
+        id: matrix
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "$file was changed"
+          done
+
+          ARR=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | xargs dirname | sort | uniq | jq -nR -r -c '[inputs | select(length>0)]')
+          echo "${ARR}"
+          echo "::set-output name=value::$ARR"
