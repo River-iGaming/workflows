@@ -8,6 +8,11 @@ on:
         description: One or more patterns used to detect what changed.
         required: true
         type: string
+      changed-files-max-depth:
+        description: Maximum depth at which to detect changed files/paths
+        required: false
+        type: number
+        default: 2
 
 jobs:
   setup:
@@ -41,6 +46,6 @@ jobs:
             echo "$file was changed"
           done
 
-          ARR=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | xargs dirname | sort | uniq | jq -nR -r -c '[inputs | select(length>0)]')
+          ARR=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | xargs dirname | cut -d'/' -f1-${{ inputs.changed-files-max-depth }} | sort | uniq | jq -nR -r -c '[inputs | select(length>0)]')
           echo "${ARR}"
           echo "::set-output name=value::$ARR"
