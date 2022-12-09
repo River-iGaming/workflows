@@ -51,15 +51,15 @@ jobs:
       image-version: ${{ steps.versioning.outputs.final-version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3.1.0
       - name: Setup Java JDK
-        uses: actions/setup-java@v2.3.0
+        uses: actions/setup-java@v3.8.0
         with:
           distribution: 'temurin'
           java-version: ${{ inputs.java-version }}          
 
       - name: Setting up maven settings.xml
-        uses: whelk-io/maven-settings-xml-action@v7
+        uses: whelk-io/maven-settings-xml-action@v21
         with:
           servers: '[{ "id": "river-nexus", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" },{ "id": "platform-snapshots", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" },{ "id": "platform-releases", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" }]'
           mirrors: '[{ "id": "river-nexus", "mirrorOf": "*", "url": "https://nexus.riverigaming.tech/repository/maven-public/" }]'
@@ -67,7 +67,7 @@ jobs:
 
       - name: Cache
         if: ${{ github.run_attempt == 1 }}
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v3.0.11
         with:
           path: |
             ~/.m2/repository
@@ -108,11 +108,11 @@ jobs:
               ;;
           esac
           RELEASE_TAG=$( echo $VERSION | sed "s/[^[:alnum:]#._-]/-/g" )
-          echo "::notice::Setting ${{ inputs.ecr-repository }} version to: $RELEASE_TAG"
-          echo "::set-output name=project-version::$PROJECT_VERSION"
-          echo "::set-output name=final-version::$RELEASE_TAG"
+          echo "::notice::Setting ${{ inputs.ecr-repository }} version to: $RELEASE_TAG"          
+          echo "project-version=$PROJECT_VERSION" >> $GITHUB_OUTPUT
+          echo "final-version=$RELEASE_TAG" >> $GITHUB_OUTPUT          
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
