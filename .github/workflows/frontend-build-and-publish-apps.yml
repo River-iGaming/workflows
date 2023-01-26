@@ -237,6 +237,45 @@ jobs:
             fi
           fi
 
+      - name: Merge master to vnext
+        run:  |
+          BRANCH_NAME=${{steps.branch.outputs.name}}
+
+          if [ "$BRANCH_NAME" != "master" ]
+          then
+            echo "::notice ::Skipping merge to vnext. Branch is not master."
+            exit 0
+          fi
+
+          if ! [[ -n $(git ls-remote --heads origin vnext) ]]; then
+            echo "::notice ::Skipping vnext merge. vnext does not exist."
+            exit 0
+          fi
+
+          git fetch
+          git checkout vnext
+          git config user.email "deploy-bot@riverigaming.com"
+          git config user.name "rig-autobot"
+
+          if git merge --no-commit --no-ff --no-edit origin/master
+          then
+            if [ -z "$(git status --porcelain)" ]
+            then
+              echo "::notice ::Nothing to commit"
+            else
+              git commit --no-edit
+              git push origin vnext
+            fi
+          else
+            if git merge HEAD
+            then
+              echo "::notice ::"Nothing to merge"
+            else
+              echo "::warning ::"Failed to merge to vnext. Conflicts between master and vnext."
+              git merge --abort
+            fi
+          fi
+
       - name: Store npm artifact
         uses: actions/upload-artifact@v3
         if: failure()
