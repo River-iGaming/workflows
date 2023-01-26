@@ -245,4 +245,21 @@ jobs:
           name: npm-logs
           path: ~/.npm/_logs/*
           retention-days: 2
-  
+  merge:
+    name: merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if vnext exists
+        id: vnext
+        uses: GuillaumeFalourd/branch-exists@v1
+        with:
+          branch: vnext
+      - if: ${{ steps.check-branch-exists.outputs.exists == 'true' && steps.branch.outputs.name == 'master' }}
+
+      - name: Merge master -> vnext
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && vnext.outputs.exists == 'true' }}
+        uses: devmasx/merge-branch@master
+        with:
+          type: now
+          target_branch: vnext
+          github_token: ${{ secrets.github-token }}
