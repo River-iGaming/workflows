@@ -201,7 +201,7 @@ jobs:
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
-    
+
       - name: Downmerge master to develop
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run:  |
@@ -247,17 +247,18 @@ jobs:
           retention-days: 2
   merge:
     name: merge
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Check if vnext exists
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.branch.outputs.name == 'master' }}
         id: vnext
         uses: GuillaumeFalourd/branch-exists@v1
         with:
           branch: vnext
 
       - name: Merge master -> vnext
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && vnext.outputs.exists == 'true' }}
+        if: ${{ vnext.outputs.exists == 'true' }}
         uses: devmasx/merge-branch@master
         with:
           type: now
