@@ -250,11 +250,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if vnext exists
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         id: vnext
         uses: GuillaumeFalourd/branch-exists@v1
         with:
           branch: vnext
-      - if: ${{ steps.check-branch-exists.outputs.exists == 'true' && steps.branch.outputs.name == 'master' }}
 
       - name: Merge master -> vnext
         if: ${{ steps.check-branch.outputs.publishable == 'true' && vnext.outputs.exists == 'true' }}
