@@ -238,6 +238,7 @@ jobs:
           fi
 
       - name: Merge master to vnext
+        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run:  |
           BRANCH_NAME=${{steps.branch.outputs.name}}
 
