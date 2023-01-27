@@ -244,6 +244,7 @@ jobs:
           name: npm-logs
           path: ~/.npm/_logs/*
           retention-days: 2
+
   merge:
     name: merge
     needs: build
