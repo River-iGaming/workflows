@@ -250,15 +250,19 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Get branch name
+        id: branch
+        uses: tj-actions/branch-names@v6
+
       - name: Check if vnext exists
-        if: ${{ steps.branch.outputs.name == 'master' }}
+        if: ${{ steps.branch.outputs.current_branch == 'master' }}
         id: vnext
         uses: GuillaumeFalourd/branch-exists@v1
         with:
           branch: vnext
 
       - name: Merge master -> vnext
-        if: ${{ vnext.outputs.exists == 'true' }}
+        if: ${{ steps.vnext.outputs.exists == 'true' }}
         uses: devmasx/merge-branch@master
         with:
           type: now
