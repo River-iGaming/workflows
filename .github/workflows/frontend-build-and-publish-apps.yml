@@ -268,3 +268,4 @@ jobs:
           type: now
           target_branch: vnext
           github_token: ${{ secrets.github-token }}
+          message: 'feat(*): merge from master'
