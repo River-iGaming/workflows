@@ -7,17 +7,17 @@ on:
 
 jobs:
   core-files-modified:
-    runs-on: ubuntu-latest
     name: Core Files Modified
+    runs-on: ubuntu-latest
     steps:
-      name: Check changed files
+      - name: Check changed files
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
         token: ${{ secrets.github-token }}
         ref: ${{ github.event.pull_request.head.sha }}
 
-      name: Get modified core files excluding the app files
+      - name: Get modified core files excluding the app files
       id: modified-files-excluded
       uses: tj-actions/changed-files@v35
       with:
@@ -27,7 +27,7 @@ jobs:
           *.app.*
           index.*
 
-      name: Comment If Core Files Change
+      - name: Comment If Core Files Change
       if: steps.changed-files-excluded.outputs.any_changed == 'true'
       uses: thollander/actions-comment-pull-request@v2
       with:
