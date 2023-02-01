@@ -21,11 +21,11 @@ jobs:
         id: modified-files-excluded
         uses: tj-actions/changed-files@v35
         with:
+          files_ignore_separator: ","
           files: |
             ClientApp/src/**/*.{ts,html,scss}
           files_ignore: | 
-            *.app.*
-            index.*
+            *.app.*, index.*
 
       - name: Comment If Core Files Change
         if: steps.changed-files-excluded.outputs.any_changed == 'true'
