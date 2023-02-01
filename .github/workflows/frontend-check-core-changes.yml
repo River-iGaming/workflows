@@ -23,10 +23,8 @@ jobs:
         with:
           files_ignore_separator: ","
           dir_names: true
-          files: |
-            ClientApp/src/**/*.{ts,html,scss}
-          files_ignore: | 
-            *.app.*, index.*
+          files: "ClientApp/src/**/*.{ts,html,scss}"
+          files_ignore: "*.app.*, index.*"
 
       - name: Comment If Core Files Change
         if: steps.modified-files-excluded.outputs.any_changed == 'true'
