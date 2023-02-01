@@ -22,6 +22,7 @@ jobs:
         uses: tj-actions/changed-files@v35
         with:
           files_ignore_separator: ","
+          dir_names: true
           files: |
             ClientApp/src/**/*.{ts,html,scss}
           files_ignore: | 
