@@ -34,3 +34,5 @@ jobs:
         with:
           message: |
             Core files have been modified make sure QA are aware of changes in: ${{ steps.modified-files-excluded.outputs.all_changed_files }}
+          comment_tag: modifier-core
+          mode: recreate
