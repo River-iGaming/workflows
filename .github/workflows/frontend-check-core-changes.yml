@@ -11,25 +11,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check changed files
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.github-token }}
-        ref: ${{ github.event.pull_request.head.sha }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.github-token }}
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Get modified core files excluding the app files
-      id: modified-files-excluded
-      uses: tj-actions/changed-files@v35
-      with:
-        files: |
-          ClientApp/src/**/*.{ts,html,scss}
-        files_ignore: | 
-          *.app.*
-          index.*
+        id: modified-files-excluded
+        uses: tj-actions/changed-files@v35
+        with:
+          files: |
+            ClientApp/src/**/*.{ts,html,scss}
+          files_ignore: | 
+            *.app.*
+            index.*
 
       - name: Comment If Core Files Change
-      if: steps.changed-files-excluded.outputs.any_changed == 'true'
-      uses: thollander/actions-comment-pull-request@v2
-      with:
-        message: |
-          Core files have been modified make sure QA are aware of: ${{ steps.changed-files-excluded.outputs.all_changed_files }}"
+        if: steps.changed-files-excluded.outputs.any_changed == 'true'
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            Core files have been modified make sure QA are aware of: ${{ steps.changed-files-excluded.outputs.all_changed_files }}"
