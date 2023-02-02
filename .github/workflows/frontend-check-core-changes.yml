@@ -23,6 +23,9 @@ jobs:
           files_ignore: "*.app.*, *.vars.*, index.*"
           separator: "\n"
 
+      - name: Print modified core files
+        run: echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}"
+
       - name: Comment If Core Files Change
         if: steps.modified-files-excluded.outputs.any_changed == 'true'
         uses: thollander/actions-comment-pull-request@v2
