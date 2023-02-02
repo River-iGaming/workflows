@@ -21,10 +21,11 @@ jobs:
           dir_names: true
           files: "ClientApp/src/**/*.{ts,html,scss}"
           files_ignore: "*.app.*, *.vars.*, index.*"
-          separator: ", "
+          separator: " "
 
       - name: Print modified core files
-        run: echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}"
+        id: modified-files-break
+        run: echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | tr " " "\n"
 
       - name: Comment If Core Files Change
         if: steps.modified-files-excluded.outputs.any_changed == 'true'
