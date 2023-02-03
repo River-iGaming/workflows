@@ -19,7 +19,7 @@ jobs:
         with:
           files_ignore_separator: ","
           files: "ClientApp/src/**/*.{ts,html,scss}"
-          files_ignore: "*.app.*, *.vars.*, index.*"
+          files_ignore: "*.app.*, *.vars.*, *.module.*, index.*"
 
       - name: Fetch upstream
         run: |
