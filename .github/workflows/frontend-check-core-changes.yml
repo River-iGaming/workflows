@@ -36,7 +36,7 @@ jobs:
 
       - name: ECHO DIFF FROM Upstream
         run:  |
-          echo "${steps.diff-from-upstream.outputs.value}"
+          echo "${{steps.diff-from-upstream.outputs.value}}"
 
       - name: Print modified core files
         id: modified-files-break
@@ -44,7 +44,7 @@ jobs:
 
       - name: ECHO modified core files
         run:  |
-          echo "${steps.modified-files-break.outputs.value}"
+          echo "${{steps.modified-files-break.outputs.value}}"
 
       - name: Comment If Core Files Change
         if: steps.modified-files-excluded.outputs.any_changed == 'true'
