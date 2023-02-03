@@ -34,9 +34,17 @@ jobs:
           echo "value = $(git diff upstream/master..HEAD --name-only ClientApp/src ':!*.brand.*' ':!*.vars.*')" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: ECHO DIFF FROM Upstream
+        run:  |
+          echo "${steps.diff-from-upstream.outputs.value}"
+
       - name: Print modified core files
         id: modified-files-break
         run: echo "value = $($'{{ steps.modified-files-excluded.outputs.all_changed_files }}' | tr ' ' '\n' )" >> $GITHUB_OUTPUT
+
+      - name: ECHO modified core files
+        run:  |
+          echo "${steps.modified-files-break.outputs.value}"
 
       - name: Comment If Core Files Change
         if: steps.modified-files-excluded.outputs.any_changed == 'true'
