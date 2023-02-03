@@ -18,7 +18,6 @@ jobs:
         uses: tj-actions/changed-files@v35
         with:
           files_ignore_separator: ","
-          dir_names: true
           files: "ClientApp/src/**/*.{ts,html,scss}"
           files_ignore: "*.app.*, *.vars.*, index.*"
 
@@ -45,9 +44,10 @@ jobs:
           echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | tr " " "\n" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: ECHO modified core files
+      - name: Check modified files with upstream
         run:  |
-          echo "${{steps.modified-files-break.outputs.value}}"
+          difference=$(echo "$steps.modified-files-excluded.outputs.all_changed_files" | grep -v -F -x -f <(echo "steps.diff-from-upstream.outputs.value"))
+          echo $difference
 
       - name: Comment If Core Files Change
         if: steps.modified-files-excluded.outputs.any_changed == 'true'
