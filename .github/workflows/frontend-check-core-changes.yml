@@ -43,8 +43,9 @@ jobs:
       - name: Check modified files with upstream
         id: modified-files-upstream
         run:  |
+          common_lines=$(comm -12 <(echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | sort) <(echo "${{ steps.diff-from-upstream.outputs.value }}" | sort))
           echo "value<<EOF" >> $GITHUB_OUTPUT
-          echo comm -12 <(echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | sort) <(echo "${{ steps.diff-from-upstream.outputs.value }}" | sort) >> $GITHUB_OUTPUT
+          echo "$common_lines" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment If Core Files Change
