@@ -30,7 +30,7 @@ jobs:
         id: diff-from-upstream
         run:  |
           echo "value<<EOF" >> $GITHUB_OUTPUT
-          echo "$(git diff upstream/master..HEAD --name-only ClientApp/src ':!*.brand.*' ':!*.vars.*')" >> $GITHUB_OUTPUT
+          echo "$(git diff upstream/master..HEAD --name-only ClientApp/src ':!*.brand.*' ':!*.vars.*' ':!*.module.*')" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Print modified core files
@@ -44,7 +44,7 @@ jobs:
         id: modified-files-upstream
         run:  |
           echo "value<<EOF" >> $GITHUB_OUTPUT
-          echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | grep -v -F -x -f <(echo "${{ steps.diff-from-upstream.outputs.value }}") >> $GITHUB_OUTPUT
+          echo comm -12 <(echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | sort) <(echo "${{ steps.diff-from-upstream.outputs.value }}" | sort) >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment If Core Files Change
