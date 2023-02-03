@@ -29,7 +29,10 @@ jobs:
 
       - name: Get Diff From Upstream
         id: diff-from-upstream
-        run: echo "value = $(git diff upstream/master..HEAD --name-only ClientApp/src ':!*.brand.*' ':!*.vars.*')" >> $GITHUB_OUTPUT
+        run:  |
+          echo "value<<EOF" >> $GITHUB_OUTPUT
+          echo "value = $(git diff upstream/master..HEAD --name-only ClientApp/src ':!*.brand.*' ':!*.vars.*')" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Print modified core files
         id: modified-files-break
