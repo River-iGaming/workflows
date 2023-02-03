@@ -44,7 +44,7 @@ jobs:
         id: modified-files-upstream
         run:  |
           echo "value<<EOF" >> $GITHUB_OUTPUT
-          echo "$steps.modified-files-excluded.outputs.all_changed_files" | grep -v -F -x -f <(echo "steps.diff-from-upstream.outputs.value") >> $GITHUB_OUTPUT
+          echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | grep -v -F -x -f <(echo "${{ steps.diff-from-upstream.outputs.value }}") >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment If Core Files Change
@@ -56,7 +56,7 @@ jobs:
             ${{ steps.modified-files-break.outputs.value }}
 
             Core files changed that do not match with upstream:
-            ${{steps.modified-files-upstream.outputs.value || 'None'}}
+            ${{ steps.modified-files-upstream.outputs.value || 'None' }}
 
           comment_tag: modifier-core
           mode: recreate
