@@ -42,7 +42,7 @@ jobs:
         id: modified-files-break
         run: |
           echo "value<<EOF" >> $GITHUB_OUTPUT
-          echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | tr " " "\n"
+          echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | tr " " "\n" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: ECHO modified core files
