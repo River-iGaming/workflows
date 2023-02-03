@@ -157,20 +157,6 @@ jobs:
             echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)" >> $GITHUB_ENV
           fi
 
-      - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.0.0
-        id: tag
-        with:
-          tag: ${{ env.APP_VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
-
-      - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists == 'true' }}
-        run: |
-          echo "::error ::Tag already exists. Please make sure you bump version!"
-          exit 1
-
       - name: Configure AWS credentials
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         uses: aws-actions/configure-aws-credentials@v1
@@ -190,82 +176,4 @@ jobs:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
         run: |
           docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
-          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
-
-      - name: Logout of Amazon ECR
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
-        run: docker logout ${{ steps.login-ecr.outputs.registry }}
-
-      - name: Create Git tag for release
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
-        run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
-
-      - name: Downmerge master to develop
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
-        run:  |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
-
-          if [ "$BRANCH_NAME" != "master" ]
-          then
-            echo "::notice ::Skipping downmerge. Branch is not master."
-            exit 0
-          fi
-
-          git fetch
-          git checkout develop
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
-
-          if git merge --no-commit --no-ff --no-edit origin/master
-          then
-            if [ -z "$(git status --porcelain)" ]
-            then
-              echo "::notice ::Nothing to commit"
-            else
-              git commit --no-edit
-              git push origin develop
-            fi
-          else
-            if git merge HEAD
-            then
-              echo "::notice ::"Nothing to merge"
-            else
-              echo "::warning ::"Failed to downmerge. Conflicts between master and develop."
-              git merge --abort
-            fi
-          fi
-
-      - name: Store npm artifact
-        uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: npm-logs
-          path: ~/.npm/_logs/*
-          retention-days: 2
-
-  merge:
-    name: merge
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get branch name
-        id: branch
-        uses: tj-actions/branch-names@v6
-
-      - name: Check if vnext exists
-        if: ${{ steps.branch.outputs.current_branch == 'master' }}
-        id: vnext
-        uses: GuillaumeFalourd/branch-exists@v1
-        with:
-          branch: vnext
-
-      - name: Merge master -> vnext
-        if: ${{ steps.vnext.outputs.exists == 'true' }}
-        uses: devmasx/merge-branch@master
-        with:
-          type: now
-          target_branch: vnext
-          github_token: ${{ secrets.github-token }}
-          message: 'feat(*): merge from master'
+          echo $ECR_HOST $APP_NAME $APP_VERSION 
