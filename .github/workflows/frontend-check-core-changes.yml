@@ -22,9 +22,18 @@ jobs:
           files: "ClientApp/src/**/*.{ts,html,scss}"
           files_ignore: "*.app.*, *.vars.*, index.*"
 
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/River-iGaming/midgard.white-label.git
+          git fetch upstream
+
+      - name: Get Diff From Upstream
+        id: diff-from-upstream
+        run: echo "value = $(git diff upstream/master..HEAD --name-only ClientApp/src ':!*.brand.*' ':!*.vars.*')" >> $GITHUB_OUTPUT
+
       - name: Print modified core files
         id: modified-files-break
-        run: echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | tr " " "\n"
+        run: echo "value = $($'{{ steps.modified-files-excluded.outputs.all_changed_files }}' | tr ' ' '\n' )" >> $GITHUB_OUTPUT
 
       - name: Comment If Core Files Change
         if: steps.modified-files-excluded.outputs.any_changed == 'true'
