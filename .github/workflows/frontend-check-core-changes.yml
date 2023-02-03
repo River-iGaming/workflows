@@ -33,10 +33,6 @@ jobs:
           echo "$(git diff upstream/master..HEAD --name-only ClientApp/src ':!*.brand.*' ':!*.vars.*')" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: ECHO DIFF FROM Upstream
-        run:  |
-          echo "${{steps.diff-from-upstream.outputs.value}}"
-
       - name: Print modified core files
         id: modified-files-break
         run: |
@@ -45,15 +41,22 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Check modified files with upstream
+         id: modified-files-upstream
         run:  |
-          difference=$(echo "$steps.modified-files-excluded.outputs.all_changed_files" | grep -v -F -x -f <(echo "steps.diff-from-upstream.outputs.value"))
-          echo $difference
+          echo "value<<EOF" >> $GITHUB_OUTPUT
+          echo "$steps.modified-files-excluded.outputs.all_changed_files" | grep -v -F -x -f <(echo "steps.diff-from-upstream.outputs.value") >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment If Core Files Change
         if: steps.modified-files-excluded.outputs.any_changed == 'true'
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            Core files have been modified make sure QA are aware of changes in: \n${{ steps.modified-files-break.outputs.value }}
+            Core files have been modified make sure QA are aware of changes in:
+            ${{ steps.modified-files-break.outputs.value }}
+
+            Core files changed that do not match with upstream
+            ${{ steps.modified-files-upstream.outputs.value }}
+
           comment_tag: modifier-core
           mode: recreate
