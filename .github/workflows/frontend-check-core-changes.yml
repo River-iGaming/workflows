@@ -55,7 +55,7 @@ jobs:
             Core files have been modified make sure QA are aware of changes in:
             ${{ steps.modified-files-break.outputs.value }}
 
-            Core files changed that do not match with upstream
+            Core files changed that do not match with upstream:
             ${{ steps.modified-files-upstream.outputs.value }}
 
           comment_tag: modifier-core
