@@ -56,7 +56,7 @@ jobs:
             ${{ steps.modified-files-break.outputs.value }}
 
             Core files changed that do not match with upstream:
-            ${{ steps.modified-files-upstream.outputs.value }}
+            ${{steps.modified-files-upstream.outputs.value:-"None"}}
 
           comment_tag: modifier-core
           mode: recreate
