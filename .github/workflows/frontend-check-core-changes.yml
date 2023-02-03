@@ -41,7 +41,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Check modified files with upstream
-         id: modified-files-upstream
+        id: modified-files-upstream
         run:  |
           echo "value<<EOF" >> $GITHUB_OUTPUT
           echo "$steps.modified-files-excluded.outputs.all_changed_files" | grep -v -F -x -f <(echo "steps.diff-from-upstream.outputs.value") >> $GITHUB_OUTPUT
