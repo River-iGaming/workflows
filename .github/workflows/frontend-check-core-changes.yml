@@ -1,0 +1,66 @@
+name: Comment on Core Files changed
+on:
+  workflow_call:
+    secrets:
+      github-token:
+        required: true
+
+jobs:
+  core-files-modified:
+    name: Core Files Modified
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check changed files
+        uses: actions/checkout@v3
+
+      - name: Get modified core files excluding the app files
+        id: modified-files-excluded
+        uses: tj-actions/changed-files@v35
+        with:
+          files_ignore_separator: ","
+          files: "ClientApp/src/**/*.{ts,html,scss}"
+          files_ignore: "*.app.*, *.vars.*, *.module.*, index.*"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/River-iGaming/midgard.white-label.git
+          git fetch upstream
+
+      - name: Get Diff From Upstream
+        id: diff-from-upstream
+        run:  |
+          echo "value<<EOF" >> $GITHUB_OUTPUT
+          echo "$(git diff upstream/master..HEAD --name-only ClientApp/src ':!*.brand.*' ':!*.vars.*' ':!*.module.*')" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Print modified core files
+        id: modified-files-break
+        run: |
+          echo "value<<EOF" >> $GITHUB_OUTPUT
+          echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | tr " " "\n" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check modified files with upstream
+        id: modified-files-upstream
+        run:  |
+          echo "value<<EOF" >> $GITHUB_OUTPUT
+          comm -12 <(echo "${{ steps.modified-files-excluded.outputs.all_changed_files }}" | sort) <(echo "${{ steps.diff-from-upstream.outputs.value }}" | sort) >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment If Core Files Change
+        if: steps.modified-files-excluded.outputs.any_changed == 'true'
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            Core files have been modified make sure QA are aware of changes in:
+            ```
+            ${{ steps.modified-files-break.outputs.value }}
+            ```
+
+            Core files changed that do not match with upstream:
+            ```
+            ${{ steps.modified-files-upstream.outputs.value || 'None' }}
+            ```
+
+          comment_tag: modifier-core
+          mode: recreate
