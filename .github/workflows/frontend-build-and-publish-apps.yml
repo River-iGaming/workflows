@@ -161,7 +161,7 @@ jobs:
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
         with:
-          tag: "${{ env.APP_VERSION }}${{ steps.branch.outputs.name == 'vnext' && '-joe-true-' || '-joe-false-' }}"
+          tag: "${{ env.APP_VERSION }}${{ steps.branch.outputs.name == 'vnext' && '-vnext' || '' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 

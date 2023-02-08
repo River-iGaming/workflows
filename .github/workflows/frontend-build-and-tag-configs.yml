@@ -90,7 +90,7 @@ jobs:
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
         with:
-          tag: "${{ env.PACKAGE_VERSION }}${{ steps.branch.outputs.name == 'vnext' ? '-vnext' : '' }}"
+          tag: "${{ env.PACKAGE_VERSION }}${{ steps.branch.outputs.name == 'vnext' && '-vnext' || '' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
