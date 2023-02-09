@@ -155,13 +155,16 @@ jobs:
             echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
           else
             echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)" >> $GITHUB_ENV
+            if [[ steps.branch.outputs.name == 'vnext' ]]; then
+             echo "APP_VERSION=$APP_VERSION-vnext" >> $GITHUB_ENV
+            fi
           fi
 
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
         with:
-          tag: "${{ env.APP_VERSION }}${{ steps.branch.outputs.name == 'vnext' && '-vnext' || '' }}"
+          tag: ${{ env.APP_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
@@ -199,8 +202,8 @@ jobs:
       - name: Create Git tag for release
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run: |
-          git tag "${{ env.APP_VERSION }}${{ steps.branch.outputs.name == 'vnext' && '-vnext' || '' }}"
-          git push origin "${{ env.APP_VERSION }}${{ steps.branch.outputs.name == 'vnext' && '-vnext' || '' }}"
+          git tag ${{ env.APP_VERSION }} 
+          git push origin ${{ env.APP_VERSION }} 
 
       - name: Downmerge master to develop
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
