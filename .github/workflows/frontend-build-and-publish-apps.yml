@@ -153,11 +153,8 @@ jobs:
           elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
           then
             echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-          elif [[ steps.branch.outputs.name == 'vnext' ]]
-          then
-            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)-vnext" >> $GITHUB_ENV
           else
-            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)" >> $GITHUB_ENV
+            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext' || '' }}" >> $GITHUB_ENV
           fi
 
       - name: Check if tag exists
