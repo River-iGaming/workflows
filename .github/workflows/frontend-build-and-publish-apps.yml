@@ -199,8 +199,8 @@ jobs:
       - name: Create Git tag for release
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
+          git tag ${{ env.APP_VERSION }}
+          git push origin ${{ env.APP_VERSION }}
 
       - name: Downmerge master to develop
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
