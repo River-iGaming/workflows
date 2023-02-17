@@ -23,7 +23,7 @@ jobs:
 
       - name: Fetch upstream
         run: |
-          git remote add upstream https://github.com/River-iGaming/midgard.white-label.git
+          git remote add upstream https://${{ secrets.github-token }}@github.com/River-iGaming/midgard.white-label
           git fetch upstream
 
       - name: Get Diff From Upstream
