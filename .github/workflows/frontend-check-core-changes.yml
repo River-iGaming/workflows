@@ -11,7 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check changed files
-        uses: actions/checkout@v3
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.github-token }}
+        fetch-depth: 0
 
       - name: Get modified core files excluding the app files
         id: modified-files-excluded
@@ -23,9 +26,8 @@ jobs:
 
       - name: Fetch upstream
         run: |
-          echo "${{ secrets.github-token }}" | base64
-          git remote add upstream https://${{ secrets.github-token }}@github.com/River-iGaming/midgard.white-label
-          git fetch upstream
+          git remote add upstream https://github.com/River-iGaming/midgard.white-label.git
+          git fetch upstream master
 
       - name: Get Diff From Upstream
         id: diff-from-upstream
