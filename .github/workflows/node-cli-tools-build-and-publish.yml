@@ -1,0 +1,169 @@
+name: Node CLI Apps Build and Publish
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node version to use (defaults to 14)
+        required: false
+        type: string
+        default: '14'
+      npm-registry-url:
+        description: The url address for npm registry (defaults to https://www.myget.org/F/river-tech/npm/) # todo: change to nexus
+        required: false
+        type: string
+        default: https://www.myget.org/F/river-tech/npm/ # todo: change to nexus
+      npm-registry-scope:
+        description: The name of the npm scope (defaults to @odin)
+        required: false
+        type: string
+        default: '@odin'
+    secrets:
+      npm-token:
+        required: true
+      aws-access-key-id:
+        required: true
+      aws-secret-access-key:
+        required: true
+      github-token:
+        required: true
+
+concurrency: 
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and publish app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node-version }}
+          always-auth: true
+          registry-url: ${{ inputs.npm-registry-url }}
+          scope: ${{ inputs.npm-registry-scope }}
+
+      - name: Print environment versions
+        run: |
+          NODE_V=$(node --version)
+          NPM_V=$(npm -v)
+          echo node version':' $NODE_V
+          echo npm version':' $NPM_V
+
+      - name: Checkout
+        uses: actions/checkout@v3.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Get commit message and branch name
+        id: git
+        run: |
+          EVENT=${{ github.event_name }}
+          if [ $EVENT == "pull_request" ]; then
+            BRANCH_NAME=${{github.head_ref}}
+            echo "::set-output name=branch-name::${BRANCH_NAME}"
+            echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD^2)
+          else
+            echo "::set-output name=branch-name::${GITHUB_REF_NAME}"
+            echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD)
+          fi
+
+      - name: Install npm
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+
+      - name: lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      # - name: Test
+      #   run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
+
+      - name: Check if branch is publishable
+        id: check-branch
+        env:
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
+        run: |
+          echo "::notice ::Branch name: $BRANCH_NAME"
+
+          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
+            echo "::set-output name=publishable::false"
+            echo "::notice ::Non-publishable branch."
+          else 
+            echo "::set-output name=publishable::true"
+          fi
+
+      - name: Check if commit is publishable
+        id: commit
+        env:
+          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
+        run: |
+          echo "::notice ::Commit message: $COMMIT_MESSAGE"
+
+          if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
+            echo "::set-output name=publishable::false"
+            echo "::notice ::This update doesn't need to be published."
+          else 
+            echo "::set-output name=publishable::true"
+          fi
+
+      - name: Fetch tag from package.json
+        id: package
+        if: ${{ steps.commit.outputs.publishable == 'true' }}
+        run: |
+          TAG=$(node -p "require('./package.json').version")
+          echo "::set-output name=tag::${TAG}"
+
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with: 
+          tag: ${{ steps.package.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+
+      - name: Inform if tag exists
+        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "::error ::Tag already exists. Please make sure you bump version!"
+          exit 1
+
+      - name: Configure AWS credentials
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Logout of Amazon ECR
+        if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
+
+      - name: Deploy
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' }}
+        run: |
+          echo "git tag"
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          git tag $PACKAGE_VERSION
+          git push origin $PACKAGE_VERSION
+          npm run publish:rel
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+
+      - name: Store npm artifact
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: npm-logs
+          path: ~/.npm/_logs/*
+          retention-days: 2
