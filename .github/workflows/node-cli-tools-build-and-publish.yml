@@ -1,4 +1,4 @@
-name: Frontend Build and Publish Library
+name: Node CLI Apps Build and Publish
 on:
   workflow_call:
     inputs:
