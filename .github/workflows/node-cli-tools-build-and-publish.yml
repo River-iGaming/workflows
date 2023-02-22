@@ -36,16 +36,10 @@ jobs:
     name: Build and publish app
     runs-on: ubuntu-latest
     steps:
-      # - name: Setup Node
-      #   uses: actions/setup-node@v3
-      #   with:
-      #     node-version: ${{ inputs.node-version }}
-      #     always-auth: true
-      #     registry-url: ${{ inputs.npm-registry-url }}
-      #     scope: ${{ inputs.npm-registry-scope }}
       - name: Setup Node
         run: |
           curl https://get.volta.sh | bash
+
           exec bash
           volta install node@${{ inputs.node-version }}
 
@@ -61,6 +55,7 @@ jobs:
           NPM_V=$(npm -v)
           echo node version':' $NODE_V
           echo npm version':' $NPM_V
+          echo registry':' ${{ inputs.node-version }}
 
       - name: Checkout
         uses: actions/checkout@v3.0.0
