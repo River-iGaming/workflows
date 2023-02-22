@@ -36,13 +36,20 @@ jobs:
     name: Build and publish app
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Node
-        run: |
-          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
+      # - name: Setup Node
+      #   run: |
+      #     NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
 
-          npm config set registry ${{ inputs.npm-registry-url }}
-          npm config set always-auth true
-          npm config set _auth ${NODE_AUTH_TOKEN}
+      #     npm config set registry ${{ inputs.npm-registry-url }}
+      #     npm config set always-auth true
+      #     npm config set _auth ${NODE_AUTH_TOKEN}
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node-version }}
+          always-auth: true
+          registry-url: ${{ inputs.npm-registry-url }}
+          scope: ${{ inputs.npm-registry-scope }}
 
       - name: Print environment versions
         run: |
