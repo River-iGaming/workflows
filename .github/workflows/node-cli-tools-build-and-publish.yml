@@ -156,7 +156,7 @@ jobs:
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           git tag $PACKAGE_VERSION
           git push origin $PACKAGE_VERSION
-          npm run publish:rel
+          npm publish --@midgard:registry=${{ inputs.npm-registry-url }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
