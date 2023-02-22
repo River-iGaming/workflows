@@ -45,6 +45,9 @@ jobs:
       #     scope: ${{ inputs.npm-registry-scope }}
       - name: Setup Node
         run: |
+          curl https://get.volta.sh | bash
+          volta install node@${{ inputs.node-version }}
+
           NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
 
           npm config set registry ${{ inputs.npm-registry-url }}
