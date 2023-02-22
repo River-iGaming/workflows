@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Setup Node
         run: |
-         "echo Node version: ${{ inputs.node-version }}"
+         echo Node version: ${{ inputs.node-version }}
         #  "echo Node version: ${{ node -v }}
       #     curl https://get.volta.sh | bash
 
