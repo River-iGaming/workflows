@@ -36,8 +36,10 @@ jobs:
     name: Build and publish app
     runs-on: ubuntu-latest
     steps:
-      # - name: Setup Node
-      #   run: |
+      - name: Setup Node
+        run: |
+         "echo Node version: ${{ inputs.node-version }}"
+         "echo Node version: ${{ node -v }}
       #     curl https://get.volta.sh | bash
 
       #     exec bash
