@@ -36,18 +36,18 @@ jobs:
     name: Build and publish app
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Node
-        run: |
-          curl https://get.volta.sh | bash
+      # - name: Setup Node
+      #   run: |
+      #     curl https://get.volta.sh | bash
 
-          exec bash
-          volta install node@${{ inputs.node-version }}
+      #     exec bash
+      #     volta install node@${{ inputs.node-version }}
 
-          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
+      #     NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
 
-          npm config set registry ${{ inputs.npm-registry-url }}
-          npm config set always-auth true
-          npm config set _auth ${NODE_AUTH_TOKEN}
+      #     npm config set registry ${{ inputs.npm-registry-url }}
+      #     npm config set always-auth true
+      #     npm config set _auth ${NODE_AUTH_TOKEN}
 
       - name: Print environment versions
         run: |
@@ -55,7 +55,6 @@ jobs:
           NPM_V=$(npm -v)
           echo node version':' $NODE_V
           echo npm version':' $NPM_V
-          volta
 
       - name: Checkout
         uses: actions/checkout@v3.0.0
