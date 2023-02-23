@@ -62,7 +62,7 @@ jobs:
           NPM_V=$(npm -v)
           echo node version':' $NODE_V
           echo npm version':' $NPM_V
-          echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}"
+          echo -n "${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }}"
 
       - name: Checkout
         uses: actions/checkout@v3.0.0
@@ -84,7 +84,7 @@ jobs:
 
       - name: Install npm
         run: | 
-          npm login --registry ${{ inputs.npm-registry-url }} --username ${{ secrets.NEXUS_USERNAME }} --password ${{ secrets.NEXUS_PASSWORD }}    
+          npm login --registry ${{ inputs.npm-registry-url }} --username ${{ secrets.nexus-username }} --password ${{ secrets.nexus-username }}    
           npm ci
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
