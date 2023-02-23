@@ -62,7 +62,6 @@ jobs:
           NPM_V=$(npm -v)
           echo node version':' $NODE_V
           echo npm version':' $NPM_V
-          cat ~/.npmrc
 
       - name: Checkout
         uses: actions/checkout@v3.0.0
