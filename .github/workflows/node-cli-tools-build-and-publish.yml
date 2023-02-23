@@ -84,10 +84,11 @@ jobs:
 
       - name: Install npm
         run: | 
-          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
-          npm config set registry ${{ inputs.npm-registry-url }}
-          npm config set always-auth true
-          npm config set _auth ${NODE_AUTH_TOKEN}  
+          # NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
+          # npm config set registry ${{ inputs.npm-registry-url }}
+          # npm config set always-auth true
+          # npm config set _auth ${NODE_AUTH_TOKEN}
+          npm login --registry ${{ inputs.npm-registry-url }} --scope ${{ inputs.npm-registry-scope }} --always-auth --username ${{ secrets.nexus-username }} --password ${{ secrets.nexus-password }}    
           npm ci
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
