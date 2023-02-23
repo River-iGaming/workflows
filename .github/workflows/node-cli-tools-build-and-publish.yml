@@ -83,7 +83,7 @@ jobs:
 
       - name: Install npm
         run: | 
-          npm login --registry ${{ inputs.npm-registry-url }} --scope ${{ inputs.npm-registry-scope }} --always-auth --username ${{ secrets.nexus-username }} --password ${{ secrets.nexus-password }}    
+          npm login --registry ${{ inputs.npm-registry-url }} --username ${{ secrets.NEXUS_USERNAME }} --password ${{ secrets.NEXUS_PASSWORD }}    
           npm ci
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
