@@ -53,7 +53,9 @@ jobs:
       - name: Setup Build Tools
         run: |
           NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
-          npm config set _auth ${NODE_AUTH_TOKEN}      
+          npm config set registry ${{ inputs.npm-registry-url }}
+          npm config set always-auth true
+          npm config set _auth ${NODE_AUTH_TOKEN}  
       - name: Print environment versions
         run: |
           NODE_V=$(node --version)
