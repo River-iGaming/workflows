@@ -131,15 +131,16 @@ jobs:
         run: |
           REPO=$(git config --get remote.origin.url)
           DATE=$(date --utc +%FT%TZ)
-          docker build \
+          docker buildx create --use
+          docker buildx build \
           --build-arg JAR_FILE=$EXEC_PROJECT/target/*-exec.jar \
           --build-arg GIT_HASH=${{ github.sha }} \
           --build-arg DATE="$DATE" \
           --build-arg GIT_REPO=$REPO \
           --build-arg GIT_REF=${{ github.ref }} \
           --build-arg VERSION=${{ env.VERSION }} \
-          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          --platform linux/amd64,linux/arm64 \
+          --push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
       - name: Logout of Amazon ECR
         if: always()
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
