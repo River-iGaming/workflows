@@ -8,10 +8,10 @@ on:
         type: string
         default: '14'
       npm-registry-url:
-        description: The url address for npm registry (defaults to https://www.myget.org/F/river-tech/npm/)
+        description: The url address for npm registry
         required: false
         type: string
-        default: https://www.myget.org/F/river-tech/npm/
+        default: https://nexus.rivertech.dev/repository/npm/
       npm-registry-scope:
         description: The name of the npm scope (defaults to @odin)
         required: false
@@ -89,10 +89,13 @@ jobs:
             echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD)
           fi
 
+      - name: Setup Environment
+        run: |
+          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
+          echo "NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN}" >> "$GITHUB_ENV"
+
       - name: Install npm
         run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Build
         run: npm run build
