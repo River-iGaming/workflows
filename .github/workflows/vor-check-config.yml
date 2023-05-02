@@ -50,9 +50,14 @@ jobs:
           npm install -g bump
           bump
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
-          echo "::notice::$COMMENT"
-          echo "::set-output name=git-comment::$COMMENT"         
+          if git ls-remote --exit-code origin refs/tags/$NEW_PACKAGE_VERSION; then
+              echo "::error::Attempted to bump version to [$NEW_PACKAGE_VERSION] but tag already exists"
+              exit 1
+          else
+              COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"                    
+              echo "::notice::$COMMENT"
+              echo "::set-output name=git-comment::$COMMENT"
+          fi          
       - name: Commit version bump
         uses: stefanzweifel/git-auto-commit-action@v4.14.1
         if: ${{ steps.tag.outputs.exists == 'true' }}
