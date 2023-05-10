@@ -83,16 +83,21 @@ jobs:
           token: ${{ secrets.github-token }}
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Extract branch name
-        id: branch
-        run: |
-          EVENT=${{ github.event_name }}
-          if [ $EVENT == "pull_request" ]; then
-            BRANCH_NAME=${{github.head_ref}}
-            echo "::set-output name=name::${BRANCH_NAME}"
-          else
-            echo "::set-output name=name::${GITHUB_REF_NAME}"
-          fi
+      # - name: Extract branch name
+      #   id: branch
+      #   run: |
+      #     EVENT=${{ github.event_name }}
+      #     if [ $EVENT == "pull_request" ]; then
+      #       BRANCH_NAME=${{github.head_ref}}
+      #       echo "::set-output name=name::${BRANCH_NAME}"
+      #     else
+      #       echo "::set-output name=name::${GITHUB_REF_NAME}"
+      #     fi
+
+        - name: Extract branch name
+          id: branch
+          run: |
+              BRANCH_NAME=${{github.ref}}
 
       - name: Check if branch is publishable
         id: check-branch
