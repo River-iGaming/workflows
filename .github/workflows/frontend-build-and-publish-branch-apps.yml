@@ -1,4 +1,4 @@
-name: Frontend Build and Publish Apps
+name: Frontend Build and Publish Realease Branch Apps
 on:
   workflow_call:
     inputs:
