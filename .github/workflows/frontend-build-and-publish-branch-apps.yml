@@ -83,10 +83,10 @@ jobs:
           token: ${{ secrets.github-token }}
           ref: ${{ github.event.pull_request.head.sha }}
 
-        - name: Extract branch name
-          id: branch
-          run: |
-              BRANCH_NAME=${{github.ref_name}}
+      - name: Extract branch name
+        id: branch
+        run: |
+            BRANCH_NAME=${{github.ref_name}}
 
       - name: Check if branch is publishable
         id: check-branch
