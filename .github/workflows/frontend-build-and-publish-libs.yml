@@ -94,13 +94,11 @@ jobs:
       - name: Setup Environment
         id: env
         run: |
-          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64)
+          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
           echo "NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN}" >> "$GITHUB_ENV"
 
       - name: Install npm
         run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ env.NODE_AUTH_TOKEN }}
 
       - name: Build
         run: npm run build
