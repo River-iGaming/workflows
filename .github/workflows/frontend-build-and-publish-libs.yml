@@ -38,7 +38,9 @@ on:
         type: boolean
         default: false
     secrets:
-      npm-token:
+      nexus-username:
+        required: true
+      nexus-password:
         required: true
       aws-access-key-id:
         required: true
@@ -206,8 +208,6 @@ jobs:
           git tag $PACKAGE_VERSION
           git push origin $PACKAGE_VERSION
           npm run publish:rel
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Store tests artifact
         uses: actions/upload-artifact@v3
