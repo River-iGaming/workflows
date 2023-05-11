@@ -7,7 +7,7 @@ on:
         required: false
         type: string
         default: '18'
-      npm-registry-url:
+      npm-registry:
         description: The url address for npm registry
         required: false
         type: string
