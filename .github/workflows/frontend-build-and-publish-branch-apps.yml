@@ -1,4 +1,4 @@
-name: Frontend Build and Publish Realease Branch Apps
+name: Frontend Build and Publish Release Branch Apps
 on:
   workflow_call:
     inputs:
@@ -139,7 +139,7 @@ jobs:
 
           if [[ "$BRANCH_NAME" =~ ^(releases)\/(.*)$ ]]
           then
-            echo "APP_VERSION=$PACKAGE_VERSION-release-${BASH_REMATCH[2]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
           else
             echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
           fi
