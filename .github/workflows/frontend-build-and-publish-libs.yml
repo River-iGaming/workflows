@@ -3,10 +3,10 @@ on:
   workflow_call:
     inputs:
       node-version:
-        description: Node version to use (defaults to 14)
+        description: Node version to use (defaults to 18)
         required: false
         type: string
-        default: '14'
+        default: '18'
       npm-registry-url:
         description: The url address for npm registry
         required: false
