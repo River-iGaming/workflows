@@ -97,7 +97,7 @@ jobs:
           NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
           echo "NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN}" >> "$GITHUB_ENV"
           npm config set registry="https:${{ inputs.npm-registry }}"
-          npm config set ${{ inputs.npm-registry }}:_authToken $NODE_AUTH_TOKEN
+          npm config set ${{ inputs.npm-registry }}:_authToken=$NODE_AUTH_TOKEN
 
       - name: Install npm
         run: npm ci
