@@ -99,7 +99,7 @@ jobs:
 
           echo "::notice ::Branch name: $BRANCH_NAME"
 
-          if [[ "$BRANCH_NAME" =~ ^(release)\/(.*)$ ]]; then
+          if ! [[ "$BRANCH_NAME" =~ ^(releases)\/(.*)$ ]]; then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch."
           else
@@ -137,7 +137,7 @@ jobs:
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
-          if [[ "$BRANCH_NAME" =~ ^(release)\/(.*)$ ]]
+          if [[ "$BRANCH_NAME" =~ ^(releases)\/(.*)$ ]]
           then
             echo "APP_VERSION=$PACKAGE_VERSION-release-${BASH_REMATCH[2]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
           else
