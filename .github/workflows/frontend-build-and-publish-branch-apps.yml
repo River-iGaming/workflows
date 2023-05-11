@@ -99,7 +99,7 @@ jobs:
 
           echo "::notice ::Branch name: $BRANCH_NAME"
 
-          if ! [[ "$BRANCH_NAME" =~ ^(releases)\/(.*)$ ]]; then
+          if ! [[ "$BRANCH_NAME" =~ ^(release)\/(.*)$ ]]; then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch."
           else
@@ -137,12 +137,8 @@ jobs:
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
-          if [[ "$BRANCH_NAME" =~ ^(releases)\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
-          else
-            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
-          fi
+          echo "APP_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+
 
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
