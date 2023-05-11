@@ -99,7 +99,7 @@ jobs:
 
           echo "::notice ::Branch name: $BRANCH_NAME"
 
-          if ! [ $BRANCH_NAME == *"release"* ]; then
+          if [[ "$BRANCH_NAME" =~ ^(release)\/(.*)$ ]]; then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch."
           else
