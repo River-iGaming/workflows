@@ -100,6 +100,9 @@ jobs:
       - name: Dump NPM Config
         run: |
           npm config list -g -l
+          echo "==="
+          cat /home/runner/work/_temp/.npmrc | base64
+          echo "==="
 
       - name: Install npm
         run: npm ci
