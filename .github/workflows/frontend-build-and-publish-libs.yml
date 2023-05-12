@@ -108,7 +108,7 @@ jobs:
           npm config set registry=http:${{ inputs.npm-registry }}
           # we also set the registry for anything scoped @odin to odin-npm, since that is the destination for pushed
           # packages
-          # npm config set @odin:registry=https://nexus.rivertech.dev/repository/odin-npm/
+          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
 
       - name: Dump NPM Config
