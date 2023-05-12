@@ -7,11 +7,16 @@ on:
         required: false
         type: string
         default: '18'
-      npm-registry-url:
-        description: The url address for npm registry
+      npm-registry:
+        description: The url for npm registry
         required: false
         type: string
-        default: https://nexus.rivertech.dev/repository/npm/
+        default: //nexus.rivertech.dev/repository/npm/
+      npm-registry-server:
+          description: The address for npm registry publish
+          required: false
+          type: string
+          default: //nexus.rivertech.dev/repository/odin-npm/
       npm-registry-scope:
         description: The name of the npm scope (defaults to @odin)
         required: false
@@ -63,8 +68,6 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           always-auth: true
-          registry-url: ${{ inputs.npm-registry-url }}
-          scope: ${{ inputs.npm-registry-scope }}
 
       - name: Print environment versions
         run: |
@@ -97,12 +100,12 @@ jobs:
           echo "NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN}" >> "$GITHUB_ENV"
           
           # hacky business to switch npm to use _auth instead of _authToken
-          npm config delete //nexus.rivertech.dev/repository/npm/:_authToken          
-          npm config set //nexus.rivertech.dev/repository/npm/:_auth=$NODE_AUTH_TOKEN
-          npm config set //nexus.rivertech.dev/repository/odin-npm/:_auth=$NODE_AUTH_TOKEN
+          # npm config delete //nexus.rivertech.dev/repository/npm/:_authToken          
+          npm config set ${{inputs.npm-registry}}:_auth=$NODE_AUTH_TOKEN
+          npm config set ${{inputs.npm-registry-server}}:_auth=$NODE_AUTH_TOKEN
           
           # we pull packages from the group npm repository which pull in and caches a bunch of upstream repos
-          npm config set registry=${{ inputs.npm-registry-url }}
+          npm config set registry=http:${{ inputs.npm-registry }}
           # we also set the registry for anything scoped @odin to odin-npm, since that is the destination for pushed
           # packages
           # npm config set @odin:registry=https://nexus.rivertech.dev/repository/odin-npm/
