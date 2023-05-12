@@ -90,7 +90,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.github-token }}
-      
+
       - name: Extract branch name
         id: branch
         run: |
@@ -109,10 +109,10 @@ jobs:
         run: |
           echo "::notice ::Branch name: $BRANCH_NAME"
 
-          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
+          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ [[ "$BRANCH_NAME" =~ ^(release)\/(.*)$ ]] || ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch."
-          else 
+          else
             echo "::set-output name=publishable::true"
           fi
 
@@ -153,7 +153,9 @@ jobs:
           elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
           then
             echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-          else
+            elif [[ "$BRANCH_NAME" =~ ^release\/(.*)$ ]]
+            echo "APP_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+            else
             echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
           fi
 
@@ -261,11 +263,11 @@ jobs:
         with:
           branch: vnext
 
-      - name: Merge master -> vnext
-        if: ${{ steps.vnext.outputs.exists == 'true' }}
-        uses: devmasx/merge-branch@master
-        with:
-          type: now
-          target_branch: vnext
-          github_token: ${{ secrets.github-token }}
-          message: 'feat(*): merge from master'
+      # - name: Merge master -> vnext
+      #   if: ${{ steps.vnext.outputs.exists == 'true' }}
+      #   uses: devmasx/merge-branch@master
+      #   with:
+      #     type: now
+      #     target_branch: vnext
+      #     github_token: ${{ secrets.github-token }}
+      #     message: 'feat(*): merge from master'
