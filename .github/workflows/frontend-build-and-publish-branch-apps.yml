@@ -137,7 +137,7 @@ jobs:
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
-          echo "APP_VERSION=$PACKAGE_VERSION.x" >> $GITHUB_ENV
+          echo "APP_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
 
       - name: Check if tag exists
