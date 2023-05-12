@@ -99,7 +99,7 @@ jobs:
 
       - name: Dump NPM Config
         run: |
-          npm config -g -l
+          npm config list -g -l
 
       - name: Install npm
         run: npm ci
