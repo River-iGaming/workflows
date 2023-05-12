@@ -109,7 +109,7 @@ jobs:
         run: |
           echo "::notice ::Branch name: $BRANCH_NAME"
 
-          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ || [[ "$BRANCH_NAME" =~ ^(release)\/(.*)$ ]] || ]]); then
+          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ || [[ "$BRANCH_NAME" =~ ^(release)\/(.*)$ ] ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch."
           else
