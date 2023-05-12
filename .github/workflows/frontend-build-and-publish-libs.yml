@@ -97,7 +97,7 @@ jobs:
         id: npm_token
         run: |
           NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
-          echo "::set-output name=token::${NODE_AUTH_TOKEN}""
+          echo "::set-output name=token::${NODE_AUTH_TOKEN}"
 
       - name: Setup Environment
         run: |
