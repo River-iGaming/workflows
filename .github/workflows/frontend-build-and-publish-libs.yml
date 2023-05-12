@@ -12,7 +12,7 @@ on:
         required: false
         type: string
         default: //nexus.rivertech.dev/repository/npm/
-      npm-registry-server:
+      npm-registry-publish:
           description: The address for npm registry publish
           required: false
           type: string
@@ -102,7 +102,7 @@ jobs:
           # hacky business to switch npm to use _auth instead of _authToken
           # npm config delete //nexus.rivertech.dev/repository/npm/:_authToken          
           npm config set ${{inputs.npm-registry}}:_auth=$NODE_AUTH_TOKEN
-          npm config set ${{inputs.npm-registry-server}}:_auth=$NODE_AUTH_TOKEN
+          npm config set ${{inputs.npm-registry-publish}}:_auth=$NODE_AUTH_TOKEN
           
           # we pull packages from the group npm repository which pull in and caches a bunch of upstream repos
           npm config set registry=http:${{ inputs.npm-registry }}
