@@ -37,7 +37,7 @@ on:
       github-token:
         required: true
 
-concurrency: 
+concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
@@ -264,11 +264,11 @@ jobs:
         with:
           branch: vnext
 
-      # - name: Merge master -> vnext
-      #   if: ${{ steps.vnext.outputs.exists == 'true' }}
-      #   uses: devmasx/merge-branch@master
-      #   with:
-      #     type: now
-      #     target_branch: vnext
-      #     github_token: ${{ secrets.github-token }}
-      #     message: 'feat(*): merge from master'
+      - name: Merge master -> vnext
+        if: ${{ steps.vnext.outputs.exists == 'true' }}
+        uses: devmasx/merge-branch@master
+        with:
+          type: now
+          target_branch: vnext
+          github_token: ${{ secrets.github-token }}
+          message: 'feat(*): merge from master'
