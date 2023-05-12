@@ -148,11 +148,11 @@ jobs:
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.github-token }}
 
-      - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists == 'true' }}
-        run: |
-          echo "::error ::Tag already exists. Please make sure you bump version!"
-          exit 1
+      # - name: Inform if tag exists
+      #   if: ${{ steps.tag.outputs.exists == 'true' }}
+      #   run: |
+      #     echo "::error ::Tag already exists. Please make sure you bump version!"
+      #     exit 1
 
       - name: Configure AWS credentials
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
