@@ -67,7 +67,6 @@ jobs:
         uses: actions/setup-node@main
         with:
           node-version: ${{ inputs.node-version }}
-          always-auth: true
 
       - name: Print environment versions
         run: |
@@ -94,22 +93,16 @@ jobs:
             echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD)
           fi
 
-      - name: Setup Environment
+      - name: NPM TOKEN
+        id: npm_token
         run: |
           NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
-          echo "NODE_AUTH_TOKEN=${NODE_AUTH_TOKEN}" >> "$GITHUB_ENV"
-          
-          # hacky business to switch npm to use _auth instead of _authToken
-          # npm config delete //nexus.rivertech.dev/repository/npm/:_authToken          
-          npm config set ${{inputs.npm-registry}}:_auth=$NODE_AUTH_TOKEN
-          npm config set ${{inputs.npm-registry-publish}}:_auth=$NODE_AUTH_TOKEN
-          
-          # we pull packages from the group npm repository which pull in and caches a bunch of upstream repos
-          npm config set registry=http:${{ inputs.npm-registry }}
-          # we also set the registry for anything scoped @odin to odin-npm, since that is the destination for pushed
-          # packages
-          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+          echo "::set-output name=token::${NODE_AUTH_TOKEN}""
 
+      - name: Setup Environment
+        run: |
+          npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set registry=http:${{ inputs.npm-registry }}
 
       - name: Dump NPM Config
         run: |
