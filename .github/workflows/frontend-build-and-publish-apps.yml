@@ -115,6 +115,33 @@ jobs:
           else
             echo "::set-output name=publishable::true"
           fi
+          
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with:
+          tag: ${{ env.APP_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+
+      - name: Inform if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "::error ::Tag already exists. Please make sure you bump version!"
+          exit 1
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with:
+          tag: ${{ env.APP_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+
+      - name: Inform if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "::error ::Tag already exists. Please make sure you bump version!"
+          exit 1
 
       - name: Install npm
         run: npm ci
@@ -159,20 +186,6 @@ jobs:
             else
             echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
           fi
-
-      - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.0.0
-        id: tag
-        with:
-          tag: ${{ env.APP_VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
-
-      - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists == 'true' }}
-        run: |
-          echo "::error ::Tag already exists. Please make sure you bump version!"
-          exit 1
 
       - name: Configure AWS credentials
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
