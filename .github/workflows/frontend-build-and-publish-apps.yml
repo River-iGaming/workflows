@@ -131,10 +131,10 @@ jobs:
           elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
           then
             echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-            elif [[ "$BRANCH_NAME" =~ ^release\/(.*)$ ]]
-            then
-              echo "APP_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
-            else
+          elif [[ "$BRANCH_NAME" =~ ^release\/(.*)$ ]]
+          then
+            echo "APP_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+          else
             echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
           fi
 
