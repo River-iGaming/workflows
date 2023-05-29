@@ -174,8 +174,6 @@ jobs:
             dotnet restore $SOLUTION /p:Configuration=Release
             dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
-
-
       - name: Configure AWS credentials
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
         uses: aws-actions/configure-aws-credentials@v1
