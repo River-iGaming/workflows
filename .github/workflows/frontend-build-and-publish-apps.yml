@@ -37,7 +37,7 @@ on:
       github-token:
         required: true
 
-concurrency: 
+concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
@@ -58,7 +58,7 @@ jobs:
           always-auth: true
           registry-url: ${{ inputs.npm-registry-url }}
           scope: ${{ inputs.npm-registry-scope }}
-      
+
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2.0.0
         with:
@@ -90,7 +90,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.github-token }}
-      
+
       - name: Extract branch name
         id: branch
         run: |
@@ -109,12 +109,48 @@ jobs:
         run: |
           echo "::notice ::Branch name: $BRANCH_NAME"
 
-          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
+          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot|release)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
             echo "::set-output name=publishable::false"
             echo "::notice ::Non-publishable branch."
-          else 
+          else
             echo "::set-output name=publishable::true"
           fi
+
+      - name: Set environment variables
+        run: |
+          BRANCH_NAME=${{steps.branch.outputs.name}}
+          echo "::notice ::Branch name: $BRANCH_NAME"
+
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
+          echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
+
+          if [[ "$BRANCH_NAME" =~ ^(feature|dependabot)\/(.*)$ ]]
+          then
+            echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[2]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+          elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
+          then
+            echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+          elif [[ "$BRANCH_NAME" =~ ^release\/(.*)$ ]]
+          then
+            echo "APP_VERSION=$PACKAGE_VERSION-release" >> $GITHUB_ENV
+          else
+            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
+          fi
+
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with:
+          tag: ${{ env.APP_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+
+      - name: Inform if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "::error ::Tag already exists. Please make sure you bump version!"
+          exit 1
 
       - name: Install npm
         run: npm ci
@@ -137,39 +173,6 @@ jobs:
             SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
             dotnet restore $SOLUTION /p:Configuration=Release
             dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
-
-      - name: Set environment variables
-        run: |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
-          echo "::notice ::Branch name: $BRANCH_NAME"
-
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
-
-          if [[ "$BRANCH_NAME" =~ ^(feature|dependabot)\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[2]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-          elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-          else
-            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
-          fi
-
-      - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.0.0
-        id: tag
-        with:
-          tag: ${{ env.APP_VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
-
-      - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists == 'true' }}
-        run: |
-          echo "::error ::Tag already exists. Please make sure you bump version!"
-          exit 1
 
       - name: Configure AWS credentials
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
