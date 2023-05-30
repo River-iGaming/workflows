@@ -115,6 +115,11 @@ jobs:
           else
             echo "::set-output name=publishable::true"
           fi
+          
+      - name: Install npm
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Set environment variables
         run: |
@@ -151,11 +156,6 @@ jobs:
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
-
-      - name: Install npm
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Lint
         run: npm run lint
