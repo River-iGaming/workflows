@@ -91,15 +91,20 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.github-token }}
 
+      - name: Install tools
+        run: npm i -g @odin/infra.ci@0.1.22
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+
       - name: Extract branch name
         id: branch
         run: |
           EVENT=${{ github.event_name }}
           if [ $EVENT == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
-            echo "::set-output name=name::${BRANCH_NAME}"
+            echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
           else
-            echo "::set-output name=name::${GITHUB_REF_NAME}"
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check if branch is publishable
@@ -110,16 +115,11 @@ jobs:
           echo "::notice ::Branch name: $BRANCH_NAME"
 
           if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot|release)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
-            echo "::set-output name=publishable::false"
+            echo "publishable=false" >> "$GITHUB_OUTPUT"
             echo "::notice ::Non-publishable branch."
           else
-            echo "::set-output name=publishable::true"
+            echo "publishable=true" >> "$GITHUB_OUTPUT"
           fi
-          
-      - name: Install npm
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Set environment variables
         run: |
@@ -158,16 +158,16 @@ jobs:
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
+      - name: Install npm
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+
       - name: Lint
         run: npm run lint
 
       - name: Build
         run: npm run build:rel
-
-      - name: Install tools
-        run: npm i -g @odin/infra.ci@0.1.22
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Dotnet restore/publish
         run: |
