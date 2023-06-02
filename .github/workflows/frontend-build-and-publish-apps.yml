@@ -154,7 +154,7 @@ jobs:
 
 
           # echo "VERSION_SUFFIX=$TAG_SUFFIX" >> $GITHUB_ENV
-          echo "version_suffix=${$TAG_SUFFIX}" >> "$GITHUB_OUTPUT"
+          echo "version_suffix=${TAG_SUFFIX}" >> "$GITHUB_OUTPUT"
           if [ "$TAG_SUFFIX" == "" ]; then
             echo "::notice ::AppVersion ${PACKAGE_VERSION}."
             echo "app_version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
