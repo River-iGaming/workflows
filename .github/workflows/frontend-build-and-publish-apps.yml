@@ -111,6 +111,8 @@ jobs:
 
       - name: Determine Application Version
         id: version
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name}}
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
 
