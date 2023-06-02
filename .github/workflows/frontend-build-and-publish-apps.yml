@@ -51,7 +51,7 @@ jobs:
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
     outputs:
-      app_version: ${{ steps.step1.outputs.test }}
+      app_version: ${{ steps.version.outputs.app_version }}
     steps:
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -115,7 +115,12 @@ jobs:
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
 
           # ensure we have a unique suffix
-          RUN_ID="${{ github.run_id}}-${{github.run_attempt}}"
+          if [ ${{github.run_attempt}} -eq 1 ]
+          then
+            RUN_ID=${{ github.run_id}}
+          else
+            RUN_ID=${{ github.run_id}}-${{github.run_attempt}}
+          fi
 
           if [[ "$BRANCH_NAME" =~ ^(demo|feature|dependabot)\/(.*)$ ]]
           then
@@ -167,7 +172,6 @@ jobs:
           if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot|release)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
             echo "publishable=false" >> "$GITHUB_OUTPUT"
             echo "::notice ::Non-publishable branch."
-
           else
             echo "publishable=true" >> "$GITHUB_OUTPUT"
           fi
