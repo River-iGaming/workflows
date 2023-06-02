@@ -50,6 +50,8 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
+    outputs:
+      app_version: ${{ steps.step1.outputs.test }}
     steps:
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -107,6 +109,54 @@ jobs:
             echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Determine Application Version
+        id: version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+
+          # ensure we have a unique suffix
+          RUN_ID="${{ github.run_id}}-${{github.run_attempt}}"
+
+          if [[ "$BRANCH_NAME" =~ ^(demo|feature|dependabot)\/(.*)$ ]]
+          then
+            # echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[2]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+            TAG_SUFFIX="demo-${BASH_REMATCH[2]}-$RUN_ID"
+          elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
+          then
+            # echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+            TAG_SUFFIX="hotfix-${BASH_REMATCH[1]}-$RUN_ID"
+          elif [[ "$BRANCH_NAME" =~ ^release\/(.*)$ ]]
+          then
+            # echo "APP_VERSION=$PACKAGE_VERSION-release" >> $GITHUB_ENV
+            TAG_SUFFIX="release-${BASH_REMATCH[1]}-$RUN_ID"
+          elif [[ "$BRANCH_NAME" =~ ^vnext$ ]]
+          then
+            TAG_SUFFIX="vnext-$RUN_ID"
+          elif [[ "$BRANCH_NAME" == "develop" ]]
+          then
+            TAG_SUFFIX="dev-$RUN_ID"
+          elif [[ "$BRANCH_NAME" =~ ^master$ ]]
+          then
+            # echo "APP_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+            TAG_SUFFIX=""
+          elif [[ "$BRANCH_NAME" =~ ^develop$ ]]
+          then
+            # echo "APP_VERSION=$PACKAGE_VERSION-dev-$GITHUB_RUN_ID" >> $GITHUB_ENV
+            TAG_SUFFIX="dev-$RUN_ID"
+          fi
+
+          # echo "VERSION_SUFFIX=$TAG_SUFFIX" >> $GITHUB_ENV
+          echo "version_suffix=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+          if [ "$TAG_SUFFIX" == "" ]; then
+            echo "::notice ::AppVersion ${PACKAGE_VERSION}."
+            # echo "APP_VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
+            echo "app_version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice ::AppVersion ${PACKAGE_VERSION}-${TAG_SUFFIX}."
+            # echo "APP_VERSION=${PACKAGE_VERSION}-${TAG_SUFFIX}" >> $GITHUB_ENV
+            echo "app_version=${PACKAGE_VERSION}-${TAG_SUFFIX}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check if branch is publishable
         id: check-branch
         env:
@@ -117,31 +167,29 @@ jobs:
           if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot|release)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
             echo "publishable=false" >> "$GITHUB_OUTPUT"
             echo "::notice ::Non-publishable branch."
+
           else
             echo "publishable=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set environment variables
-        run: |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
-          echo "::notice ::Branch name: $BRANCH_NAME"
+          if [ "$BRANCH_NAME" == "master" ]
+          then
+            echo "::notice ::Downmerge To Develop Enabled."
+            echo "downmerge_to_develop=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice ::Downmerge To Develop Disabled. Branch is not master."
+            echo "downmerge_to_develop=false" >> "$GITHUB_OUTPUT"
+          fi
 
+      - name: Set environment variables
+        env:
+          BRANCH_NAME: ${{ steps.branch.outputs.name}}
+          APP_VERSION: ${{ steps.version.outputs.app_version}}
+        run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
-
-          if [[ "$BRANCH_NAME" =~ ^(feature|dependabot)\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[2]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-          elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-          elif [[ "$BRANCH_NAME" =~ ^release\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$PACKAGE_VERSION-release" >> $GITHUB_ENV
-          else
-            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
-          fi
+          echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
 
       - name: Check if tag exists
         if: ${{ steps.check-branch.outputs.publishable == 'true' }}
@@ -153,7 +201,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
       - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists == 'true' }}
+        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
@@ -207,16 +255,8 @@ jobs:
           git push origin $APP_VERSION
 
       - name: Downmerge master to develop
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.check-branch.outputs.downmerge_to_develop == 'true' }}
         run:  |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
-
-          if [ "$BRANCH_NAME" != "master" ]
-          then
-            echo "::notice ::Skipping downmerge. Branch is not master."
-            exit 0
-          fi
-
           git fetch
           git checkout develop
           git config user.email "deploy-bot@riverigaming.com"
