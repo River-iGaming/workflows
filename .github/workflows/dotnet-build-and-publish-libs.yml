@@ -4,10 +4,10 @@ on:
   workflow_call:
     inputs:
       dotnet-version:
-        description: dotnet version to use (defaults to 5.0.x)
+        description: dotnet version to use (defaults to 6.0.x)
         required: false
         type: string
-        default: '5.0.x'
+        default: '6.0.x'
       nuget-server-url:
         description: Url for Nuget server
         required: true
@@ -21,58 +21,74 @@ on:
       nuget-server-token:
         description: Access token for Nuget server
         required: true
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
   build:
     name: Build and Deploy
     runs-on: ubuntu-latest
-    env: 
-      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v1.9.0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-      - uses: actions/cache@v2.1.7
+
+      - uses: actions/cache@v3
         name: Setup Cache
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
       - name: Setup environmental variables
         run: |
           SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "SOLUTION=$SOLUTION" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV  
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+
       - name: Restore
         run: |
           dotnet restore $SOLUTION /p:Configuration=Release
+
       - name: Build
-        run: dotnet build $SOLUTION -c Release
+        run: dotnet build $SOLUTION -c Release --no-restore
+
       - name: Test
         run: npm test
+
       - name: Get Version
         id: version
         if: inputs.publishable
         uses: River-iGaming/actions/dotnet/versions@v1.0.0
         with:
-          package-version: ${{ env.PACKAGE_VERSION }}        
-      - name: Publish Nuget
+          package-version: ${{ env.PACKAGE_VERSION }}
+
+      - name: Set version env
         if: inputs.publishable
-        env: 
-          APP_VERSION: ${{ steps.version.outputs.app-version }}          
+        run: echo "VERSION=${{ steps.version.outputs.version }}" >> $GITHUB_ENV
+
+      - name: Pack
+        if: inputs.publishable
+        run: dotnet pack $SOLUTION -p:PackageVersion=$VERSION -p:AssemblyVersion=$PACKAGE_VERSION -o ./ -c release --no-build --no-restore
+
+      - name: Publish
+        if: inputs.publishable
         run: |
-          dotnet pack $SOLUTION -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=$PACKAGE_VERSION -o ./ -c release                    
           # dotnet nuget push *.nupkg -k ${{ secrets.nuget-server-token }} -s ${{ inputs.nuget-server-url }}
           # Using the following in order to parallelise the nuget package push
           find *.nupkg | xargs -n 1 -P 8 -i dotnet nuget push {} -k ${{ secrets.nuget-server-token }} -s ${{ inputs.nuget-server-url }}
+
       - name: Git Tag
         if: inputs.publishable
-        env: 
-          APP_VERSION: ${{ steps.version.outputs.app-version }}    
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
+          git tag $VERSION
+          git push origin $VERSION
