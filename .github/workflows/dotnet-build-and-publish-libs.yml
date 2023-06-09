@@ -99,10 +99,11 @@ jobs:
         env:
           APP_VERSION: ${{ steps.version.outputs.app-version }}
         run: |
-          dotnet pack $SOLUTION -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=$PACKAGE_VERSION -o ./ -c release
+          mkdir ./nuget
+          dotnet pack $SOLUTION --no-build -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=$PACKAGE_VERSION -o ./nuget -c Release
           # dotnet nuget push *.nupkg -s ${{ inputs.nuget-registry-url }}
           # Using the following in order to parallelise the nuget package push
-          find *.nupkg | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
+          find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
 
       - name: Git Tag
         if: inputs.publishable
