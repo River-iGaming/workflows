@@ -106,6 +106,8 @@ jobs:
 
       - name: Git Tag
         if: inputs.publishable
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
         run: |
           git tag $APP_VERSION
-          git push --tags
+          git push origin $APP_VERSION
