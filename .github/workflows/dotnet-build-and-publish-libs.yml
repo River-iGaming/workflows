@@ -97,7 +97,7 @@ jobs:
       - name: Build
         env:
           APP_VERSION: ${{ steps.version.outputs.app-version }}
-        run: dotnet build -p:PackageVersion=APP_VERSION -p:AssemblyVersion=APP_VERSION $SOLUTION -c Release
+        run: dotnet build -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=$APP_VERSION $SOLUTION -c Release
 
       - name: Test
         run: npm test
