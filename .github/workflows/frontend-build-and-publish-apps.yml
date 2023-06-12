@@ -121,7 +121,7 @@ jobs:
           then
             RUN_ID=${{ github.run_id}}
           else
-            RUN_ID=${{ github.run_id}}-${{github.run_attempt}}
+            RUN_ID=${{ github.run_id}}.${{github.run_attempt}}
           fi
 
           TAG_SUFFIX=""
