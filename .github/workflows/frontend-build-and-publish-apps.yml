@@ -61,7 +61,7 @@ jobs:
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
     outputs:
-      app_version: ${{ steps.version.outputs.app_version }}
+      app_version: ${{ steps.metadata.outputs.version }}
     steps:
       - name: Debug Action Contexts
         uses: henrygriffiths/debug_action@v1
@@ -120,7 +120,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
-      - name: Extract branch name
+      - name: Determine Branch Name
         id: branch
         run: |
           # determine branch name (diff source since this workflow can run either on push or pull_request events)
@@ -156,39 +156,61 @@ jobs:
           fi
 
           TAG_SUFFIX=""
+          IS_PUBLISHABLE="false"
           case "$BRANCH_NAME" in
-
-            "master")
+            "main"|"master")
+            IS_PUBLISHABLE="true"
             ;;
 
             "develop")
-            TAG_SUFFIX="dev-${{ github.run_number }}"
+            TAG_SUFFIX="dev-${RUN_ID}"
+            IS_PUBLISHABLE="true"
             ;;
 
             "vnext")
+            IS_PUBLISHABLE="true"
+            TAG_SUFFIX="vnext-$RUN_ID"
             ;;
 
             # feature
             feature\/+(?) )
+            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
-            ;;
-
-            # hotfix
-            hotfix\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            VERSION_-="hotfix-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
+            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # named demo branch
             @(demo)\/+(?) )
+            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${{ github.run_number }}"
+            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            ;;
+
+            # named demo branch
+            dependabot\/+(?) )
+            IS_PUBLISHABLE="true"
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # demo only branch
             "demo")
-            VERSION_TAG="demo-${{ github.run_number }}"
+            IS_PUBLISHABLE="true"
+            VERSION_TAG="demo-${RUN_ID}"
+            ;;
+
+            # hotfix
+            hotfix\/+(?) )
+            IS_PUBLISHABLE="true"
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="hotfix-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            ;;
+
+            # Release
+            release\/+(?) )
+            IS_PUBLISHABLE="true"
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="release-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             *)
@@ -196,15 +218,17 @@ jobs:
           esac
           shopt -u extglob;
 
-          PACKAGE_VERSION=${BASE_PACKAGE_VERSION}
 
+          # build version number in full with value extracted from package.json + tag suffix if available
+          PACKAGE_VERSION=${BASE_PACKAGE_VERSION}
           if [ ! -z "${VERSION_TAG}" ]; then
             PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${VERSION_TAG}
           fi
 
           # expose metadata as workflow variables
-          echo "::set-output name=version::${PACKAGE_VERSION}"
-          echo "::set-output name=app_name::${APP_NAME}"
+          echo "version::${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "app_name::${APP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
 
           # expose metadata as environment variables
           echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
