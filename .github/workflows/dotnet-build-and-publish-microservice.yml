@@ -60,7 +60,7 @@ jobs:
       - name: Setup Build Tools
         run: |
           # Disable nuget.org source and river-tech source if present
-          dotnet nuget disable source nuget.org
+
           dotnet nuget disable source river-tech
 
           dotnet nuget add source ${{ inputs.nuget-registry-url }} \
