@@ -102,7 +102,10 @@ jobs:
           VERSION: 'v4.25.1'
         run: |
           echo $PATH
-          curl -sSL https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -o ~/.local/bin/yq
+          echo "---"
+          whoami
+          echo "---"
+          curl -sSL https://github.com/mikefarah/yq/releases/download/v4.34.1/yq_linux_amd64 -o /home/runner/.local/bin/yq
           chmod +x ~/.local/bin/yq
 
       - name: Checkout
@@ -250,100 +253,100 @@ jobs:
           echo "::notice ::App name: $APP_NAME"
           echo "::notice ::Version: $PACKAGE_VERSION"
 
-#      - name: Check if tag exists
-#        if: ${{ steps.metadata.outputs.publishable == 'true' }}
-#        uses: mukunku/tag-exists-action@v1.2.0
-#        id: tag
-#        with:
-#          tag: ${{ steps.metadata.outputs.version }}
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.github-token }}
-#
-#      - name: Inform if tag exists
-#        if: ${{ steps.metadata.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
-#        run: |
-#          echo "::error ::Tag already exists. Please make sure you bump version!"
-#          exit 1
-#
-#      - name: Setup NPM
-#        run: |
-#          npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
-#          npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
-#          npm config set registry=https:${{ inputs.npm-registry }}
-#          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
-#
-#      - name: Prep, Lint and Build NodeJS part
-#        env:
-#          NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
-#        run: |
-#          npm ci
-#          npm run lint
-#          npm run build:rel
-#
-#      - name: Dotnet restore/publish
-#        run: |
-#          SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
-#
-#          dotnet restore $SOLUTION /p:Configuration=Release
-#          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
-#
-#      - name: Configure AWS credentials
-#        if: ${{ steps.metadata.outputs.publishable == 'true' }}
-#        uses: aws-actions/configure-aws-credentials@v1
-#        with:
-#          aws-access-key-id: ${{ secrets.aws-access-key-id }}
-#          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
-#          aws-region: ${{ inputs.aws-region }}
-#
-#      - name: Login to Amazon ECR
-#        id: login-ecr
-#        if: ${{ steps.metadata.outputs.publishable == 'true' }}
-#        uses: aws-actions/amazon-ecr-login@v1
-#
-#      - name: Deploy
-#        if: ${{ steps.metadata.outputs.publishable == 'true' }}
-#        env:
-#          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
-#        run: |
-#          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
-#          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
-#
-#      - name: Logout of Amazon ECR
-#        if: ${{ steps.metadata.outputs.publishable == 'true' }}
-#        run: docker logout ${{ steps.login-ecr.outputs.registry }}
-#
-#      - name: Create Git tag for release
-#        if: ${{ steps.metadata.outputs.publishable == 'true' }}
-#        run: |
-#          git tag $APP_VERSION
-#          git push origin $APP_VERSION
-#
-#      - name: Downmerge master to develop
-#        if: ${{ steps.metadata.outputs.downmerge_to_develop == 'true' }}
-#        run:  |
-#          git fetch
-#          git checkout develop
-#          git config user.email "deploy-bot@riverigaming.com"
-#          git config user.name "rig-autobot"
-#
-#          if git merge --no-commit --no-ff --no-edit origin/master
-#          then
-#            if [ -z "$(git status --porcelain)" ]
-#            then
-#              echo "::notice ::Nothing to commit"
-#            else
-#              git commit --no-edit
-#              git push origin develop
-#            fi
-#          else
-#            if git merge HEAD
-#            then
-#              echo "::notice ::"Nothing to merge"
-#            else
-#              echo "::warning ::"Failed to downmerge. Conflicts between master and develop."
-#              git merge --abort
-#            fi
-#          fi
+      - name: Check if tag exists
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        uses: mukunku/tag-exists-action@v1.2.0
+        id: tag
+        with:
+          tag: ${{ steps.metadata.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+
+      - name: Inform if tag exists
+        if: ${{ steps.metadata.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "::error ::Tag already exists. Please make sure you bump version!"
+          exit 1
+
+      - name: Setup NPM
+        run: |
+          npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set registry=https:${{ inputs.npm-registry }}
+          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+
+      - name: Prep, Lint and Build NodeJS part
+        env:
+          NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
+        run: |
+          npm ci
+          npm run lint
+          npm run build:rel
+
+      - name: Dotnet restore/publish
+        run: |
+          SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
+
+          dotnet restore $SOLUTION /p:Configuration=Release
+          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
+
+      - name: Configure AWS credentials
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Deploy
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        env:
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
+          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
+
+      - name: Logout of Amazon ECR
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
+
+      - name: Create Git tag for release
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        run: |
+          git tag $APP_VERSION
+          git push origin $APP_VERSION
+
+      - name: Downmerge master to develop
+        if: ${{ steps.metadata.outputs.downmerge_to_develop == 'true' }}
+        run:  |
+          git fetch
+          git checkout develop
+          git config user.email "deploy-bot@riverigaming.com"
+          git config user.name "rig-autobot"
+
+          if git merge --no-commit --no-ff --no-edit origin/master
+          then
+            if [ -z "$(git status --porcelain)" ]
+            then
+              echo "::notice ::Nothing to commit"
+            else
+              git commit --no-edit
+              git push origin develop
+            fi
+          else
+            if git merge HEAD
+            then
+              echo "::notice ::"Nothing to merge"
+            else
+              echo "::warning ::"Failed to downmerge. Conflicts between master and develop."
+              git merge --abort
+            fi
+          fi
 
   merge:
     name: merge
