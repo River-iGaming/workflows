@@ -117,10 +117,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: NPM TOKEN
+        id: npm_token
+        run: |
+          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
       - name: Install Odin CI tooling (deprecated)
         run: npm i -g @odin/infra.ci@0.1.22
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+          NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
 
       - name: Determine Branch Name
         id: branch
@@ -255,12 +261,6 @@ jobs:
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
-      - name: NPM TOKEN
-        id: npm_token
-        run: |
-          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
-          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
-
       - name: Setup NPM
         run: |
           npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
@@ -270,7 +270,7 @@ jobs:
 
       - name: Prep, Lint and Build NodeJS part
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
+          NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
         run: |
           npm ci
           npm run lint
