@@ -247,7 +247,7 @@ jobs:
           echo "::notice ::Version: $PACKAGE_VERSION"
 
       - name: Check if tag exists
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         uses: mukunku/tag-exists-action@v1.2.0
         id: tag
         with:
@@ -256,7 +256,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
       - name: Inform if tag exists
-        if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
@@ -284,7 +284,7 @@ jobs:
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
 
       - name: Configure AWS credentials
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
@@ -293,11 +293,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Deploy
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
         run: |
@@ -305,17 +305,17 @@ jobs:
           docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
 
       - name: Logout of Amazon ECR
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create Git tag for release
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
 
       - name: Downmerge master to develop
-        if: ${{ steps.check-branch.outputs.downmerge_to_develop == 'true' }}
+        if: ${{ steps.metadata.outputs.downmerge_to_develop == 'true' }}
         run:  |
           git fetch
           git checkout develop
