@@ -191,20 +191,20 @@ jobs:
             @(demo)\/+(?) )
             IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # named demo branch
             dependabot\/+(?) )
             IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            VERSION_TAG="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # demo only branch
             "demo")
             IS_PUBLISHABLE="true"
-            VERSION_TAG="demo-${RUN_ID}"
+            TAG_SUFFIX="demo-${RUN_ID}"
             ;;
 
             # hotfix
@@ -229,8 +229,8 @@ jobs:
 
           # build version number in full with value extracted from package.json + tag suffix if available
           PACKAGE_VERSION=${BASE_PACKAGE_VERSION}
-          if [ ! -z "${VERSION_TAG}" ]; then
-            PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${VERSION_TAG}
+          if [ ! -z "${TAG_SUFFIX}" ]; then
+            PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${TAG_SUFFIX}
           fi
 
           # expose metadata as workflow variables
