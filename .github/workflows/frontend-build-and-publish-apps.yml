@@ -96,19 +96,6 @@ jobs:
           echo dotnet cli version':' $DOTNET_CLI_V
           git --version
 
-      - name: Setup yq
-        env:
-          BINARY: 'yq_linux_amd64'
-          VERSION: 'v4.25.1'
-        run: |
-          echo $PATH
-          echo "---"
-          whoami
-          echo "---"
-          mkdir -p /home/runner/.local/bin/
-          curl -L https://github.com/mikefarah/yq/releases/download/v4.34.1/yq_linux_amd64 -o /home/runner/.local/bin/yq
-          chmod +x ~/.local/bin/yq
-
       - name: Checkout
         uses: actions/checkout@v3.0.0
         if: github.event_name == 'pull_request'
@@ -157,8 +144,8 @@ jobs:
           shopt -s extglob;
 
           # determine version + tag
-          BASE_PACKAGE_VERSION=$(cat ./package.json | yq .version)
-          APP_NAME=$(cat ./package.json | yq .name)
+          BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          APP_NAME=$(node -p "require('./package.json').name")
 
           # ensure we have a unique suffix
           if [ ${{github.run_attempt}} -eq 1 ]
@@ -286,7 +273,7 @@ jobs:
 
       - name: Dotnet restore/publish
         run: |
-          SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
+          SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
 
           dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
