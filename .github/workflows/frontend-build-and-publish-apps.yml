@@ -105,6 +105,7 @@ jobs:
           echo "---"
           whoami
           echo "---"
+          mkdir -p /home/runner/.local/bin/
           curl -sSL https://github.com/mikefarah/yq/releases/download/v4.34.1/yq_linux_amd64 -o /home/runner/.local/bin/yq
           chmod +x ~/.local/bin/yq
 
