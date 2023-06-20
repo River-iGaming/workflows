@@ -13,10 +13,10 @@ on:
         type: string
         default: //nexus.rivertech.dev/repository/npm/
       npm-registry-publish:
-          description: The address for npm registry publish
-          required: false
-          type: string
-          default: //nexus.rivertech.dev/repository/odin-npm/
+        description: The address for npm registry publish
+        required: false
+        type: string
+        default: //nexus.rivertech.dev/repository/odin-npm/
       npm-registry-scope:
         description: The name of the npm scope (defaults to @odin)
         required: false
