@@ -251,7 +251,7 @@ jobs:
         uses: mukunku/tag-exists-action@v1.2.0
         id: tag
         with:
-          tag: ${{ env.APP_VERSION }}
+          tag: ${{ steps.metadata.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
