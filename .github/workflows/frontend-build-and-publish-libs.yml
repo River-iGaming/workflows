@@ -107,15 +107,6 @@ jobs:
           npm config set registry=https:${{ inputs.npm-registry }}
           npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
-      - name: Dump NPM Config
-        run: |
-          echo -n "${{ secrets.nexus-username }}" | rev | base64
-          echo "==="
-          echo -n "${{ secrets.nexus-password }}" | rev | base64 
-          echo "==="
-          echo -n "${{ steps.npm_token.outputs.token }}"
-          echo "==="
-
       - name: Install npm
         run: npm ci
 
