@@ -234,8 +234,8 @@ jobs:
           fi
 
           # expose metadata as workflow variables
-          echo "version::${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "app_name::${APP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
           echo "downmerge_to_develop=${DOWNMERGE_TO_DEVELOP}" >> "$GITHUB_OUTPUT"
           
