@@ -3,20 +3,20 @@ on:
   workflow_call:
     inputs:
       node-version:
-        description: Node version to use (defaults to 14)
+        description: Node version to use (defaults to 18)
         required: false
         type: string
-        default: '14'
-      npm-registry-url:
-        description: The url address for npm registry
+        default: '18'
+      npm-registry:
+        description: The url for npm registry
         required: false
         type: string
-        default: https://nexus.rivertech.dev/repository/npm/
-      nuget-registry-url:
-        description: The url address for nuget registry
-        required: false
-        type: string
-        default: https://nexus.rivertech.dev/repository/nuget/index.json
+        default: //nexus.rivertech.dev/repository/npm/
+      npm-registry-publish:
+          description: The address for npm registry publish
+          required: false
+          type: string
+          default: //nexus.rivertech.dev/repository/odin-npm/
       npm-registry-scope:
         description: The name of the npm scope (defaults to @odin)
         required: false
@@ -40,11 +40,15 @@ on:
         default: true
 
     secrets:
-      npm-token:
+      nexus-username:
+        required: true
+      nexus-password:
         required: true
       aws-access-key-id:
         required: true
       aws-secret-access-key:
+        required: true
+      github-token:
         required: true
 
 concurrency:
@@ -70,12 +74,10 @@ jobs:
           needs_context: ${{ toJson(needs) }}
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v3.6.0
         with:
-          node-version: ${{ inputs.node-version }}
           always-auth: true
-          registry-url: ${{ inputs.npm-registry-url }}
-          scope: ${{ inputs.npm-registry-scope }}
+          node-version: ${{ inputs.node-version }}
 
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2.0.0
@@ -253,6 +255,18 @@ jobs:
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
+      - name: NPM TOKEN
+        id: npm_token
+        run: |
+          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup NPM
+        run: |
+          npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set registry=https:${{ inputs.npm-registry }}
+          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
       - name: Prep, Lint and Build NodeJS part
         env:
