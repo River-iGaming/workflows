@@ -226,10 +226,6 @@ jobs:
       - name: Deploy
         if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' }}
         run: |
-          
-          # before we publish we set the repository for @odin packages
-          npm config set @odin:registry=https://nexus.rivertech.dev/repository/odin-npm/
-          
           PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
           
           echo "Tagging code base"
