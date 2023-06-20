@@ -165,9 +165,11 @@ jobs:
 
           TAG_SUFFIX=""
           IS_PUBLISHABLE="false"
+          DOWNMERGE_TO_DEVELOP="false"
           case "$BRANCH_NAME" in
             "main"|"master")
             IS_PUBLISHABLE="true"
+            DOWNMERGE_TO_DEVELOP="true"
             ;;
 
             "develop")
@@ -237,7 +239,8 @@ jobs:
           echo "version::${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
           echo "app_name::${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
-
+          echo "downmerge_to_develop=${DOWNMERGE_TO_DEVELOP}" >> "$GITHUB_OUTPUT"
+          
           # expose metadata as environment variables
           echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
