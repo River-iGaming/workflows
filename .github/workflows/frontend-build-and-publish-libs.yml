@@ -102,7 +102,9 @@ jobs:
       - name: Setup Environment
         run: |
           npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
-          npm config set registry=http:${{ inputs.npm-registry }}
+          npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set registry=https:${{ inputs.npm-registry }}
+          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
       - name: Dump NPM Config
         run: |
