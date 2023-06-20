@@ -109,15 +109,11 @@ jobs:
 
       - name: Dump NPM Config
         run: |
-          npm config list -g -l
-          echo "==="
-          cat /home/runner/work/_temp/.npmrc | base64
-          echo "==="
           echo -n "${{ secrets.nexus-username }}" | rev | base64
           echo "==="
           echo -n "${{ secrets.nexus-password }}" | rev | base64 
           echo "==="
-          echo $NODE_AUTH_TOKEN | rev
+          echo -n "${{ steps.npm_token.outputs.token }}"
           echo "==="
 
       - name: Install npm
