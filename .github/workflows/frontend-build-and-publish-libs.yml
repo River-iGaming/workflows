@@ -64,8 +64,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node
-        uses: actions/setup-node@main
+        uses: actions/setup-node@v3.6.0
         with:
+          always-auth: true
           node-version: ${{ inputs.node-version }}
 
       - name: Print environment versions
@@ -97,7 +98,7 @@ jobs:
         id: npm_token
         run: |
           NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
-          echo "::set-output name=token::${NODE_AUTH_TOKEN}"
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Environment
         run: |
