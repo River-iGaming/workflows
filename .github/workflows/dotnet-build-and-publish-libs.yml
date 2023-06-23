@@ -8,32 +8,48 @@ on:
         required: false
         type: string
         default: '5.0.x'
-      nuget-server-url:
-        description: Url for Nuget server
-        required: true
+      nuget-registry-url:
+        description: The url address for nuget registry
+        required: false
         type: string
+        default: https://nexus.rivertech.dev/repository/nuget/index.json
+      nuget-publish-url:
+        description: The url address where to publish nugets
+        required: false
+        type: string
+        default: https://nexus.rivertech.dev/repository/odin-nuget/index.json
       publishable:
         description: Whether packages should be deployed to Nuget server
         type: boolean
         default: false
         required: false
     secrets:
-      nuget-server-token:
-        description: Access token for Nuget server
+      nexus-username:
+        required: true
+      nexus-password:
         required: true
 jobs:
   build:
     name: Build and Deploy
     runs-on: ubuntu-latest
-    env: 
+    env:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
     steps:
+
+      - name: Debug Action Contexts
+        uses: henrygriffiths/debug_action@v1
+        with:
+          secrets_context: ${{ toJson(secrets) }}
+          needs_context: ${{ toJson(needs) }}
+
       - name: Checkout
         uses: actions/checkout@v3
+
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v1.9.0
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
+
       - uses: actions/cache@v2.1.7
         name: Setup Cache
         with:
@@ -41,38 +57,64 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
       - name: Setup environmental variables
         run: |
           SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "SOLUTION=$SOLUTION" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV  
-      - name: Restore
-        run: |
-          dotnet restore $SOLUTION /p:Configuration=Release
-      - name: Build
-        run: dotnet build $SOLUTION -c Release
-      - name: Test
-        run: npm test
-      - name: Get Version
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+
+      - name: Generate Version Number
         id: version
         if: inputs.publishable
         uses: River-iGaming/actions/dotnet/versions@v1.0.0
         with:
-          package-version: ${{ env.PACKAGE_VERSION }}        
+          package-version: ${{ env.PACKAGE_VERSION }}
+
+      - name: Setup Build Tools
+        run: |
+          # Disable nuget.org source and river-tech source if present
+
+          dotnet nuget remove source river-tech || true
+
+          dotnet nuget add source ${{ inputs.nuget-registry-url }} \
+            -n nexus \
+            -u ${{ secrets.nexus-username }} \
+            -p ${{ secrets.nexus-password }} \
+            --store-password-in-clear-text
+
+          dotnet nuget add source ${{ inputs.nuget-publish-url }} \
+            -n publish \
+            -u ${{ secrets.nexus-username }} \
+            -p ${{ secrets.nexus-password }} \
+            --store-password-in-clear-text
+
+      - name: Restore
+        run: |
+          dotnet restore $SOLUTION /p:Configuration=Release
+
+      - name: Build
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+        run: dotnet build -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release
+
+      - name: Test
+        run: npm test
+
       - name: Publish Nuget
         if: inputs.publishable
-        env: 
-          APP_VERSION: ${{ steps.version.outputs.app-version }}          
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
         run: |
-          dotnet pack $SOLUTION -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=$PACKAGE_VERSION -o ./ -c release                    
-          # dotnet nuget push *.nupkg -k ${{ secrets.nuget-server-token }} -s ${{ inputs.nuget-server-url }}
-          # Using the following in order to parallelise the nuget package push
-          find *.nupkg | xargs -n 1 -P 8 -i dotnet nuget push {} -k ${{ secrets.nuget-server-token }} -s ${{ inputs.nuget-server-url }}
+          mkdir ./nuget
+          dotnet pack $SOLUTION --no-build -p:PackageVersion=$APP_VERSION -o ./nuget -c Release
+          find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
+
       - name: Git Tag
         if: inputs.publishable
-        env: 
-          APP_VERSION: ${{ steps.version.outputs.app-version }}    
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION

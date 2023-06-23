@@ -3,15 +3,20 @@ on:
   workflow_call:
     inputs:
       node-version:
-        description: Node version to use (defaults to 14)
+        description: Node version to use (defaults to 18)
         required: false
         type: string
-        default: '14'
-      npm-registry-url:
-        description: The url address for npm registry (defaults to https://www.myget.org/F/river-tech/npm/)
+        default: '18'
+      npm-registry:
+        description: The url for npm registry
         required: false
         type: string
-        default: https://www.myget.org/F/river-tech/npm/
+        default: //nexus.rivertech.dev/repository/npm/
+      npm-registry-publish:
+          description: The address for npm registry publish
+          required: false
+          type: string
+          default: //nexus.rivertech.dev/repository/odin-npm/
       npm-registry-scope:
         description: The name of the npm scope (defaults to @odin)
         required: false
@@ -38,7 +43,9 @@ on:
         type: boolean
         default: false
     secrets:
-      npm-token:
+      nexus-username:
+        required: true
+      nexus-password:
         required: true
       aws-access-key-id:
         required: true
@@ -57,12 +64,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v3.6.0
         with:
-          node-version: ${{ inputs.node-version }}
           always-auth: true
-          registry-url: ${{ inputs.npm-registry-url }}
-          scope: ${{ inputs.npm-registry-scope }}
+          node-version: ${{ inputs.node-version }}
 
       - name: Print environment versions
         run: |
@@ -89,10 +94,21 @@ jobs:
             echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD)
           fi
 
+      - name: NPM TOKEN
+        id: npm_token
+        run: |
+          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Environment
+        run: |
+          npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set registry=https:${{ inputs.npm-registry }}
+          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+
       - name: Install npm
         run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Build
         run: npm run build
@@ -198,13 +214,14 @@ jobs:
       - name: Deploy
         if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' }}
         run: |
-          echo "git tag"
           PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
+          
+          echo "Tagging code base"
           git tag $PACKAGE_VERSION
           git push origin $PACKAGE_VERSION
+          
+          echo "Publishing ..."
           npm run publish:rel
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
 
       - name: Store tests artifact
         uses: actions/upload-artifact@v3

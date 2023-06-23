@@ -2,7 +2,7 @@ name: Maven Deploy and Docker Package
 
 on:
   workflow_call:
-    inputs: 
+    inputs:
       exec-project:
         description: The main executable project
         required: false
@@ -56,7 +56,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: ${{ inputs.java-version }}          
+          java-version: ${{ inputs.java-version }}
 
       - name: Setting up maven settings.xml
         uses: whelk-io/maven-settings-xml-action@v7
@@ -86,7 +86,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.sonar-token }}
 
       - name: Get release version
-        id: versioning        
+        id: versioning
         run: |
           PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
           BRANCH=${{ github.ref_name }}
@@ -97,7 +97,7 @@ jobs:
             BUILD_NUMBER=${{ github.run_number}}-${{github.run_attempt}}
           fi
           case $BRANCH in
-            master)              
+            master)
               VERSION=$BRANCH-$PROJECT_VERSION
               ;;
             develop)
