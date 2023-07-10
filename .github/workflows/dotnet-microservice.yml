@@ -41,8 +41,8 @@ jobs:
           secrets_context: ${{ toJson(secrets) }}
           needs_context: ${{ toJson(needs) }}
 
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v2.0.0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
@@ -56,7 +56,7 @@ jobs:
           chmod +x /usr/local/bin/yq
 
       - name: Checkout
-        uses: actions/checkout@v3.0.0
+        uses: actions/checkout@v3
 
       - name: Setup Build Tools
         run: |
@@ -80,7 +80,7 @@ jobs:
 
       - name: Get Version
         id: version
-        uses: River-iGaming/actions/dotnet/versions@feature/up-version # todo: update to tag
+        uses: River-iGaming/actions/dotnet/versions@v2
         with:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}
