@@ -169,7 +169,8 @@ jobs:
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
         with: 
-          tag: ${{ steps.lerna.outputs.tag }}
+          tag: ${{ env.PACKAGE_VERSION }}
+          # tag: ${{ steps.lerna.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
