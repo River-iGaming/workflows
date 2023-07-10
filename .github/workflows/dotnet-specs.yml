@@ -16,7 +16,7 @@ on:
       solution:
         description: path to project solution
         required: true
-        type: string        
+        type: string
       publish:
         description: whether the docker image should be pushed
         required: false
@@ -59,10 +59,12 @@ jobs:
               exit 1
           fi
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
-      - name: Setup .NET Core SDK
+
+      - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
+
       - uses: actions/cache@v3
         name: Setup Cache
         with:
@@ -70,11 +72,12 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
       - name: Restore
         run: dotnet restore $SOLUTION /p:Configuration=Release
 
       - name: Publish
-        run: dotnet publish $SOLUTION -f ${{ inputs.dotnet-publish-version }} -c Release -o ./$PUBLISH_PATH
+        run: dotnet publish $SOLUTION -f ${{ inputs.dotnet-publish-version }} -c Release -o ./$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
