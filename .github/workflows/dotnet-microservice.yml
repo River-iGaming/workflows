@@ -46,14 +46,14 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
-      - name: Setup yq
-        env:
-          BINARY: 'yq_linux_amd64'
-          VERSION: 'v4.25.1'
-        run: |
-          echo $PATH
-          curl -sSLo /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
-          chmod +x /usr/local/bin/yq
+      # - name: Setup yq
+      #   env:
+      #     BINARY: 'yq_linux_amd64'
+      #     VERSION: 'v4.25.1'
+      #   run: |
+      #     echo $PATH
+      #     curl -sSLo /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
+      #     chmod +x /usr/local/bin/yq
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -88,7 +88,6 @@ jobs:
       - name: Set version envs
         run: |
           echo "APP_VERSION=${{ steps.version.outputs.app-version }}" >> $GITHUB_ENV
-          echo "SOLUTIONZ: $SOLUTION"
 
       - name: Check if Git Tag exists
         if: ${{ github.run_attempt == '1' }}
@@ -113,8 +112,7 @@ jobs:
 
       - name: Dotnet restore/publish
         run: |
-          SOLUTION=$(cat ./package.json | yq .vsBuildSolution)
-
+          echo "SOLUTIONZ: $SOLUTION"
           dotnet nuget list source
           dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
