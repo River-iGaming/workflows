@@ -68,8 +68,9 @@ jobs:
       - name: Generate Version Number
         id: version
         if: inputs.publishable
-        uses: River-iGaming/actions/dotnet/versions@v1.0.0
+        uses: River-iGaming/actions/dotnet/versions@main
         with:
+          type: lib
           package-version: ${{ env.PACKAGE_VERSION }}
 
       - name: Setup Build Tools

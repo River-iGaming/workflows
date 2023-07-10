@@ -44,7 +44,7 @@ jobs:
           echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV   
       - name: Get Version
         id: version
-        uses: River-iGaming/actions/dotnet/versions@feature/mw-ms-version
+        uses: River-iGaming/actions/dotnet/versions@v2
         with:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}

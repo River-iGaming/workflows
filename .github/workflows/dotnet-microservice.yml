@@ -80,7 +80,7 @@ jobs:
 
       - name: Get Version
         id: version
-        uses: River-iGaming/actions/dotnet/versions@feature/mw-ms-version
+        uses: River-iGaming/actions/dotnet/versions@main # todo: update to tag
         with:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}
