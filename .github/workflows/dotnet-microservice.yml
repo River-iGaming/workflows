@@ -51,8 +51,9 @@ jobs:
           BINARY: 'yq_linux_amd64'
           VERSION: 'v4.25.1'
         run: |
-          curl -sSLo /usr/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
-          chmod +x /usr/bin/yq
+          echo $PATH
+          curl -sSLo /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
+          chmod +x /usr/local/bin/yq
 
       - name: Checkout
         uses: actions/checkout@v3.0.0
