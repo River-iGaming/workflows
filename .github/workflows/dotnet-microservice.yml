@@ -62,7 +62,7 @@ jobs:
         run: |
           dotnet nuget list source
 
-          dotnet nuget disable source river-nexus
+          dotnet nuget remove source river-nexus
 
           echo "Add source for nexus"
           dotnet nuget add source ${{ inputs.nuget-registry-url }} \
