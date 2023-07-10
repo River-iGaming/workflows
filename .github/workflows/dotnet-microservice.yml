@@ -88,6 +88,7 @@ jobs:
       - name: Set version envs
         run: |
           echo "APP_VERSION=${{ steps.version.outputs.app-version }}" >> $GITHUB_ENV
+          echo "SOLUTIONZ: $SOLUTION"
 
       - name: Check if Git Tag exists
         if: ${{ github.run_attempt == '1' }}
