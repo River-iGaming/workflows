@@ -45,12 +45,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v1.9.0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
-      - uses: actions/cache@v2.1.7
+      - uses: actions/cache@v3
         name: Setup Cache
         with:
           path: ~/.nuget/packages

@@ -36,18 +36,20 @@ jobs:
       PUBLISH_PATH: specs
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
       - name: Setup environmental variables
         run: |
           echo "SOLUTION=${{ inputs.solution }}" >> $GITHUB_ENV
           echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV   
-      - name: Get Version
+          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Generate Version Number
         id: version
         uses: River-iGaming/actions/dotnet/versions@v2
         with:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}
+
       - name: Check if Git Tag exists
         env:
           APP_VERSION: ${{ steps.version.outputs.app-version }}
@@ -58,16 +60,16 @@ jobs:
           fi
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
       - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v1.9.0
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-      - uses: actions/cache@v2.1.7
+      - uses: actions/cache@v3
         name: Setup Cache
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-nuget-          
+            ${{ runner.os }}-nuget-
       - name: Restore
         run: dotnet restore $SOLUTION /p:Configuration=Release
 
@@ -88,8 +90,8 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         if: ${{ inputs.publish }}
         env:
-          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}          
-          GIT_COMMIT: ${{ github.sha }}          
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          GIT_COMMIT: ${{ github.sha }}
         run: |
          docker-compose -f docker-compose.yml build
          docker-compose -f docker-compose.yml push
