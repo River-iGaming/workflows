@@ -60,10 +60,10 @@ jobs:
 
       - name: Setup Build Tools
         run: |
-          # Disable nuget.org source and river-tech source if present
+          dotnet nuget list source
 
-          dotnet nuget disable source river-tech
 
+          echo "Add source for nexus"
           dotnet nuget add source ${{ inputs.nuget-registry-url }} \
             -n nexus \
             -u ${{ secrets.nexus-username }} \
