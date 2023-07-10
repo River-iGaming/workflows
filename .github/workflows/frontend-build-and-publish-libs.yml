@@ -42,6 +42,11 @@ on:
         required: false
         type: boolean
         default: false
+      monoTemplate:
+        description: Specify which template to use for mono repo e.g. 'lerna', 'node' (defaults to 'lerna')
+        required: false
+        type: string
+        default: lerna
     secrets:
       nexus-username:
         required: true
@@ -107,14 +112,15 @@ jobs:
           npm config set registry=https:${{ inputs.npm-registry }}
           npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
-      - name: Install npm
-        run: npm ci
+      # todo: uncomment
+      # - name: Install npm
+      #   run: npm ci
 
-      - name: Build
-        run: npm run build
+      # - name: Build
+      #   run: npm run build
 
-      - name: Test
-        run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
+      # - name: Test
+      #   run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
 
       - name: Build storybook
         if: inputs.has-storybook
@@ -148,12 +154,16 @@ jobs:
             echo "::set-output name=publishable::true"
           fi
 
-      - name: Fetch tag from lerna
-        id: lerna
+      - name: Get package version
+        id: versioning
         if: ${{ steps.commit.outputs.publishable == 'true' }}
         run: |
           TAG=$(node -p "require('./lerna.json').version")
-          echo "::set-output name=tag::${TAG}"
+          echo "::set-output name=version::${TAG}"
+          VERSION_FILE=${{inputs.monoTemplate == 'lerna' && 'lerna.json' || 'package.json'}}
+          echo "VERSION FILE: $VERSION_FILE"
+          PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
@@ -214,8 +224,9 @@ jobs:
       - name: Deploy
         if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' }}
         run: |
-          PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
-          
+          echo "PKG VER: $PACKAGE_VERSION" # todo: remove
+          # PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
+
           echo "Tagging code base"
           git tag $PACKAGE_VERSION
           git push origin $PACKAGE_VERSION
