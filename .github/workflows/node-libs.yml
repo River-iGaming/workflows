@@ -73,6 +73,18 @@ jobs:
     name: build & publish
     runs-on: ubuntu-latest
     steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        # with:
+        #   fetch-depth: 0
+
+      - name: NPM TOKEN
+        id: npm_token
+        run: |
+          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
@@ -80,17 +92,19 @@ jobs:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
 
+      - name: Setup Environment
+        run: |
+          npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set registry=https:${{ inputs.npm-registry }}
+          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+
       - name: Print environment versions
         run: |
           NODE_V=$(node --version)
           NPM_V=$(npm -v)
           echo node version':' $NODE_V
           echo npm version':' $NPM_V
-
-      - name: Checkout
-        uses: actions/checkout@v3
-        # with:
-        #   fetch-depth: 0
 
       - name: Get commit message and branch name
         id: git
@@ -104,19 +118,6 @@ jobs:
             echo "::set-output name=branch-name::${GITHUB_REF_NAME}"
             echo ::set-output name=commit-message::$(git log --format=%B -n 1 HEAD)
           fi
-
-      - name: NPM TOKEN
-        id: npm_token
-        run: |
-          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
-          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
-
-      - name: Setup Environment
-        run: |
-          npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
-          npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
-          npm config set registry=https:${{ inputs.npm-registry }}
-          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
       - name: Restore dependencies
         run: npm ci
