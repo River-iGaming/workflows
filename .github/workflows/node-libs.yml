@@ -117,22 +117,21 @@ jobs:
           npm config set registry=https:${{ inputs.npm-registry }}
           npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
-      # todo: uncomment
-      # - name: Install npm
-      #   run: npm ci
+      - name: Install npm
+        run: npm ci
 
-      # - name: Lint
-      #   run: npm run lint --if-present
+      - name: Lint
+        run: npm run lint --if-present
 
-      # - name: Build
-      #   run: npm run build
+      - name: Build
+        run: npm run build
 
-      # - name: Test
-      #   run: npm run test:ci --if-present
+      - name: Test
+        run: npm run test:ci --if-present
 
-      # - name: Build storybook
-      #   if: inputs.has-storybook
-      #   run: npm run build:storybook
+      - name: Build storybook
+        if: inputs.has-storybook
+        run: npm run build:storybook
 
       - name: Check if branch is publishable
         id: check-branch
