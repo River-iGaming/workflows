@@ -167,8 +167,11 @@ jobs:
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
           echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
-          echo "STORYBOOK_PUBLISHABLE=$PUBLISHABLE && ${{inputs.has-storybook}}" >> $GITHUB_ENV
-          echo "STORYBOOK PUBLISHABLE: $STORYBOOK_PUBLISHABLE"
+          if [[ "$PUBLISHABLE" == 'true' && [[ ${{inputs.has-storybook}} == 'true']]; then
+            STORYBOOK_PUBLISHABLE=true
+            echo "STORYBOOK PUBLISHABLE: $STORYBOOK_PUBLISHABLE"
+            echo "STORYBOOK_PUBLISHABLE=$STORYBOOK_PUBLISHABLE" >> $GITHUB_ENV
+          fi
 
       - name: Get package version
         id: versioning
