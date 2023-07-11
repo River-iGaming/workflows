@@ -168,14 +168,12 @@ jobs:
           if [[ ${{steps.check-branch.outputs.publishable == 'true'}} ]] && [[ ${{steps.commit.outputs.publishable == 'true'}} ]]; then
             PUBLISHABLE=true
             echo "::notice ::Library publishable."
-          fi
           else
             PUBLISHABLE=false
           fi
           if [[ ${{inputs.has-storybook}} == true ]] && [[ ${{steps.commit.outputs.publishable == 'true'}} ]]; then
             STORYBOOK_PUBLISHABLE=true
             echo "::notice ::Storybook publishable."
-          fi
           else
             STORYBOOK_PUBLISHABLE=false
           fi
