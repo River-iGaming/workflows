@@ -158,8 +158,8 @@ jobs:
         id: versioning
         if: ${{ steps.commit.outputs.publishable == 'true' }}
         run: |
-          TAG=$(node -p "require('./lerna.json').version")
-          echo "::set-output name=version::${TAG}"
+          # TAG=$(node -p "require('./lerna.json').version")
+          # echo "::set-output name=version::${TAG}"
           if [ "$monoTemplate" = "lerna" ]; then
               VERSION_FILE="lerna"
           elif [ "$monoTemplate" = "node" ]; then
