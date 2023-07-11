@@ -168,6 +168,7 @@ jobs:
               STORYBOOK_PUBLISHABLE=true
               echo "SPORTSBOOK PUBLISHABLE!"
             fi
+          fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
           echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
           echo "STORYBOOK PUBLISHABLE: $STORYBOOK_PUBLISHABLE"
