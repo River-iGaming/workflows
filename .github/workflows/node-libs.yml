@@ -164,14 +164,14 @@ jobs:
             echo "::notice ::This update doesn't need to be published."
           else
             PUBLISHABLE=true
-          fi
+            if [[ "${{inputs.has-storybook}}"" == 'true']]; then
+              STORYBOOK_PUBLISHABLE=true
+              echo "SPORTSBOOK PUBLISHABLE!"
+            fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
           echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
-          if [[ "$PUBLISHABLE" == 'true' && [[ ${{inputs.has-storybook}} == 'true']]; then
-            STORYBOOK_PUBLISHABLE=true
-            echo "STORYBOOK PUBLISHABLE: $STORYBOOK_PUBLISHABLE"
-            echo "STORYBOOK_PUBLISHABLE=$STORYBOOK_PUBLISHABLE" >> $GITHUB_ENV
-          fi
+          echo "STORYBOOK PUBLISHABLE: $STORYBOOK_PUBLISHABLE"
+          echo "STORYBOOK_PUBLISHABLE=$STORYBOOK_PUBLISHABLE" >> $GITHUB_ENV
 
       - name: Get package version
         id: versioning
