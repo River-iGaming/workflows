@@ -149,10 +149,12 @@ jobs:
             PUBLISHABLE=true
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
+          echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
           # todo: set env
 
       - name: Check if commit is publishable
         id: commit
+        if: ${{ env.PUBLISHABLE == 'true' }}
         env:
           COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
@@ -164,10 +166,11 @@ jobs:
             PUBLISHABLE=true
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
+          echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
 
       - name: Get package version
         id: versioning
-        if: ${{ steps.commit.outputs.publishable == 'true' }}
+        if: ${{ env.PUBLISHABLE == 'true' }}
         run: |
           if [[ ${{ inputs.monoTemplate }} == "lerna" ]]; then
             VERSION_FILE=lerna
