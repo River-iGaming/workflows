@@ -70,7 +70,7 @@ concurrency:
 
 jobs:
   build:
-    name: build/publish
+    name: build & publish
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node
