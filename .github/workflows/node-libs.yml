@@ -164,7 +164,7 @@ jobs:
             echo "::notice ::This update doesn't need to be published."
           else
             PUBLISHABLE=true
-            if [[ "${{inputs.has-storybook}}"" == 'true']]; then
+            if [[ "${{inputs.has-storybook}}" == 'true']]; then
               STORYBOOK_PUBLISHABLE=true
               echo "SPORTSBOOK PUBLISHABLE!"
             fi
