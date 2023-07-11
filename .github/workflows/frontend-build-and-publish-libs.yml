@@ -160,7 +160,11 @@ jobs:
         run: |
           TAG=$(node -p "require('./lerna.json').version")
           echo "::set-output name=version::${TAG}"
-          VERSION_FILE=${{inputs.monoTemplate == 'lerna' && 'lerna.json' || 'package.json'}}
+          if [ "$monoTemplate" = "lerna" ]; then
+              VERSION_FILE="lerna"
+          elif [ "$monoTemplate" = "node" ]; then
+              VERSION_FILE="package"
+          fi
           echo "VERSION FILE: $VERSION_FILE"
           PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
