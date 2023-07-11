@@ -87,9 +87,9 @@ jobs:
           echo npm version':' $NPM_V
 
       - name: Checkout
-        uses: actions/checkout@v3.0.0
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v3
+        # with:
+        #   fetch-depth: 0
 
       - name: Get commit message and branch name
         id: git
@@ -165,13 +165,13 @@ jobs:
 
       - name: Set publishable envs
         run: |
-          if [[ ${{steps.check-branch.outputs.publishable == 'true'}} ]] && [[ ${{steps.commit.outputs.publishable == 'true'}} ]]; then
+          if [[ ${{steps.check-branch.outputs.publishable}} == 'true'}} ]] && [[ ${{steps.commit.outputs.publishable}} == 'true'}} ]]; then
             PUBLISHABLE=true
             echo "::notice ::Library publishable."
           else
             PUBLISHABLE=false
           fi
-          if [[ ${{inputs.has-storybook}} == true ]] && [[ ${{steps.commit.outputs.publishable == 'true'}} ]]; then
+          if [[ ${{inputs.has-storybook}} == true ]] && [[ ${{steps.commit.outputs.publishable}} == 'true'}} ]]; then
             STORYBOOK_PUBLISHABLE=true
             echo "::notice ::Storybook publishable."
           else
