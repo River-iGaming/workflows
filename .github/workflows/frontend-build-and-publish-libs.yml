@@ -163,14 +163,17 @@ jobs:
           echo "MONO TEMPLATE: ${{ inputs.monoTemplate }}"
           if [[ ${{ inputs.monoTemplate }} == "lerna" ]]; then
             echo "LERNA!"
-            echo "VERSION_FILE=lerna" >> $GITHUB_ENV
+            VERSION_FILE=lerna
+            # echo "VERSION_FILE=lerna" >> $GITHUB_ENV
           elif [[ ${{ inputs.monoTemplate }} == "node" ]]; then
             echo "NODE!"
-            echo "VERSION_FILE=package" >> $GITHUB_ENV
-          else
-          echo "NOT HANDLED!"
-          fi
-          echo "VERSION FILE: $VERSION_FILE"
+            VERSION_FILE=package
+            else
+            echo "NOT HANDLED!"
+            fi
+          echo "VERSION FILE: $VERSION_FILE x1"
+          echo "VERSION_FILE=$VERSION_FILE" >> $GITHUB_ENV
+          echo "VERSION FILE: $VERSION_FILE x2"
           PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
