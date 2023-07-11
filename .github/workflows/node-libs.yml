@@ -64,7 +64,7 @@ on:
       github-token:
         required: true
 
-concurrency: 
+concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
@@ -127,8 +127,7 @@ jobs:
         run: npm run build
 
       - name: Test
-        run: npm run test:ci --if-present -- --browsers=ChromeHeadlessCI --no-watch --no-progress
-        # run: npm run test --if-present -- --browsers=ChromeHeadlessCI --no-watch --no-progress
+        run: npm run test:ci --if-present
 
       - name: Build storybook
         if: inputs.has-storybook
@@ -141,8 +140,6 @@ jobs:
         run: |
           echo "::notice ::Branch name: $BRANCH_NAME"
           
-          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "feature/ci-wf" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
-          # todo: switch back
           # if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             PUBLISHABLE=false
             echo "::notice ::Non-publishable branch."
@@ -161,17 +158,16 @@ jobs:
           echo "::notice ::Commit message: $COMMIT_MESSAGE"
           if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
             PUBLISHABLE=false
-            echo "::notice ::This update doesn't need to be published."
+            echo "::notice ::Commit doesn't need to be published."
           else
             PUBLISHABLE=true
             if [[ ${{inputs.has-storybook}} == true ]]; then
               STORYBOOK_PUBLISHABLE=true
-              echo "SPORTSBOOK PUBLISHABLE!"
+              echo "::notice ::Storybook publishable."
             fi
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
           echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
-          echo "STORYBOOK PUBLISHABLE: $STORYBOOK_PUBLISHABLE"
           echo "STORYBOOK_PUBLISHABLE=$STORYBOOK_PUBLISHABLE" >> $GITHUB_ENV
 
       - name: Get package version
@@ -224,13 +220,13 @@ jobs:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
-          # TAG=$(node -p "require('./storybook/package.json').version")
           TAG=$PACKAGE_VERSION
-          
-          # todo: try and replace by using the name from the package.json instead (but not able to change it)
-          # STORYBOOK_NAME=$(node -p "require('./storybook/package.json').dockerName")
+
+          # todo: try and replace by using the name from the package.json instead (but was not able to change it e.g. npm i fails)
+          # STORYBOOK_NAME=$(node -p "require('./storybook/package.json').name")
           STORYBOOK_NAME=$(node -p "require('./storybook/package.json').dockerName")
-          echo "Storybook Name: $STORYBOOK_NAME"
+          echo "Storybook Docker Repo Name: $STORYBOOK_NAME"
+
           if [ "$BRANCH_NAME" = "develop" ]
           then
             TAG=$TAG-dev-$GITHUB_RUN_ID
@@ -257,7 +253,6 @@ jobs:
         if: ${{ env.PUBLISHABLE == 'true' }}
         run: |
           echo "Publishing ..."
-          # npm run publish:rel # todo: remove
           ${{ inputs.publish-command }}
 
           echo "Tagging code base"
