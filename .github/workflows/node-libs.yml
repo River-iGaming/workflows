@@ -167,27 +167,6 @@ jobs:
         run: |
           PUBLISHABLE=${{steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true'}}
           STORYBOOK_PUBLISHABLE=${{inputs.has-storybook == true && steps.commit.outputs.publishable == 'true'}}
-          HAS_SB=${{inputs.has-storybook == true}}
-          CommitPublishable=${{steps.commit.outputs.publishable == 'true'}}
-          if [[ $PUBLISHABLE == 'true' ]]; then
-            echo "::notice ::Library publishable."
-          fi
-          if [[ $STORYBOOK_PUBLISHABLE ]]; then
-            echo "::notice ::Storybook publishable."
-          fi
-          # todo: remove
-          # if [[ ${{steps.check-branch.outputs.publishable}} == 'true'}} ]] && [[ ${{steps.commit.outputs.publishable}} == 'true' ]]; then
-          #   PUBLISHABLE=true
-          #   echo "::notice ::Library publishable."
-          # else
-          #   PUBLISHABLE=false
-          # fi
-          # if [[ ${{inputs.has-storybook}} == true ]] && [[ ${{steps.commit.outputs.publishable}} == 'true' ]]; then
-          #   STORYBOOK_PUBLISHABLE=true
-          #   echo "::notice ::Storybook publishable."
-          # else
-          #   STORYBOOK_PUBLISHABLE=false
-          # fi
           echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
           echo "STORYBOOK_PUBLISHABLE=$STORYBOOK_PUBLISHABLE" >> $GITHUB_ENV
 
