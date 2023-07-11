@@ -141,13 +141,15 @@ jobs:
           BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
           echo "::notice ::Branch name: $BRANCH_NAME"
-
+          
           if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
-            echo "::set-output name=publishable::false"
+            PUBLISHABLE=false
             echo "::notice ::Non-publishable branch."
           else 
-            echo "::set-output name=publishable::true"
+            PUBLISHABLE=true
           fi
+          echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
+          # todo: set env
 
       - name: Check if commit is publishable
         id: commit
@@ -155,13 +157,13 @@ jobs:
           COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
           echo "::notice ::Commit message: $COMMIT_MESSAGE"
-
           if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
-            echo "::set-output name=publishable::false"
+            PUBLISHABLE=false
             echo "::notice ::This update doesn't need to be published."
-          else 
-            echo "::set-output name=publishable::true"
+          else
+            PUBLISHABLE=true
           fi
+          echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
 
       - name: Get package version
         id: versioning
@@ -182,6 +184,7 @@ jobs:
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
+        if: ${{ steps.commit.outputs.publishable == 'true' }}
         with:
           tag: ${{ env.PACKAGE_VERSION }}
         env:
