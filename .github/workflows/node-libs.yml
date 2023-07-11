@@ -74,10 +74,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v3
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
+          cache: 'npm'
 
       - name: Print environment versions
         run: |
@@ -117,7 +118,7 @@ jobs:
           npm config set registry=https:${{ inputs.npm-registry }}
           npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
-      - name: Install npm
+      - name: Restore dependencies
         run: npm ci
 
       - name: Lint
