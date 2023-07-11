@@ -1,4 +1,4 @@
-name: Frontend Build and Publish Library
+name: Node library build/publish
 on:
   workflow_call:
     inputs:
