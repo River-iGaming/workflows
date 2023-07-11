@@ -47,6 +47,11 @@ on:
         required: false
         type: string
         default: lerna
+      publish-command:
+        description: "Command to run to publish packages (defaults to: `npm run release` NOTE: NOT `npm publish`)"
+        type: string
+        default: npm run release
+        required: false
     secrets:
       nexus-username:
         required: true
@@ -113,14 +118,18 @@ jobs:
           npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
       # todo: uncomment
-      # - name: Install npm
-      #   run: npm ci
+      - name: Install npm
+        run: npm ci
 
-      # - name: Build
-      #   run: npm run build
+      - name: Lint
+        run: npm run lint --if-present
 
-      # - name: Test
-      #   run: npm run test -- --browsers=ChromeHeadlessCI --no-watch --no-progress
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test:ci --if-present
+        # run: npm run test --if-present -- --browsers=ChromeHeadlessCI --no-watch --no-progress
 
       - name: Build storybook
         if: inputs.has-storybook
@@ -158,35 +167,27 @@ jobs:
         id: versioning
         if: ${{ steps.commit.outputs.publishable == 'true' }}
         run: |
-          # TAG=$(node -p "require('./lerna.json').version")
-          # echo "::set-output name=version::${TAG}"
-          echo "MONO TEMPLATE: ${{ inputs.monoTemplate }}"
           if [[ ${{ inputs.monoTemplate }} == "lerna" ]]; then
-            echo "LERNA!"
             VERSION_FILE=lerna
-            # echo "VERSION_FILE=lerna" >> $GITHUB_ENV
           elif [[ ${{ inputs.monoTemplate }} == "node" ]]; then
-            echo "NODE!"
             VERSION_FILE=package
-            else
-            echo "NOT HANDLED!"
-            fi
-          echo "VERSION FILE: $VERSION_FILE x1"
+          else
+            echo "::error ::Mono template '${{ inputs.monoTemplate }}' not handled!"
+            exit 1
+          fi
           echo "VERSION_FILE=$VERSION_FILE" >> $GITHUB_ENV
-          echo "VERSION FILE: $VERSION_FILE x2"
           PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
-        with: 
+        with:
           tag: ${{ env.PACKAGE_VERSION }}
-          # tag: ${{ steps.lerna.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
-      - name: Inform if tag exists
+      - name: Error if tag exists
         if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
@@ -234,18 +235,16 @@ jobs:
         if: ${{ inputs.has-storybook && steps.commit.outputs.publishable == 'true' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
-      - name: Deploy
+      - name: Publish
         if: ${{ steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true' }}
         run: |
-          echo "PKG VER: $PACKAGE_VERSION" # todo: remove
-          # PACKAGE_VERSION=$(node -p "require('./lerna.json').version")
+          echo "Publishing ..."
+          # npm run publish:rel # todo: remove
+          ${{ inputs.publish-command }}
 
           echo "Tagging code base"
           git tag $PACKAGE_VERSION
           git push origin $PACKAGE_VERSION
-          
-          echo "Publishing ..."
-          npm run publish:rel
 
       - name: Store tests artifact
         uses: actions/upload-artifact@v3
