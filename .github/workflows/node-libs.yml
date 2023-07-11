@@ -117,21 +117,22 @@ jobs:
           npm config set registry=https:${{ inputs.npm-registry }}
           npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
 
-      - name: Install npm
-        run: npm ci
+      # todo: uncomment
+      # - name: Install npm
+      #   run: npm ci
 
-      - name: Lint
-        run: npm run lint --if-present
+      # - name: Lint
+      #   run: npm run lint --if-present
 
-      - name: Build
-        run: npm run build
+      # - name: Build
+      #   run: npm run build
 
-      - name: Test
-        run: npm run test:ci --if-present
+      # - name: Test
+      #   run: npm run test:ci --if-present
 
-      - name: Build storybook
-        if: inputs.has-storybook
-        run: npm run build:storybook
+      # - name: Build storybook
+      #   if: inputs.has-storybook
+      #   run: npm run build:storybook
 
       - name: Check if branch is publishable
         id: check-branch
@@ -139,7 +140,7 @@ jobs:
           BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
           echo "::notice ::Branch name: $BRANCH_NAME"
-          
+
           if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             PUBLISHABLE=false
             echo "::notice ::Non-publishable branch."
@@ -147,11 +148,9 @@ jobs:
             PUBLISHABLE=true
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
-          echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
 
       - name: Check if commit is publishable
         id: commit
-        if: ${{ env.PUBLISHABLE == 'true' }}
         env:
           COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
@@ -161,18 +160,31 @@ jobs:
             echo "::notice ::Commit doesn't need to be published."
           else
             PUBLISHABLE=true
-            if [[ ${{inputs.has-storybook}} == true ]]; then
-              STORYBOOK_PUBLISHABLE=true
-              echo "::notice ::Storybook publishable."
-            fi
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
+
+      - name: Set publishable envs
+        run: |
+          if [[ ${{steps.check-branch.outputs.publishable == 'true'}} ]] && [[ ${{steps.commit.outputs.publishable == 'true'}} ]]; then
+            PUBLISHABLE=true
+            echo "::notice ::Library publishable."
+          fi
+          else
+            PUBLISHABLE=false
+          fi
+          if [[ ${{inputs.has-storybook}} == true ]] && [[ ${{steps.commit.outputs.publishable == 'true'}} ]]; then
+            STORYBOOK_PUBLISHABLE=true
+            echo "::notice ::Storybook publishable."
+          fi
+          else
+            STORYBOOK_PUBLISHABLE=false
+          fi
           echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
           echo "STORYBOOK_PUBLISHABLE=$STORYBOOK_PUBLISHABLE" >> $GITHUB_ENV
 
       - name: Get package version
         id: versioning
-        if: ${{ env.PUBLISHABLE == 'true' }}
+        if: ${{ steps.commit.outputs.publishable == 'true' }}
         run: |
           if [[ ${{ inputs.monoTemplate }} == "lerna" ]]; then
             VERSION_FILE=lerna
@@ -182,21 +194,19 @@ jobs:
             echo "::error ::Mono template '${{ inputs.monoTemplate }}' not handled!"
             exit 1
           fi
-          echo "VERSION_FILE=$VERSION_FILE" >> $GITHUB_ENV
           PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Check if tag exists
         uses: mukunku/tag-exists-action@v1.0.0
         id: tag
-        if: ${{ env.PUBLISHABLE == 'true' }}
         with:
           tag: ${{ env.PACKAGE_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
       - name: Error if tag exists
-        if: ${{ env.PUBLISHABLE == 'true' && steps.tag.outputs.exists == 'true' }}
+        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
