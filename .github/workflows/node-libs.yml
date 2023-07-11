@@ -165,8 +165,8 @@ jobs:
 
       - name: Set publishable envs
         run: |
-          PUBLISHABLE=${{steps.check-branch.outputs.publishable && steps.commit.outputs.publishable}}
-          STORYBOOK_PUBLISHABLE=${{inputs.has-storybook && steps.commit.outputs.publishable}}
+          PUBLISHABLE=${{steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true'}}
+          STORYBOOK_PUBLISHABLE=${{inputs.has-storybook == 'true' && steps.commit.outputs.publishable == 'true'}}
           if [[ $PUBLISHABLE == 'true' ]]; then
             echo "::notice ::Library publishable."
           fi
