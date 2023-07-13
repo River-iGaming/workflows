@@ -52,6 +52,11 @@ on:
         type: string
         default: npm run release
         required: false
+      skip-lint:
+        description: "Determines whether to skip linting (defaults to false)"
+        type: boolean
+        default: false
+        required: false
     secrets:
       nexus-username:
         required: true
@@ -121,6 +126,7 @@ jobs:
         run: npm ci
 
       - name: Lint
+        if: !inputs.skip-lint
         run: npm run lint --if-present
 
       - name: Build
