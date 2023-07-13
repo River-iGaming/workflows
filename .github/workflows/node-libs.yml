@@ -195,8 +195,6 @@ jobs:
         id: tag
         with:
           tag: ${{ env.PACKAGE_VERSION }}
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.github-token }}
 
       - name: Error if tag exists
         if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
