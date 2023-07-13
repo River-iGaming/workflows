@@ -42,7 +42,7 @@ on:
         required: false
         type: boolean
         default: false
-      monoTemplate:
+      mono-template:
         description: Specify which template to use for mono repo e.g. 'lerna', 'node' (defaults to 'lerna')
         required: false
         type: string
@@ -179,12 +179,12 @@ jobs:
         id: versioning
         if: ${{ steps.commit.outputs.publishable == 'true' }}
         run: |
-          if [[ ${{ inputs.monoTemplate }} == "lerna" ]]; then
+          if [[ ${{ inputs.mono-template }} == "lerna" ]]; then
             VERSION_FILE=lerna
-          elif [[ ${{ inputs.monoTemplate }} == "node" ]]; then
+          elif [[ ${{ inputs.mono-template }} == "node" ]]; then
             VERSION_FILE=package
           else
-            echo "::error ::Mono template '${{ inputs.monoTemplate }}' not handled!"
+            echo "::error ::Mono template '${{ inputs.mono-template }}' not handled!"
             exit 1
           fi
           PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
