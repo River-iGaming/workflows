@@ -123,7 +123,7 @@ jobs:
           if [ $EVENT == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
             # COMMIT_MSG=$(git log --format=%B -n 1 HEAD^1)
-            COMMIT_MSG=${{ github.event.head_commit.message }}
+            COMMIT_MSG=$(git log -1 --no-merges --pretty=%B)
           else
             BRANCH_NAME=$GITHUB_REF_NAME
             # COMMIT_MSG=$(git log --format=%B -n 1 HEAD)
