@@ -197,8 +197,9 @@ jobs:
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.2.0
         id: tag
+        if: ${{ steps.commit.outputs.publishable == 'true' }}
+        uses: mukunku/tag-exists-action@v1.2.0
         with:
           tag: ${{ env.PACKAGE_VERSION }}
 
