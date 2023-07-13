@@ -115,8 +115,8 @@ jobs:
           EVENT=${{ github.event_name }}
           if [ $EVENT == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
-            # COMMIT_MSG=$(git log --format=%B -n 1 HEAD^2)
-            COMMIT_MSG=$(git log --format=%B -n 1 HEAD)
+            # COMMIT_MSG=$(git log --format=%B -n 1 HEAD^1)
+            COMMIT_MSG=$(git log --format=%B -n 1 HEAD^)
           else
             BRANCH_NAME=$GITHUB_REF_NAME
             COMMIT_MSG=$(git log --format=%B -n 1 HEAD)
