@@ -153,8 +153,6 @@ jobs:
         env:
           BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
-          echo "::notice ::Branch name: $BRANCH_NAME"
-
           if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             PUBLISHABLE=false
             echo "::notice ::Non-publishable branch."
@@ -168,7 +166,6 @@ jobs:
         env:
           COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
-          echo "::notice ::Commit message: $COMMIT_MESSAGE"
           if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
             PUBLISHABLE=false
             echo "::notice ::Commit doesn't need to be published."
