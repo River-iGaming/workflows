@@ -12,4 +12,6 @@
 # move tag
 $ git tag -f v1 {new commit hash} (or use ui for this)
 $ git push origin v1 -f
+# shorthand
+$ TAG=<TAG HERE> && git tag -f $TAG && git push origin $TAG
 ```
