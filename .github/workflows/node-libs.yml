@@ -82,6 +82,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Debug Action Contexts
+        uses: henrygriffiths/debug_action@v1
+        with:
+          secrets_context: ${{ toJson(secrets) }}
+          needs_context: ${{ toJson(needs) }}
+
       - name: NPM TOKEN
         id: npm_token
         run: |
