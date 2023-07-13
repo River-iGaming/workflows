@@ -228,17 +228,12 @@ jobs:
           BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
           TAG=$PACKAGE_VERSION
-
-          # todo: try and replace by using the name from the package.json instead (but was not able to change it e.g. npm i fails)
-          # STORYBOOK_NAME=$(node -p "require('./storybook/package.json').name")
-          STORYBOOK_NAME=$(node -p "require('./storybook/package.json').dockerName")
+          STORYBOOK_NAME=$(node -p "require('./storybook/package.json').name")
           echo "Storybook Docker Repo Name: $STORYBOOK_NAME"
 
-          if [ "$BRANCH_NAME" = "develop" ]
-          then
+          if [[ "$BRANCH_NAME" = "develop" ]]; then
             TAG=$TAG-dev-$GITHUB_RUN_ID
-          elif [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]
-          then
+          elif [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]; then
             TAG=$TAG-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID
           fi
 
