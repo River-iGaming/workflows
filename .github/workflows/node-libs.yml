@@ -3,57 +3,57 @@ on:
   workflow_call:
     inputs:
       node-version:
-        description: Node version to use (defaults to 18)
+        description: "Node version to use (defaults: 18)"
         required: false
         type: string
         default: '18'
       npm-registry:
-        description: The url for npm registry
+        description: "The url for npm registry"
         required: false
         type: string
         default: //nexus.rivertech.dev/repository/npm/
       npm-registry-publish:
-          description: The address for npm registry publish
+          description: "The address for npm registry publish"
           required: false
           type: string
           default: //nexus.rivertech.dev/repository/odin-npm/
       npm-registry-scope:
-        description: The name of the npm scope (defaults to @odin)
+        description: "The name of the npm scope (defaults: @odin)"
         required: false
         type: string
         default: '@odin'
       junit-report-path:
-        description: The path to unit test report (defaults to ./junit/)
+        description: "The path to unit test report (defaults: ./junit/)"
         required: false
         type: string
         default: ./junit/
       junit-report-name:
-        description: The file name for unit test report (defaults to test-results.xml)
+        description: "The file name for unit test report (defaults: test-results.xml)"
         required: false
         type: string
         default: test-results.xml
       aws-region:
-        description: Which AWS region to use for publish storybook (defaults to eu-west-1)
+        description: "Which AWS region to use for publish storybook (defaults: eu-west-1)"
         required: false
         type: string
         default: eu-west-1
       has-storybook:
-        description: Whether storybook exists in project (defaults to false)
+        description: "Whether storybook exists in project (defaults: false)"
         required: false
         type: boolean
         default: false
       repo-template:
-        description: Specify which template to use for repo e.g. 'lerna', 'node' (defaults to 'lerna')
+        description: "Specify which template to use for repo e.g. 'lerna', 'node' (defaults: 'lerna')"
         required: false
         type: string
         default: lerna
       publish-command:
-        description: "Command to run to publish packages (defaults to: `npm run release` NOTE: NOT `npm publish`)"
+        description: "Command to run to publish packages (defaults: `npm run release` NOTE: NOT `npm publish`)"
         type: string
         default: npm run release
         required: false
       skip-lint:
-        description: "Determines whether to skip linting (defaults to false)"
+        description: "Determines whether to skip linting (defaults: false)"
         type: boolean
         default: false
         required: false
