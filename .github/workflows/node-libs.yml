@@ -82,13 +82,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          fetch-depth: 2
+          fetch-depth: 2 # needed for commit-message in PRs
 
-      - name: Debug Action Contexts
-        uses: henrygriffiths/debug_action@v1
-        with:
-          secrets_context: ${{ toJson(secrets) }}
-          needs_context: ${{ toJson(needs) }}
+      # - name: Debug Action Contexts
+      #   uses: henrygriffiths/debug_action@v1
+      #   with:
+      #     secrets_context: ${{ toJson(secrets) }}
+      #     needs_context: ${{ toJson(needs) }}
 
       - name: NPM TOKEN
         id: npm_token
@@ -120,17 +120,11 @@ jobs:
       - name: Get commit message and branch name
         id: git
         run: |
-          EVENT=${{ github.event_name }}
-          echo
-          if [ $EVENT == "pull_request" ]; then
+          if [${{ github.event_name }} == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
-            # COMMIT_MSG=$(git log --format=%B -n 1 HEAD^1)
-            echo "PREV: $(git log --format=%B -n 1 HEAD^2)"
-            COMMIT_MSG=$(git log -1 --no-merges --pretty=%B)
+            COMMIT_MSG=$(git log -1 --pretty=%B HEAD^2)
           else
             BRANCH_NAME=$GITHUB_REF_NAME
-            # COMMIT_MSG=$(git log --format=%B -n 1 HEAD)
-            # COMMIT_MSG=$(git log -1 --format=%B)
             COMMIT_MSG=${{ github.event.head_commit.message }}
           fi
           echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
