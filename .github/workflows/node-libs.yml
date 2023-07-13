@@ -120,12 +120,12 @@ jobs:
       - name: Get commit message and branch name
         id: git
         run: |
-          if [${{ github.event_name }} == "pull_request" ]; then
+          if [ "${{github.event_name}}" == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
             COMMIT_MSG=$(git log -1 --pretty=%B HEAD^2)
           else
             BRANCH_NAME=$GITHUB_REF_NAME
-            COMMIT_MSG=${{ github.event.head_commit.message }}
+            COMMIT_MSG=${{github.event.head_commit.message}}
           fi
           echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
