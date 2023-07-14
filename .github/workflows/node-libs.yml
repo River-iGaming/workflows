@@ -259,6 +259,7 @@ jobs:
         run: |
           echo "Publishing ..."
           ${{ inputs.publish-command }}
+          echo "::notice ::Published: $PACKAGE_VERSION"
 
           echo "Tagging code base"
           git tag $PACKAGE_VERSION
