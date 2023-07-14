@@ -175,7 +175,7 @@ jobs:
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
 
-      - name: Determine publishable
+      - name: Determine publish
         id: check-publish
         run: |
           PUBLISHABLE=${{steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true'}}
