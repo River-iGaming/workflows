@@ -166,6 +166,7 @@ jobs:
         env:
           COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
         run: |
+          # todo: for PR should we use PR title instead?
           if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
             PUBLISHABLE=false
             echo "::notice ::Commit doesn't need to be published."
@@ -174,12 +175,13 @@ jobs:
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
 
-      - name: Set publishable envs
+      - name: Determine publishable
+        id: check-publish
         run: |
           PUBLISHABLE=${{steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true'}}
           STORYBOOK_PUBLISHABLE=${{inputs.has-storybook == true && steps.commit.outputs.publishable == 'true'}}
-          echo "PUBLISHABLE=$PUBLISHABLE" >> $GITHUB_ENV
-          echo "STORYBOOK_PUBLISHABLE=$STORYBOOK_PUBLISHABLE" >> $GITHUB_ENV
+          echo "publish=$PUBLISHABLE" >> $GITHUB_OUTPUT
+          echo "storybook-publish=$STORYBOOK_PUBLISHABLE" >> $GITHUB_OUTPUT
 
       - name: Get package version
         id: versioning
@@ -210,7 +212,7 @@ jobs:
           exit 1
 
       - name: Configure AWS credentials
-        if: ${{ env.STORYBOOK_PUBLISHABLE == 'true' }}
+        if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
@@ -219,11 +221,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ env.STORYBOOK_PUBLISHABLE == 'true' }}
+        if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Publish storybook
-        if: ${{ env.STORYBOOK_PUBLISHABLE == 'true' }}
+        if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
@@ -249,11 +251,11 @@ jobs:
           TAG=$TAG docker-compose push
 
       - name: Logout of Amazon ECR
-        if: ${{ env.STORYBOOK_PUBLISHABLE == 'true' }}
+        if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Publish
-        if: ${{ env.PUBLISHABLE == 'true' }}
+        if: ${{ steps.check-publish.outputs.publish == 'true' }}
         run: |
           echo "Publishing ..."
           ${{ inputs.publish-command }}
