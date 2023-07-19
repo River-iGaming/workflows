@@ -101,6 +101,7 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           fetch-depth: 1
+          token: ${{ secrets.github-token }}
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
@@ -108,6 +109,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           fetch-depth: 0
+          token: ${{ secrets.github-token }}
 
       - name: NPM TOKEN
         id: npm_token
