@@ -330,10 +330,11 @@ jobs:
           else
             if git merge HEAD
             then
-              echo "::notice ::"Nothing to merge"
+              echo "::notice ::Nothing to merge"
             else
-              echo "::warning ::"Failed to downmerge. Conflicts between master and develop."
+              echo "::warning ::Failed to downmerge. Conflicts between master and develop."
               git merge --abort
+              exit 1
             fi
           fi
 
