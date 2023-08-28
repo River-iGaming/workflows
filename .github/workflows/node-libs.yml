@@ -139,7 +139,7 @@ jobs:
           fi
           COMMIT_MSG = "commit-message<<$EOF" $'\n' "$LOG" $'\n' $EOF"
           echo "::notice ::Commit message: $COMMIT_MSG"
-          echo "COMMIT_MSG" >> "$GITHUB_ENV"
+          echo "$COMMIT_MSG" >> "$GITHUB_ENV"
 
       - name: Restore dependencies
         run: npm ci
