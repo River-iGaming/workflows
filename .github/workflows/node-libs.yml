@@ -128,7 +128,7 @@ jobs:
             LOG="${{github.event.head_commit.message}}"
           fi
           DELIMITER="$(openssl rand -hex 8)"
-          COMMIT_MSG="commit-message<<${DELIMITER} $'\n' ${LOG} $'\n' ${DELIMITER}"
+          COMMIT_MSG="commit-message<<${DELIMITER}$'\n'${LOG}$'\n'${DELIMITER}"
           echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
