@@ -136,7 +136,7 @@ jobs:
           else
             LOG="${{github.event.head_commit.message}}"
           fi
-          COMMIT_MSG = "commit-message<<EOF"$'\n'"$LOG"$'\n'EOF
+          COMMIT_MSG="commit-message<<EOF"$'\n'"$LOG"$'\n'EOF
           echo "::notice ::Commit message: $COMMIT_MSG"
           echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
 
