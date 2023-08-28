@@ -136,9 +136,10 @@ jobs:
           else
             LOG="${{github.event.head_commit.message}}"
           fi
-          COMMIT_MSG = "commit-message<<EOF" $'\n' "$LOG" $'\n' EOF"
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          COMMIT_MSG = "commit-message<<$EOF" $'\n' "$LOG" $'\n' "$EOF"
           echo "::notice ::Commit message: $COMMIT_MSG"
-          echo "$COMMIT_MSG" >> "$GITHUB_ENV"
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
 
       - name: Restore dependencies
         run: npm ci
