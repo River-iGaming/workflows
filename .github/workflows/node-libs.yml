@@ -117,27 +117,19 @@ jobs:
           echo node version':' $NODE_V
           echo npm version':' $NPM_V
 
-      - name: Get branch name
+      - name: Get commit message and branch name
         id: git
         run: |
           if [ "${{github.event_name}}" == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
-          else
-            BRANCH_NAME=$GITHUB_REF_NAME
-          fi
-          echo "::notice ::Branch name: $BRANCH_NAME"
-          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-
-      - name: Get commit message
-        id: get-commit
-        run: |
-          if [ "${{github.event_name}}" == "pull_request" ]; then
             LOG=$(git log -1 --pretty=%B HEAD^2)
           else
+            BRANCH_NAME=$GITHUB_REF_NAME
             LOG="${{github.event.head_commit.message}}"
           fi
           COMMIT_MSG="commit-message<<EOF"$'\n'"$LOG"$'\n'EOF
-          echo "::notice ::Commit message: $COMMIT_MSG"
+          echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
 
       - name: Restore dependencies
