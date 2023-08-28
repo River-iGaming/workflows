@@ -131,13 +131,12 @@ jobs:
       - name: Get commit message
         id: get-commit
         run: |
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           if [ "${{github.event_name}}" == "pull_request" ]; then
             LOG=$(git log -1 --pretty=%B HEAD^2)
           else
             LOG="${{github.event.head_commit.message}}"
           fi
-          COMMIT_MSG = "commit-message<<$EOF" $'\n' "$LOG" $'\n' $EOF"
+          COMMIT_MSG = "commit-message<<EOF" $'\n' "$LOG" $'\n' EOF"
           echo "::notice ::Commit message: $COMMIT_MSG"
           echo "$COMMIT_MSG" >> "$GITHUB_ENV"
 
