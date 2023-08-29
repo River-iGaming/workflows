@@ -122,14 +122,17 @@ jobs:
         run: |
           if [ "${{github.event_name}}" == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
-            COMMIT_MSG=$(git log -1 --pretty=%B HEAD^2)
+            LOG=$(git log -1 --pretty=%B HEAD^2)
+            EOF_MARKER=${GITHUB_SHA}
           else
             BRANCH_NAME=$GITHUB_REF_NAME
-            COMMIT_MSG='${{github.event.head_commit.message}}'
+            LOG="${{github.event.head_commit.message}}"
+            EOF_MARKER=${{github.event.pull_request.head.sha}}
           fi
+          COMMIT_MSG="commit-message<<${EOF_MARKER}"$'\n'"${LOG}"$'\n'"${EOF_MARKER}"
           echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          echo "commit-message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
 
       - name: Restore dependencies
         run: npm ci
