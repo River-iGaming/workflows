@@ -123,12 +123,13 @@ jobs:
           if [ "${{github.event_name}}" == "pull_request" ]; then
             BRANCH_NAME=${{github.head_ref}}
             LOG=$(git log -1 --pretty=%B HEAD^2)
+            EOF_MARKER=${{GITHUB_SHA}}
           else
             BRANCH_NAME=$GITHUB_REF_NAME
             LOG="${{github.event.head_commit.message}}"
+            EOF_MARKER=${{github.event.pull_request.head.sha}}
           fi
-          DELIMITER="$(openssl rand -hex 8)"
-          COMMIT_MSG="commit-message<<${DELIMITER}"$'\n'"${LOG}"$'\n'"${DELIMITER}"
+          COMMIT_MSG="commit-message<<${EOF_MARKER}"$'\n'"${LOG}"$'\n'"${EOF_MARKER}"
           echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
