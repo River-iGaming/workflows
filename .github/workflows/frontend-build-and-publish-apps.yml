@@ -343,7 +343,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: check
-        if: ${{ steps.branch.outputs.current_branch == 'master' }}
+        if: ${{ github.base_ref == 'master' }}
         uses: del-systems/check-if-version-bumped@v1
         with:
           token: ${{ secrets.github-token }}
