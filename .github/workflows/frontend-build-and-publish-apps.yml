@@ -58,6 +58,7 @@ concurrency:
 jobs:
   check-version-bump:
     runs-on: ubuntu-latest
+    if: ${{ github.base_ref == 'master' }}
 
     steps:
     - name: Checkout code
@@ -70,10 +71,9 @@ jobs:
     - name: Get the pull request base branch version
       id: get_pr_base_version
       run: |
-        git fetch origin "refs/pull/$GITHUB_PULL_REQUEST/pull/head:pr_branch"
-        git checkout pr_branch
-        echo "::set-output name=pr_base_version::$(node -e "console.log(require('./package.json').version)")"
+        git fetch origin "refs/pull/$GITHUB_PULL_REQUEST/pull/head:master"
         git checkout master
+        echo "::set-output name=pr_base_version::$(node -e "console.log(require('./package.json').version)")"
 
     - name: Check version bump
       run: |
