@@ -69,12 +69,10 @@ jobs:
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "package-version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
       - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.0.0
+        uses: mukunku/tag-exists-action@v1.3.0
         id: tag
         with:
           tag: ${{ steps.get-version.outputs.package-version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
       - name: Exit if tag exists
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
