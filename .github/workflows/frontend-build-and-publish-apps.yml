@@ -56,8 +56,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-version:
+    name: Check package version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print environment versions
+        run: echo ${{ process.env.GITHUB_WORKSPACE }}
+
+      - name: check
+        if: ${{ github.base_ref == 'master' }}
+        uses: del-systems/check-if-version-bumped@v1
+        with:
+          token: ${{ secrets.github-token }}
+
   build:
     name: Build and publish
+    needs: check-version
     runs-on: ubuntu-latest
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
@@ -337,19 +351,6 @@ jobs:
               exit 1
             fi
           fi
-
-  check-version:
-    name: Check package version
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print environment versions
-        run: echo ${{ github.base_ref }}
-
-      - name: check
-        if: ${{ github.base_ref == 'master' }}
-        uses: del-systems/check-if-version-bumped@v1
-        with:
-          token: ${{ secrets.github-token }}
 
   merge:
     name: merge
