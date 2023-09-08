@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print environment versions
-        run: echo ${{ process.env.GITHUB_WORKSPACE }}
+        run: echo $GITHUB_WORKSPACE
 
       - name: check
         if: ${{ github.base_ref == 'master' }}
