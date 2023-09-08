@@ -82,11 +82,11 @@ jobs:
         current_version="${{ steps.get_current_version.outputs.current_version }}"
         pr_base_version="${{ steps.get_pr_base_version.outputs.pr_base_version }}"
 
-        if [ "$current_version" != "$pr_base_version" ]; then
-          echo "Package.json version has been bumped in the pull request."
-        else
-          echo "Package.json version is the same as the base branch. Please bump the version."
+        if [[ "$(printf '%s\n' "$current_version" "$pr_base_version" | sort -V | tail -n 1)" == "$pr_base_version" ]]; then
+          echo "Package.json version is not greater than the base branch. Please bump the version."
           exit 1
+        else
+          echo "Package.json version has been bumped in the pull request."
         fi
 
   build:
