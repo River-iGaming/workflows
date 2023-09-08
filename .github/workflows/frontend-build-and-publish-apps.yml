@@ -6,7 +6,7 @@ on:
         description: Node version to use (defaults to 18)
         required: false
         type: string
-        default: '18'
+        default: "18"
       npm-registry:
         description: The url for npm registry
         required: false
@@ -21,7 +21,7 @@ on:
         description: The name of the npm scope (defaults to @odin)
         required: false
         type: string
-        default: '@odin'
+        default: "@odin"
       aws-region:
         description: Which AWS region to use for publish storybook (defaults to eu-west-1)
         required: false
@@ -31,7 +31,7 @@ on:
         description: dotnet version to use (defaults to 6.0.x)
         required: false
         type: string
-        default: '6.0.x'
+        default: "6.0.x"
 
       publish:
         description: Set to true to publish artifacts to docker repository
@@ -61,34 +61,33 @@ jobs:
     if: ${{ github.base_ref == 'master' }}
 
     steps:
-    - name: Checkout current code
-      uses: actions/checkout@v4
+      - name: Checkout current code
+        uses: actions/checkout@v4
 
-    - name: Get the current version
-      id: current
-      run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Get the current version
+        id: current
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
+      - name: Checkout master code
+        uses: actions/checkout@v4
+        with:
+          ref: "master"
 
-    - name: Checkout master code
-      uses: actions/checkout@v4
-      with: 
-        ref: "master"
+      - name: Get the master version
+        id: master
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-    - name: Get the master version
-      id: master
-      run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Check version bump
+        run: |
+          current_version="${{ steps.current.outputs.version }}"
+          master_version="${{ steps.master.outputs.version }}"
 
-    - name: Check version bump
-      run: |
-        current_version="${{ steps.current.outputs.version }}"
-        master_version="${{ steps.master.outputs.version }}"
-
-        if [[ "$(printf '%s\n' "$current_version" "$master_version" | sort -V | tail -n 1)" == "$master_version" ]]; then
-          echo "Package.json version is not greater than the base branch. Please bump the version."
-          exit 1
-        else
-          echo "Package.json version has been bumped in the pull request."
-        fi
+          if [[ "$(printf '%s\n' "$current_version" "$master_version" | sort -V | tail -n 1)" == "$master_version" ]]; then
+            echo "Package.json version is not greater than the base branch. Please bump the version."
+            exit 1
+          else
+            echo "Package.json version has been bumped in the pull request."
+          fi
 
   build:
     name: Build and publish
@@ -155,7 +154,6 @@ jobs:
         run: |
           npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
           npm config set registry=https:${{ inputs.npm-registry }}
-
 
       - name: Install Odin CI tooling (deprecated)
         run: npm i -g @odin/infra.ci@0.1.22
@@ -274,7 +272,7 @@ jobs:
           echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
           echo "downmerge_to_develop=${DOWNMERGE_TO_DEVELOP}" >> "$GITHUB_OUTPUT"
-          
+
           # expose metadata as environment variables
           echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
@@ -346,7 +344,7 @@ jobs:
 
       - name: Downmerge master to develop
         if: ${{ steps.metadata.outputs.downmerge_to_develop == 'true' }}
-        run:  |
+        run: |
           git fetch
           git checkout develop
           git config user.email "deploy-bot@riverigaming.com"
@@ -395,4 +393,4 @@ jobs:
           type: now
           target_branch: vnext
           github_token: ${{ secrets.github-token }}
-          message: 'feat(*): merge from master'
+          message: "feat(*): merge from master"
