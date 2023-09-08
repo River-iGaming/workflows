@@ -66,7 +66,7 @@ jobs:
 
     - name: Get the current version
       id: get_current_version
-      run: echo "::set-output name=current_version::$(node -e "console.log(require('./package.json').version)")"
+      run: echo "current_version=$(node -e "console.log(require('./package.json').version)")" >> "$GITHUB_OUTPUT"
 
     - name: Checkout master code
       uses: actions/checkout@v4
@@ -75,7 +75,7 @@ jobs:
 
     - name: Get the current version
       id: get_pr_base_version
-      run: echo "::set-output name=pr_base_version::$(node -e "console.log(require('./package.json').version)")"
+      run: echo "pr_base_version=$(node -e "console.log(require('./package.json').version)")" >> "$GITHUB_OUTPUT"
 
     - name: Check version bump
       run: |
