@@ -338,6 +338,16 @@ jobs:
             fi
           fi
 
+  check-version:
+    name: Check package version
+    runs-on: ubuntu-latest
+    steps:
+      - name: check
+        if: ${{ steps.branch.outputs.current_branch == 'master' }}
+        uses: del-systems/check-if-version-bumped@v1
+        with:
+          token: ${{ secrets.github-token }}
+
   merge:
     name: merge
     needs: build
