@@ -62,18 +62,20 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Get the current version
       id: get_current_version
       run: echo "::set-output name=current_version::$(node -e "console.log(require('./package.json').version)")"
 
-    - name: Get the pull request base branch version
+    - name: Checkout master code
+      uses: actions/checkout@v4
+      with: 
+        ref: "master"
+
+    - name: Get the current version
       id: get_pr_base_version
-      run: |
-        git fetch origin "refs/pull/$GITHUB_PULL_REQUEST/pull/head:master"
-        git checkout master
-        echo "::set-output name=pr_base_version::$(node -e "console.log(require('./package.json').version)")"
+      run: echo "::set-output name=pr_base_version::$(node -e "console.log(require('./package.json').version)")"
 
     - name: Check version bump
       run: |
