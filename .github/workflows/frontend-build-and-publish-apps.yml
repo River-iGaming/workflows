@@ -66,7 +66,8 @@ jobs:
 
     - name: Get the current version
       id: current
-      run: echo "version=$(node -e "console.log(require('./package.json').version)")" >> "$GITHUB_OUTPUT"
+      run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
 
     - name: Checkout master code
       uses: actions/checkout@v4
@@ -75,7 +76,7 @@ jobs:
 
     - name: Get the master version
       id: master
-      run: echo "version=$(node -e "console.log(require('./package.json').version)")" >> "$GITHUB_OUTPUT"
+      run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
     - name: Check version bump
       run: |
