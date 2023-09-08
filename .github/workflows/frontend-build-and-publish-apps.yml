@@ -6,7 +6,7 @@ on:
         description: Node version to use (defaults to 18)
         required: false
         type: string
-        default: '18'
+        default: "18"
       npm-registry:
         description: The url for npm registry
         required: false
@@ -21,7 +21,7 @@ on:
         description: The name of the npm scope (defaults to @odin)
         required: false
         type: string
-        default: '@odin'
+        default: "@odin"
       aws-region:
         description: Which AWS region to use for publish storybook (defaults to eu-west-1)
         required: false
@@ -31,7 +31,7 @@ on:
         description: dotnet version to use (defaults to 6.0.x)
         required: false
         type: string
-        default: '6.0.x'
+        default: "6.0.x"
 
       publish:
         description: Set to true to publish artifacts to docker repository
@@ -56,6 +56,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-version:
+    name: Check version
+    runs-on: ubuntu-latest
+    if: ${{ github.base_ref == 'master' }}
+    steps:
+      - name: Get version
+        id: get-version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "package-version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Check if tag exists
+        uses: mukunku/tag-exists-action@v1.0.0
+        id: tag
+        with:
+          tag: ${{ steps.get-version.outputs.package-version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+      - name: Exit if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "Tag already exists. Please make sure you bump version!"
+          exit 1
+
   build:
     name: Build and publish
     runs-on: ubuntu-latest
@@ -121,7 +144,6 @@ jobs:
         run: |
           npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
           npm config set registry=https:${{ inputs.npm-registry }}
-
 
       - name: Install Odin CI tooling (deprecated)
         run: npm i -g @odin/infra.ci@0.1.22
@@ -240,7 +262,7 @@ jobs:
           echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
           echo "downmerge_to_develop=${DOWNMERGE_TO_DEVELOP}" >> "$GITHUB_OUTPUT"
-          
+
           # expose metadata as environment variables
           echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
@@ -312,7 +334,7 @@ jobs:
 
       - name: Downmerge master to develop
         if: ${{ steps.metadata.outputs.downmerge_to_develop == 'true' }}
-        run:  |
+        run: |
           git fetch
           git checkout develop
           git config user.email "deploy-bot@riverigaming.com"
@@ -361,4 +383,4 @@ jobs:
           type: now
           target_branch: vnext
           github_token: ${{ secrets.github-token }}
-          message: 'feat(*): merge from master'
+          message: "feat(*): merge from master"
