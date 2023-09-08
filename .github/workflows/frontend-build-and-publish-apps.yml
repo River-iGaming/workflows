@@ -56,19 +56,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-version:
-    name: Check package version
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print environment versions
-        run: echo $GITHUB_WORKSPACE
-
-      - name: check
-        if: ${{ github.base_ref == 'master' }}
-        uses: del-systems/check-if-version-bumped@v1
-        with:
-          token: ${{ secrets.github-token }}
-
   build:
     name: Build and publish
     needs: check-version
@@ -141,6 +128,13 @@ jobs:
         run: npm i -g @odin/infra.ci@0.1.22
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
+
+      - name: Get the current version
+        id: get_current_version
+        run: echo "::set-output name=current_version::$(node -e "console.log(require('./package.json').version)")"
+
+      - name: Output the current version
+        run: echo "Current version is ${{ steps.get_current_version.outputs.current_version }}"
 
       - name: Determine Branch Name
         id: branch
