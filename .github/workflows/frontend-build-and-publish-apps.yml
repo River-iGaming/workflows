@@ -342,6 +342,9 @@ jobs:
     name: Check package version
     runs-on: ubuntu-latest
     steps:
+      - name: Print environment versions
+        run: echo ${{ github.base_ref }}
+
       - name: check
         if: ${{ github.base_ref == 'master' }}
         uses: del-systems/check-if-version-bumped@v1
