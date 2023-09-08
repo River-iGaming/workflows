@@ -56,9 +56,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-version-bump:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Get the current version
+      id: get_current_version
+      run: echo "::set-output name=current_version::$(node -e "console.log(require('./package.json').version)")"
+
+    - name: Get the pull request base branch version
+      id: get_pr_base_version
+      run: |
+        git fetch origin "refs/pull/$GITHUB_PULL_REQUEST/pull/head:pr_branch"
+        git checkout pr_branch
+        echo "::set-output name=pr_base_version::$(node -e "console.log(require('./package.json').version)")"
+        git checkout master
+
+    - name: Check version bump
+      run: |
+        current_version="${{ steps.get_current_version.outputs.current_version }}"
+        pr_base_version="${{ steps.get_pr_base_version.outputs.pr_base_version }}"
+
+        if [ "$current_version" != "$pr_base_version" ]; then
+          echo "Package.json version has been bumped in the pull request."
+        else
+          echo "Package.json version is the same as the base branch. Please bump the version."
+          exit 1
+        fi
+
   build:
     name: Build and publish
-    needs: check-version
+    needs: check-version-bump
     runs-on: ubuntu-latest
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
@@ -128,13 +159,6 @@ jobs:
         run: npm i -g @odin/infra.ci@0.1.22
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
-
-      - name: Get the current version
-        id: get_current_version
-        run: echo "::set-output name=current_version::$(node -e "console.log(require('./package.json').version)")"
-
-      - name: Output the current version
-        run: echo "Current version is ${{ steps.get_current_version.outputs.current_version }}"
 
       - name: Determine Branch Name
         id: branch
