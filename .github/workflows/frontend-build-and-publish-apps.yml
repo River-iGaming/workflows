@@ -86,9 +86,6 @@ jobs:
         run: |
           current_version="${{ steps.current.outputs.version }}"
           master_version="${{ steps.master.outputs.version }}"
-          echo inputs.should-bump-version
-          echo github.base_ref
-          echo contains(inputs.should-bump-version, github.base_ref)
 
           if [[ "$(printf '%s\n' "$current_version" "$master_version" | sort -V | tail -n 1)" == "$master_version" ]]; then
             echo "Package.json version is not greater than the base branch. Please bump the version."
