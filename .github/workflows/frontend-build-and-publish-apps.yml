@@ -73,21 +73,21 @@ jobs:
         id: current
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout master code
+      - name: Checkout base branch code
         uses: actions/checkout@v4
         with:
-          ref: "master"
+          ref: github.base_ref
 
-      - name: Get the master version
-        id: master
+      - name: Get the base branch version
+        id: base
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Check version bump
         run: |
           current_version="${{ steps.current.outputs.version }}"
-          master_version="${{ steps.master.outputs.version }}"
+          base_version="${{ steps.base.outputs.version }}"
 
-          if [[ "$(printf '%s\n' "$current_version" "$master_version" | sort -V | tail -n 1)" == "$master_version" ]]; then
+          if [[ "$(printf '%s\n' "$current_version" "$base_version" | sort -V | tail -n 1)" == "$base_version" ]]; then
             echo "Package.json version is not greater than the base branch. Please bump the version."
             exit 1
           else
