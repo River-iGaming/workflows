@@ -76,7 +76,7 @@ jobs:
       - name: Checkout base branch code
         uses: actions/checkout@v4
         with:
-          ref: github.base_ref
+          ref: ${github.base_ref}
 
       - name: Get the base branch version
         id: base
