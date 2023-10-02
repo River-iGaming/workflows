@@ -164,7 +164,7 @@ jobs:
           fi
 
           TAG_SUFFIX=""
-          IS_PUBLISHABLE="false"
+          IS_PUBLISHABLE="{{ inputs.publish }}"
           DOWNMERGE_TO_DEVELOP="false"
           case "$BRANCH_NAME" in
             "main"|"master")
@@ -240,7 +240,7 @@ jobs:
           echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
           echo "downmerge_to_develop=${DOWNMERGE_TO_DEVELOP}" >> "$GITHUB_OUTPUT"
-          
+
           # expose metadata as environment variables
           echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
