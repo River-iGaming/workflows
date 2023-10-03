@@ -39,6 +39,12 @@ on:
         type: boolean
         default: true
 
+      tagSuffixPreamble:
+        description: A prefix to add to the tag suffix. Useful for testing.
+        required: false
+        type: string
+        default: ''
+
     secrets:
       nexus-username:
         required: true
@@ -164,7 +170,7 @@ jobs:
           fi
 
           TAG_SUFFIX=""
-          IS_PUBLISHABLE="{{ inputs.publish }}"
+          IS_PUBLISHABLE="${{ inputs.publish }}"
           DOWNMERGE_TO_DEVELOP="false"
           case "$BRANCH_NAME" in
             "main"|"master")
@@ -224,6 +230,8 @@ jobs:
             ;;
 
             *)
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="${{ inputs.tagSuffixPreamble }}-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
           esac
           shopt -u extglob;
@@ -248,6 +256,8 @@ jobs:
 
           echo "::notice ::App name: $APP_NAME"
           echo "::notice ::Version: $PACKAGE_VERSION"
+          echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
+          echo "::notice ::Tag: $PACKAGE_VERSION"
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
