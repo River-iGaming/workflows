@@ -61,7 +61,7 @@ concurrency:
 
 jobs:
   check-version-bump:
-    uses: River-iGaming/workflows/.github/workflows/check-node-version-bump.yml@feature/RTFE-6521-workflow
+    uses: ./.github/workflows/check-node-version-bump.yml
     with:
       should-bump-version: ${{ inputs.should-bump-version }}
 
