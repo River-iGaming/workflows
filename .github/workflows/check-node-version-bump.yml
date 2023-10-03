@@ -35,8 +35,8 @@ jobs:
           base_version="${{ steps.base.outputs.version }}"
 
           if [[ "$(printf '%s\n' "$current_version" "$base_version" | sort -V | tail -n 1)" == "$base_version" ]]; then
-            echo "Package.json version is not greater than the base branch. Please bump the version."
+            echo "package.json version is not greater than the base branch. Please bump the version."
             exit 1
           else
-            echo "Package.json version has been bumped in the pull request."
+            echo "package.json version has been bumped in the pull request."
           fi
