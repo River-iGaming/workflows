@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check version bump
-        uses: ./frontend-build-and-publish-apps.yml
+        uses: River-iGaming/workflows/.github/workflows/check-node-version-bump
         with:
           should-bump-version: ${{ inputs.should-bump-version }}
 
