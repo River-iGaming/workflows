@@ -36,7 +36,6 @@ on:
         description: list of branches that require version bump
         required: false
         type: string
-        default: "master"
 
       publish:
         description: Set to true to publish artifacts to docker repository
@@ -63,36 +62,11 @@ concurrency:
 jobs:
   check-version-bump:
     runs-on: ubuntu-latest
-    if: contains(inputs.should-bump-version, github.base_ref)
-
     steps:
-      - name: Checkout current code
-        uses: actions/checkout@v4
-
-      - name: Get the current version
-        id: current
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout base branch code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.base_ref }}
-
-      - name: Get the base branch version
-        id: base
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
       - name: Check version bump
-        run: |
-          current_version="${{ steps.current.outputs.version }}"
-          base_version="${{ steps.base.outputs.version }}"
-
-          if [[ "$(printf '%s\n' "$current_version" "$base_version" | sort -V | tail -n 1)" == "$base_version" ]]; then
-            echo "Package.json version is not greater than the base branch. Please bump the version."
-            exit 1
-          else
-            echo "Package.json version has been bumped in the pull request."
-          fi
+        uses: River-iGaming/workflows/.github/workflows/frontend-build-and-publish-apps.yml
+        with:
+          should-bump-version: ${{ inputs.should-bump-version }}
 
   build:
     name: Build and publish
