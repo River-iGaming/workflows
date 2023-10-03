@@ -63,15 +63,8 @@ jobs:
   check-version-bump:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3.0.0
-        if: github.event_name == 'pull_request'
-        with:
-          fetch-depth: 1
-          token: ${{ secrets.github-token }}
-          ref: ${{ github.event.pull_request.head.sha }}
       - name: Check version bump
-        uses: ./.github/workflows/check-node-version-bump.yml
+        uses: River-iGaming/workflows/.github/workflows/check-node-version-bump.yml
         with:
           should-bump-version: ${{ inputs.should-bump-version }}
 
