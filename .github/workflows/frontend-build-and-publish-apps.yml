@@ -164,9 +164,9 @@ jobs:
           # ensure we have a unique suffix
           if [ ${{github.run_attempt}} -eq 1 ]
           then
-            RUN_ID=${{ github.run_id}}
+            RUN_ID="${{ github.run_id}}-0"
           else
-            RUN_ID=${{ github.run_id}}.${{github.run_attempt}}
+            RUN_ID="${{ github.run_id}}-${{github.run_attempt}}"
           fi
 
           TAG_SUFFIX=""
