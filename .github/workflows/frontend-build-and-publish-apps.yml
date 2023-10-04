@@ -174,57 +174,48 @@ jobs:
           DOWNMERGE_TO_DEVELOP="false"
           case "$BRANCH_NAME" in
             "main"|"master")
-            IS_PUBLISHABLE="true"
             DOWNMERGE_TO_DEVELOP="true"
             ;;
 
             "develop")
             TAG_SUFFIX="dev-${RUN_ID}"
-            IS_PUBLISHABLE="true"
             ;;
 
             "vnext")
-            IS_PUBLISHABLE="true"
             TAG_SUFFIX="vnext-$RUN_ID"
             ;;
 
             # feature
             feature\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # named demo branch
             @(demo)\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # named demo branch
             dependabot\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # demo only branch
             "demo")
-            IS_PUBLISHABLE="true"
             TAG_SUFFIX="demo-${RUN_ID}"
             ;;
 
             # hotfix
             hotfix\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="hotfix-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # Release
             release\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="release-${RUN_ID}"
             ;;
