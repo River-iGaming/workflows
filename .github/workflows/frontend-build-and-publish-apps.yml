@@ -226,7 +226,7 @@ jobs:
             release\/+(?) )
             IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="release-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            TAG_SUFFIX="release-${RUN_ID}"
             ;;
 
             *)
