@@ -39,6 +39,12 @@ on:
         type: boolean
         default: true
 
+      tagSuffixPreamble:
+        description: A prefix to add to the tag suffix. Useful for testing.
+        required: false
+        type: string
+        default: ''
+
     secrets:
       nexus-username:
         required: true
@@ -157,66 +163,60 @@ jobs:
           # ensure we have a unique suffix
           if [ ${{github.run_attempt}} -eq 1 ]
           then
-            RUN_ID=${{ github.run_id}}
+            RUN_ID="${{ github.run_id}}-0"
           else
-            RUN_ID=${{ github.run_id}}.${{github.run_attempt}}
+            RUN_ID="${{ github.run_id}}-${{github.run_attempt}}"
           fi
 
           TAG_SUFFIX=""
-          IS_PUBLISHABLE="{{ inputs.publish }}"
+          IS_PUBLISHABLE="${{ inputs.publish }}"
           case "$BRANCH_NAME" in
             "develop")
             TAG_SUFFIX="dev-${RUN_ID}"
-            IS_PUBLISHABLE="true"
             ;;
 
             "vnext")
-            IS_PUBLISHABLE="true"
             TAG_SUFFIX="vnext-$RUN_ID"
             ;;
 
             # feature
             feature\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # named demo branch
             @(demo)\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # named demo branch
             dependabot\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # demo only branch
             "demo")
-            IS_PUBLISHABLE="true"
             TAG_SUFFIX="demo-${RUN_ID}"
             ;;
 
             # hotfix
             hotfix\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
             TAG_SUFFIX="hotfix-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
 
             # Release
             release\/+(?) )
-            IS_PUBLISHABLE="true"
             PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="release-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            TAG_SUFFIX="release-${RUN_ID}"
             ;;
 
             *)
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="${{ inputs.tagSuffixPreamble }}-${PRETTY_BRANCH_NAME}-${RUN_ID}"
             ;;
           esac
           shopt -u extglob;
@@ -240,6 +240,8 @@ jobs:
 
           echo "::notice ::App name: $APP_NAME"
           echo "::notice ::Version: $PACKAGE_VERSION"
+          echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
+          echo "::notice ::Tag: $PACKAGE_VERSION"
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
