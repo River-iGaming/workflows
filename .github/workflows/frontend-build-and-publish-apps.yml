@@ -6,7 +6,7 @@ on:
         description: Node version to use (defaults to 18)
         required: false
         type: string
-        default: '18'
+        default: "18"
       npm-registry:
         description: The url for npm registry
         required: false
@@ -21,7 +21,7 @@ on:
         description: The name of the npm scope (defaults to @odin)
         required: false
         type: string
-        default: '@odin'
+        default: "@odin"
       aws-region:
         description: Which AWS region to use for publish storybook (defaults to eu-west-1)
         required: false
@@ -31,7 +31,11 @@ on:
         description: dotnet version to use (defaults to 6.0.x)
         required: false
         type: string
-        default: '6.0.x'
+        default: "6.0.x"
+      should-bump-version:
+        description: list of branches that require version bump
+        required: false
+        type: string
 
       publish:
         description: Set to true to publish artifacts to docker repository
@@ -62,6 +66,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-version-bump:
+    uses: ./.github/workflows/check-node-version-bump.yml
+    with:
+      should-bump-version: ${{ inputs.should-bump-version }}
+
   build:
     name: Build and publish
     runs-on: ubuntu-latest
@@ -127,7 +136,6 @@ jobs:
         run: |
           npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
           npm config set registry=https:${{ inputs.npm-registry }}
-
 
       - name: Install Odin CI tooling (deprecated)
         run: npm i -g @odin/infra.ci@0.1.22
@@ -313,7 +321,7 @@ jobs:
 
       - name: Downmerge master to develop
         if: ${{ steps.metadata.outputs.downmerge_to_develop == 'true' }}
-        run:  |
+        run: |
           git fetch
           git checkout develop
           git config user.email "deploy-bot@riverigaming.com"
@@ -362,4 +370,4 @@ jobs:
           type: now
           target_branch: vnext
           github_token: ${{ secrets.github-token }}
-          message: 'feat(*): merge from master'
+          message: "feat(*): merge from master"
