@@ -164,13 +164,7 @@ jobs:
 
           TAG_SUFFIX=""
           IS_PUBLISHABLE="{{ inputs.publish }}"
-          DOWNMERGE="false"
           case "$BRANCH_NAME" in
-            "main"|"master")
-            IS_PUBLISHABLE="true"
-            DOWNMERGE="true"
-            ;;
-
             "develop")
             TAG_SUFFIX="dev-${RUN_ID}"
             IS_PUBLISHABLE="true"
@@ -238,7 +232,6 @@ jobs:
           echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
           echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
-          echo "downmerge=${DOWNMERGE}" >> "$GITHUB_OUTPUT"
 
           # expose metadata as environment variables
           echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
@@ -308,55 +301,6 @@ jobs:
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
-
-      - name: Downmerge to develop and release branches
-        if: ${{ steps.metadata.outputs.downmerge == 'true' }}
-        run: |
-          #!/bin/bash
-
-          git fetch
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
-
-          # Determine the current package version
-          BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-
-          # Extract the major and minor version from the current version
-          MAJOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1)
-          MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f2)
-
-          # Iterate through branches and downmerge if they match the pattern
-          for branch in $(git for-each-ref --sort=-committerdate refs/remotes/origin/develop refs/remotes/origin/release/\* --format="%(refname:short)"); do
-            if [[ $branch == "develop" || $branch =~ ^release/${MAJOR_VERSION}\.${MINOR_VERSION}\.x ]]; then
-              BRANCH_VERSION=$(echo $branch | cut -d'/' -f2)
-              MAJOR_MINOR_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f1,2)
-              MAJOR_MINOR_PACKAGE_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
-  
-              if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION < $MAJOR_MINOR_PACKAGE_VERSION ]]; then
-                echo "::notice ::Downmerging branch: $branch"
-
-                git checkout $branch
-
-                # Merge changes from the remote branch into branch
-                if git merge --no-commit --no-ff --no-edit $branch
-                then
-                  if [ -z "$(git status --porcelain)" ]
-                  then
-                    echo "::notice ::Nothing to commit for branch: $branch"
-                  else
-                    git commit --no-edit
-                    git push origin $branch
-                  fi
-                else
-                  if git merge --abort
-                  then
-                    echo "::warning ::Failed to downmerge branch: $branch. Conflicts."
-                  else
-                    echo "::warning ::Failed to downmerge branch: $branch. Merge error."
-                  fi
-                fi
-              fi
-            fi
 
   merge:
     name: merge
