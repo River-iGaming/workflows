@@ -2,12 +2,6 @@ name: Downmerge releases
 
 on: 
     workflow_call:
-        inputs:
-            branches:
-                description: "Branches to downmerge"
-                required: true
-                type: string
-                default: "['develop' , 'release/*']"
         secrets:
             github-token:
               required: true
@@ -17,20 +11,6 @@ jobs:
         name: Downmerge to develop and release branches
         runs-on: ubuntu-latest
         steps:
-         - name: Should Execute
-           run: |
-            branches=($(fromJson('${{ github.event.inputs.branches }}'))
-            branch_name="${{ steps.git.outputs.branch-name }}"
-            
-            for branch in "${branches[@]}"; do
-                if [[ "$branch" == *"*" && "$branch_name" == "$branch"* || "$branch_name" == "$branch" ]]; then
-                    echo "Branch $branch_name match."
-                else
-                    echo "No match"
-                    exit 1 
-                fi
-            done
- 
          - name: Checkout Code
            uses: actions/checkout@v3
            with:
