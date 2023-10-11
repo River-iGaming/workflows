@@ -76,7 +76,6 @@ jobs:
             fi
           done
       - name: Manual Merge Notification
-        id: versioning
         if: ${{ steps.downmerge.outputs.MANUAL_MERGE == 'true' }}
         run: |
             echo "::error ::Auto merged conflicts. Review Changes Manually."
