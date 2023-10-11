@@ -53,21 +53,18 @@ jobs:
                   git push origin $branch
                 fi
               else
-                  echo "::notice ::Merge aborted for branch: $branch"
                   CONFLICTS="$(git diff --name-only --diff-filter=U)"
-                  echo "::notice ::Merge Conflicts: $CONFLICTS"
 
                   for file in $CONFLICTS; do
                     echo "::notice ::Conflicts: $CONFLICTS"
                     if [ "$file" == "package.json" ]; then
-                        # Auto-resolve the conflict by choosing the HEAD version
-                        echo "Auto-resolving package.json version conflict by choosing the HEAD version."
+                        echo "::notice ::Auto-resolving package.json version conflicts by choosing the HEAD version."
                         git checkout --theirs package.json
                         git add package.json
-                        git commit -m "Auto-resolve package.json version conflict"
+                        git commit -m "chore(*): auto-resolve package.json version conflicts"
                         git push origin $branch
 
-                        echo "::error ::Auto merged package.json version conflict. Please review the changes manually."
+                        echo "::warning ::Auto merged package.json version conflicts. Please review the changes manually."
                     else
                       echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
                     fi
