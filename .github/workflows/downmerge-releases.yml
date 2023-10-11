@@ -58,9 +58,11 @@ jobs:
                 fi
               else
                 if git merge --abort; then
+                  echo "::notice ::Merge aborted for branch: $branch"
                   CONFLICTS="$(git diff --name-only --diff-filter=U)"
 
                   for file in $CONFLICTS; do
+                    echo "::notice ::Conflicts: $CONFLICTS"
                     if [ "$file" == "package.json" ]; then
                       # Parse the package.json file to check version conflicts
                       BASE_VERSION=$(jq -r .version ${CURRENT_BRANCH}/package.json)
