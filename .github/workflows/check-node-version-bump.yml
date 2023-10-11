@@ -8,6 +8,9 @@ jobs:
     steps:
       - name: Checkout current code
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: package.json
+          sparse-checkout-cone-mode: false
 
       - name: Get the current version
         id: current
@@ -17,6 +20,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.base_ref }}
+          sparse-checkout: package.json
+          sparse-checkout-cone-mode: false
 
       - name: Get the base branch version
         id: base
