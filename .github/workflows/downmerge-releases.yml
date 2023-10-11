@@ -74,7 +74,7 @@ jobs:
                   done
               fi
             fi
-            echo "::set-output name=manual-merge::$MANUAL_MERGE"
+            echo "manual-merge=${MANUAL_MERGE}" >> "$GITHUB_OUTPUT"
           done
       - name: Manual Merge Notification
         if: ${{ steps.downmerge.outputs.manual-merge == 'true' }}
