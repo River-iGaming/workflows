@@ -61,6 +61,7 @@ jobs:
                 if git merge --abort; then
                   echo "::notice ::Merge aborted for branch: $branch"
                   CONFLICTS="$(git diff --name-only --diff-filter=U)"
+                  echo "::notice ::Merge Conflicts: $CONFLICTS"
 
                   for file in $CONFLICTS; do
                     echo "::notice ::Conflicts: $CONFLICTS"
