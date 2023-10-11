@@ -30,7 +30,7 @@ jobs:
             MAJOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1)
             MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f2)
 
-            CURRENT_BRANCH="${{ github.head_ref }}"
+            CURRENT_BRANCH="${git branch --show-current}"
 
             # Iterate through branches and downmerge if they match the pattern
             for branch in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/*' 'refs/remotes/origin/develop' | xargs -I {} basename {}); do
