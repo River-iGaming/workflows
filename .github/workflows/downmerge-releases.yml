@@ -60,20 +60,12 @@ jobs:
                   for file in $CONFLICTS; do
                     echo "::notice ::Conflicts: $CONFLICTS"
                     if [ "$file" == "package.json" ]; then
-                      # Parse the package.json file to check version conflicts
-                      BASE_VERSION=$(jq -r .version ${CURRENT_BRANCH}/package.json)
-                      HEAD_VERSION=$(jq -r .version $branch/package.json)
-
-                      if [ "$BASE_VERSION" != "$HEAD_VERSION" ]; then
                         # Auto-resolve the conflict by choosing the HEAD version
                         echo "Auto-resolving package.json version conflict by choosing the HEAD version."
                         git checkout --theirs package.json
                         git add package.json
                         git commit -m "Auto-resolve package.json version conflict"
                         git push origin $branch
-                      else
-                        echo "Conflict in package.json, but version numbers are the same."
-                      fi
                     else
                       echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
                     fi
