@@ -6,7 +6,6 @@ on:
         description: list of branches that require version bump
         required: false
         type: string
-        default: "master"
 jobs:
   check-version-bump:
     runs-on: ubuntu-latest
@@ -18,12 +17,6 @@ jobs:
           echo should bump version ${{ inputs.should-bump-version }}
           echo baseref ${{ github.base_ref }}
           echo ${{contains(inputs.should-bump-version, github.base_ref)}}
-
-      - name: echo stuff
-        run: |
-          echo should bump version ${ inputs.should-bump-version }
-          echo baseref ${ github.base_ref }
-          echo ${contains(inputs.should-bump-version, github.base_ref)}
 
       - name: Checkout current code
         uses: actions/checkout@v4

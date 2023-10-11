@@ -35,6 +35,7 @@ on:
       should-bump-version:
         description: list of branches that require version bump
         required: false
+        default: "master"
         type: string
 
       publish:
