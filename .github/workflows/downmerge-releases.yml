@@ -66,6 +66,8 @@ jobs:
                         git add package.json
                         git commit -m "Auto-resolve package.json version conflict"
                         git push origin $branch
+
+                        echo "::error ::Auto merged package.json version conflict. Please review the changes manually."
                     else
                       echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
                     fi
