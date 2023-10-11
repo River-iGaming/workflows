@@ -24,13 +24,13 @@ jobs:
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
 
+          MANUAL_MERGE=false
           # Determine the current package version
           BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
 
           # Extract the major and minor version from the current version
           MAJOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1)
           MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f2)
-          MANUAL_MERGE=false
 
           CURRENT_BRANCH="$(git branch --show-current)"
 
@@ -76,7 +76,7 @@ jobs:
             fi
           done
       - name: Manual Merge Notification
-        if: ${{ steps.downmerge.outputs.MANUAL_MERGE == 'true' }}
+        if: ${{ steps.downmerge.outputs.manual_merge == 'true' }}
         run: |
             echo "::error ::Auto merged conflicts. Review Changes Manually."
             exit 1
