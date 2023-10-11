@@ -61,7 +61,7 @@ jobs:
                     echo "::notice ::Conflicts: $CONFLICTS"
                     if [ "$file" == "package.json" ]; then
                         echo "::notice ::Auto-resolving package.json version conflicts by choosing the HEAD version."
-                        git checkout --theirs package.json
+                        git checkout --ours package.json
                         git add package.json
                         git commit -m "chore(*): auto-resolve package.json version conflicts"
                         git push origin $branch
