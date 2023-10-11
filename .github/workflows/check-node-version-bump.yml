@@ -1,23 +1,9 @@
 name: Check Node package.json Version Bump
-on:
-  workflow_call:
-    inputs:
-      should-bump-version:
-        description: list of branches that require version bump
-        required: false
-        type: string
 jobs:
   check-version-bump:
     runs-on: ubuntu-latest
-    if: contains(inputs.should-bump-version, github.base_ref)
 
     steps:
-      - name: echo stuff
-        run: |
-          echo should bump version ${{ inputs.should-bump-version }}
-          echo baseref ${{ github.base_ref }}
-          echo ${{contains(inputs.should-bump-version, github.base_ref)}}
-
       - name: Checkout current code
         uses: actions/checkout@v4
 

@@ -32,11 +32,6 @@ on:
         required: false
         type: string
         default: "6.0.x"
-      should-bump-version:
-        description: list of branches that require version bump
-        required: false
-        default: "master"
-        type: string
 
       publish:
         description: Set to true to publish artifacts to docker repository
@@ -67,11 +62,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-version-bump:
-    uses: ./.github/workflows/check-node-version-bump.yml
-    with:
-      should-bump-version: ${{ inputs.should-bump-version }}
-
   build:
     name: Build and publish
     runs-on: ubuntu-latest
