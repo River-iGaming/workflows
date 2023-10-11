@@ -37,6 +37,7 @@ jobs:
             BRANCH_VERSION=$(echo $branch | cut -d'/' -f3)
             MAJOR_MINOR_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f1,2)
             MAJOR_MINOR_PACKAGE_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
+            branch="${branch#origin/}"
 
             echo "::notice ::Downmerging check branch: $branch from: $CURRENT_BRANCH"
             echo "::notice ::branch version: $BRANCH_VERSION"
@@ -46,7 +47,7 @@ jobs:
             if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION > $MAJOR_MINOR_PACKAGE_VERSION ]]; then
               echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
-              git checkout ${$branch#*/}
+              git checkout $branch
 
               # Merge changes from the remote branch into branch
               if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
