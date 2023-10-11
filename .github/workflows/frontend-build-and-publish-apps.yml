@@ -86,7 +86,7 @@ jobs:
           node-version: ${{ inputs.node-version }}
 
       - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v2.0.0
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
