@@ -18,6 +18,7 @@ jobs:
           token: ${{ secrets.github-token }}
 
       - name: Downmerge
+        id: downmerge
         run: |
           git fetch
           git config user.email "deploy-bot@riverigaming.com"
@@ -29,6 +30,7 @@ jobs:
           # Extract the major and minor version from the current version
           MAJOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1)
           MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f2)
+          MANUAL_MERGE=false
 
           CURRENT_BRANCH="$(git branch --show-current)"
 
@@ -65,6 +67,7 @@ jobs:
                         git push origin $branch
 
                         echo "::warning ::Auto merged package.json version conflicts. Please review the changes manually."
+                        MANUAL_MERGE=true
                     else
                       echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
                     fi
@@ -72,3 +75,10 @@ jobs:
               fi
             fi
           done
+      - name: Manual Merge Notification
+        id: versioning
+        if: ${{ steps.downmerge.outputs.MANUAL_MERGE == 'true' }}
+        run: |
+            echo "::error ::Auto merged conflicts. Review Changes Manually."
+            exit 1
+            
