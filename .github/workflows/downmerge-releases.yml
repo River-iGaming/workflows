@@ -74,9 +74,10 @@ jobs:
                   done
               fi
             fi
+            echo "::set-output name=manual-merge::$MANUAL_MERGE"
           done
       - name: Manual Merge Notification
-        if: ${{ steps.downmerge.outputs.manual_merge == 'true' }}
+        if: ${{ steps.downmerge.outputs.manual-merge == 'true' }}
         run: |
             echo "::error ::Auto merged conflicts. Review Changes Manually."
             exit 1
