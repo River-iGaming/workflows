@@ -43,7 +43,7 @@ jobs:
                 echo "::notice ::Major minor branch version: $MAJOR_MINOR_BRANCH_VERSION"
                 echo "::notice ::Major minor Package version: $MAJOR_MINOR_PACKAGE_VERSION"
 
-                if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION < $MAJOR_MINOR_PACKAGE_VERSION ]]; then
+                if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION > $MAJOR_MINOR_PACKAGE_VERSION ]]; then
                   echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
                   git checkout $branch
