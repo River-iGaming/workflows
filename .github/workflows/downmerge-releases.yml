@@ -76,7 +76,6 @@ jobs:
                         else
                           echo "Conflict in package.json, but version numbers are the same."
                         fi
-                      fi
                     else
                       echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
                     fi
