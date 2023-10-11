@@ -1,4 +1,6 @@
 name: Check Node package.json Version Bump
+on:
+  workflow_call
 jobs:
   check-version-bump:
     runs-on: ubuntu-latest
