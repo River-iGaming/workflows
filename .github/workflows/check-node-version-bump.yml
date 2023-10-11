@@ -27,10 +27,6 @@ jobs:
           current_version="${{ steps.current.outputs.version }}"
           base_version="${{ steps.base.outputs.version }}"
 
-          echo current version: "$current_version"
-          echo base version: "$base_version"
-          echo base_ref "$github.base_ref"
-
           if [[ "$(printf '%s\n' "$current_version" "$base_version" | sort -V | tail -n 1)" == "$base_version" ]]; then
             echo "package.json version is not greater than the base branch. Please bump the version."
             exit 1
