@@ -40,7 +40,7 @@ jobs:
                 MAJOR_MINOR_PACKAGE_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
 
                 if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION < $MAJOR_MINOR_PACKAGE_VERSION ]]; then
-                  echo "::notice ::Downmerging branch: $branch"
+                  echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
                   git checkout $branch
 
