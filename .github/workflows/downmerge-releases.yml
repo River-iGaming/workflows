@@ -19,8 +19,6 @@ jobs:
 
      - name: Downmerge
        run: |
-            #!/bin/bash
-
             git fetch
             git config user.email "deploy-bot@riverigaming.com"
             git config user.name "rig-autobot"
