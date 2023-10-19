@@ -1,0 +1,90 @@
+name: Downmerge releases
+
+on:
+  workflow_call:
+    inputs:
+        base-branch:
+          description: Base branch of the repo to downmerge to
+          required: false
+          type: string
+          default: "develop"
+    secrets:
+      github-token:
+        required: true
+
+jobs:
+  checks:
+    name: Downmerge to develop and release branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.github-token }}
+
+      - name: Downmerge
+        id: downmerge
+        run: |
+          git fetch
+          git config user.email "deploy-bot@riverigaming.com"
+          git config user.name "rig-autobot"
+
+          MANUAL_MERGE=false
+          # Determine the current package version
+          BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
+
+          # Extract the major and minor version from the current version
+          MAJOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1)
+          MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f2)
+
+          CURRENT_BRANCH="$(git branch --show-current)"
+
+          # Iterate through branches and downmerge if they match the pattern
+          for branch in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/*' "refs/remotes/origin/${{ inputs.base-branch }}"); do
+            BRANCH_VERSION=$(echo $branch | cut -d'/' -f3)
+            MAJOR_MINOR_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f1,2)
+            MAJOR_MINOR_PACKAGE_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
+            branch="${branch#origin/}"
+
+            if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION > $MAJOR_MINOR_PACKAGE_VERSION ]]; then
+              echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
+
+              git checkout $branch
+
+              # Merge changes from the remote branch into branch
+              if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
+                if [ -z "$(git status --porcelain)" ]; then
+                  echo "::notice ::Nothing to commit for branch: $branch"
+                else
+                  git commit --no-edit
+                  git push origin $branch
+                fi
+              else
+                  CONFLICTS="$(git diff --name-only --diff-filter=U)"
+
+                  for file in $CONFLICTS; do
+                    echo "::notice ::Conflicts: $CONFLICTS"
+                    if [ "$file" == "package.json" || "$file" == "package-lock.json"  ]; then
+                        echo "::notice ::Auto-resolving $file version conflicts by choosing the HEAD version."
+                        git checkout --ours $file
+                        git add $file
+                        git commit -m "chore(*): auto-resolve $file version conflicts"
+                        git push origin $branch
+
+                        echo "::warning ::Auto merged $file version conflicts. Please review the changes manually."
+                        MANUAL_MERGE=true
+                    else
+                      echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
+                    fi
+                  done
+              fi
+            fi
+            echo "manual-merge=${MANUAL_MERGE}" >> "$GITHUB_OUTPUT"
+          done
+      - name: Manual Merge Notification
+        if: ${{ steps.downmerge.outputs.manual-merge == 'true' }}
+        run: |
+            echo "::error ::Auto merged conflicts. Review Changes Manually."
+            exit 1
+            

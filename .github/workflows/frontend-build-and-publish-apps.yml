@@ -170,12 +170,7 @@ jobs:
 
           TAG_SUFFIX=""
           IS_PUBLISHABLE="${{ inputs.publish }}"
-          DOWNMERGE_TO_DEVELOP="false"
           case "$BRANCH_NAME" in
-            "main"|"master")
-            DOWNMERGE_TO_DEVELOP="true"
-            ;;
-
             "develop")
             TAG_SUFFIX="dev-${RUN_ID}"
             ;;
@@ -237,7 +232,6 @@ jobs:
           echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
           echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
-          echo "downmerge_to_develop=${DOWNMERGE_TO_DEVELOP}" >> "$GITHUB_OUTPUT"
 
           # expose metadata as environment variables
           echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
@@ -309,34 +303,6 @@ jobs:
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
-
-      - name: Downmerge master to develop
-        if: ${{ steps.metadata.outputs.downmerge_to_develop == 'true' }}
-        run: |
-          git fetch
-          git checkout develop
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
-
-          if git merge --no-commit --no-ff --no-edit origin/master
-          then
-            if [ -z "$(git status --porcelain)" ]
-            then
-              echo "::notice ::Nothing to commit"
-            else
-              git commit --no-edit
-              git push origin develop
-            fi
-          else
-            if git merge HEAD
-            then
-              echo "::notice ::Nothing to merge"
-            else
-              echo "::warning ::Failed to downmerge. Conflicts between master and develop."
-              git merge --abort
-              exit 1
-            fi
-          fi
 
   merge:
     name: merge
