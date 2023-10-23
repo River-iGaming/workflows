@@ -125,7 +125,7 @@ jobs:
           BRANCH_NAME_ENV: ${{ github.head_ref || github.ref_name }}
         run: |
           LOG=$COMMIT_MESSAGE_ENV
-          EOF_MARKER=$GITHUB_SHA # github env var
+          EOF_MARKER=$GITHUB_SHA
           BRANCH_NAME=$BRANCH_NAME_ENV
           COMMIT_MSG="commit-message<<${EOF_MARKER}"$'\n'"${LOG}"$'\n'"${EOF_MARKER}"
           echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
