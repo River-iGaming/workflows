@@ -120,18 +120,13 @@ jobs:
       - name: Get commit message and branch name
         id: git
         env:
-          COMMIT_MESSAGE_ENV: ${{ github.event.head_commit.message }}
+          COMMIT_MESSAGE_ENV: ${{ github.event.pull_request.title || github.event.head_commit.message }}
           EVENT_NAME_ENV: ${{ github.event_name }}
           BRANCH_NAME_ENV: ${{ github.head_ref || github.ref_name }}
         run: |
-          LOG=""
-          EOF_MARKER=$GITHUB_SHA # github env var
+          LOG=$COMMIT_MESSAGE_ENV
+          EOF_MARKER=$GITHUB_SHA
           BRANCH_NAME=$BRANCH_NAME_ENV
-          if [ $EVENT_NAME_ENV == "pull_request" ]; then
-            LOG=$(git log -1 --pretty=%B HEAD^2) # ideally we get pr title instead
-          else
-            LOG=$COMMIT_MESSAGE_ENV
-          fi
           COMMIT_MSG="commit-message<<${EOF_MARKER}"$'\n'"${LOG}"$'\n'"${EOF_MARKER}"
           echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
