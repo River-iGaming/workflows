@@ -65,7 +65,7 @@ jobs:
 
                   for file in $CONFLICTS; do
                     echo "::notice ::Conflicts: $CONFLICTS"
-                    if [ "$file" == "package.json" || "$file" == "package-lock.json"  ]; then
+                    if [ "$file" == "package.json" ] || [ "$file" == "package-lock.json" ]; then
                         echo "::notice ::Auto-resolving $file version conflicts by choosing the HEAD version."
                         git checkout --ours $file
                         git add $file
