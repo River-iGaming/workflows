@@ -171,6 +171,8 @@ jobs:
           TAG_SUFFIX=""
           IS_PUBLISHABLE="${{ inputs.publish }}"
           case "$BRANCH_NAME" in
+            "main"|"master")
+            ;;
             "develop")
             TAG_SUFFIX="dev-${RUN_ID}"
             ;;
