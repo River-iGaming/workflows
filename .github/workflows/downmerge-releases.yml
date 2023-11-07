@@ -69,15 +69,16 @@ jobs:
                         echo "::notice ::Auto-resolving $file version conflicts by choosing the HEAD version."
                         git checkout --ours $file
                         git add $file
-                        git commit -m "chore(*): auto-resolve $file version conflicts"
-                        git push origin $branch
-
-                        echo "::warning ::Auto merged $file version conflicts. Please review the changes manually."
                         MANUAL_MERGE=true
                     else
                       echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
+                      exit 1
                     fi
                   done
+                  if MANUAL_MERGE; then
+                    git commit -m "chore(*): auto-resolve version conflicts"
+                    git push origin $branch
+                  fi
               fi
             fi
             echo "manual-merge=${MANUAL_MERGE}" >> "$GITHUB_OUTPUT"
