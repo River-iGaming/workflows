@@ -75,7 +75,7 @@ jobs:
                       exit 1
                     fi
                   done
-                  if $MANUAL_MERGE; then
+                  if [ "$MANUAL_MERGE" = true ]; then
                     git commit -m "chore(*): auto-resolve version conflicts"
                     git push origin $branch
                   fi
