@@ -64,32 +64,27 @@ jobs:
                 git checkout $branch
 
                 # Merge changes from the remote branch into branch
-                if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
-                  if [ -z "$(git status --porcelain)" ]; then
-                    echo "::notice ::Nothing to commit for branch: $branch"
-                  else
-                    git commit --no-edit
+                if git merge --commit --no-ff --no-edit ${CURRENT_BRANCH}; then
+                  git push origin $branch
+                else
+                  CONFLICTS="$(git diff --name-only --diff-filter=U)"
+
+                  for file in $CONFLICTS; do
+                    echo "::notice ::Conflicts: $CONFLICTS"
+                    if [ "$file" == "package.json" ] || [ "$file" == "package-lock.json" ]; then
+                      echo "::notice ::Auto-resolving $file version conflicts by choosing the HEAD version."
+                      git checkout --ours $file
+                      git add $file
+                      MANUAL_MERGE=true
+                    else
+                      echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
+                      exit 1
+                    fi
+                  done
+                  if [ "$MANUAL_MERGE" = true ]; then
+                    git commit -m "chore(*): auto-resolve version conflicts"
                     git push origin $branch
                   fi
-                else
-                    CONFLICTS="$(git diff --name-only --diff-filter=U)"
-
-                    for file in $CONFLICTS; do
-                      echo "::notice ::Conflicts: $CONFLICTS"
-                      if [ "$file" == "package.json" ] || [ "$file" == "package-lock.json" ]; then
-                          echo "::notice ::Auto-resolving $file version conflicts by choosing the HEAD version."
-                          git checkout --ours $file
-                          git add $file
-                          MANUAL_MERGE=true
-                      else
-                        echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
-                        exit 1
-                      fi
-                    done
-                    if [ "$MANUAL_MERGE" = true ]; then
-                      git commit -m "chore(*): auto-resolve version conflicts"
-                      git push origin $branch
-                    fi
                 fi
               fi
             fi
