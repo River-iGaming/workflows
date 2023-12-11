@@ -56,16 +56,23 @@ jobs:
             MAJOR_MINOR_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f1,2)
             PATCH_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f3,4)
             MAJOR_MINOR_PACKAGE_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
+            IS_CURRENT_RELEASE_BRANCH=$(if [[ "$PATCH_BRANCH_VERSION" == "x" && "$MAJOR_MINOR_BRANCH_VERSION" == "$MAJOR_MINOR_PACKAGE_VERSION" ]]; then echo "true"; else echo "false"; fi)
             branch="${branch#origin/}"
             if [ "$branch" != "$CURRENT_BRANCH" ]; then
-              if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION > $MAJOR_MINOR_PACKAGE_VERSION || ("$PATCH_BRANCH_VERSION" == "x" && "$MAJOR_MINOR_BRANCH_VERSION" == "$MAJOR_MINOR_PACKAGE_VERSION") ]]; then
+              if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION > $MAJOR_MINOR_PACKAGE_VERSION || "$IS_CURRENT_RELEASE_BRANCH" == true ]]; then
                 echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
                 git checkout $branch
 
                 # Merge changes from the remote branch into branch
-                if git merge --commit --no-ff --no-edit ${CURRENT_BRANCH}; then
+                if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
+                if [[ "$IS_CURRENT_RELEASE_BRANCH" == false && (-z "$(git status --porcelain)") ]]; then
+                  echo "::notice ::Nothing to commit for branch: $branch"
+                fi  
+                else
+                  git commit --no-edit
                   git push origin $branch
+                fi
                 else
                   CONFLICTS="$(git diff --name-only --diff-filter=U)"
 
