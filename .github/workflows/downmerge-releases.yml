@@ -23,17 +23,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.github-token }}
 
-      - name: Find Opened Pull Request
-        id: find-pull-request
-        run: |
-          PULL_REQUEST_NUMBER=$(gh search prs $COMMIT_SHA --state=open --json number -L 1 -q ".[].number")
-          echo "number=${PULL_REQUEST_NUMBER}" >> "$GITHUB_OUTPUT"
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
-          COMMIT_SHA: ${{ github.sha }}
-
       - name: Downmerge
-        if: ${{ steps.find-pull-request.outputs.number == '' }}
         id: downmerge
         run: |
           git fetch
