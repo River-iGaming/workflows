@@ -44,32 +44,34 @@ jobs:
           for branch in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/*' "refs/remotes/origin/${{ inputs.base-branch }}"); do
             BRANCH_VERSION=$(echo $branch | cut -d'/' -f3)
             MAJOR_MINOR_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f1,2)
+            PATCH_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f3,4)
             MAJOR_MINOR_PACKAGE_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
+            IS_CURRENT_RELEASE_BRANCH=$(if [[ $PATCH_BRANCH_VERSION == "x" && $MAJOR_MINOR_BRANCH_VERSION == $MAJOR_MINOR_PACKAGE_VERSION ]]; then echo "true"; else echo "false"; fi)
             branch="${branch#origin/}"
+            if [ "$branch" != "$CURRENT_BRANCH" ]; then
+              if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION > $MAJOR_MINOR_PACKAGE_VERSION || $IS_CURRENT_RELEASE_BRANCH == true ]]; then
+                echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
-            if [[ $branch == "develop" || $MAJOR_MINOR_BRANCH_VERSION > $MAJOR_MINOR_PACKAGE_VERSION ]]; then
-              echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
+                git checkout $branch
 
-              git checkout $branch
-
-              # Merge changes from the remote branch into branch
-              if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
-                if [ -z "$(git status --porcelain)" ]; then
+                # Merge changes from the remote branch into branch
+                if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
+                if [[ $IS_CURRENT_RELEASE_BRANCH == false && (-z "$(git status --porcelain)") ]]; then
                   echo "::notice ::Nothing to commit for branch: $branch"
                 else
                   git commit --no-edit
                   git push origin $branch
                 fi
-              else
+                else
                   CONFLICTS="$(git diff --name-only --diff-filter=U)"
 
                   for file in $CONFLICTS; do
                     echo "::notice ::Conflicts: $CONFLICTS"
                     if [ "$file" == "package.json" ] || [ "$file" == "package-lock.json" ]; then
-                        echo "::notice ::Auto-resolving $file version conflicts by choosing the HEAD version."
-                        git checkout --ours $file
-                        git add $file
-                        MANUAL_MERGE=true
+                      echo "::notice ::Auto-resolving $file version conflicts by choosing the HEAD version."
+                      git checkout --ours $file
+                      git add $file
+                      MANUAL_MERGE=true
                     else
                       echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
                       exit 1
@@ -79,6 +81,7 @@ jobs:
                     git commit -m "chore(*): auto-resolve version conflicts"
                     git push origin $branch
                   fi
+                fi
               fi
             fi
             echo "manual-merge=${MANUAL_MERGE}" >> "$GITHUB_OUTPUT"
