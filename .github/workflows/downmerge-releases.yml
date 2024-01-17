@@ -47,8 +47,12 @@ jobs:
             MAJOR_MINOR_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f1,2)
             PATCH_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f3)
             NEWER_VERSION="$(printf '%s\n' "$MAJOR_MINOR_BRANCH_VERSION" "$MAJOR_MINOR_PACKAGE_VERSION" | sort -V | tail -n 1)"
-            IS_CURRENT_RELEASE_BRANCH=$(if [[ $PATCH_BRANCH_VERSION == "x" && $MAJOR_MINOR_BRANCH_VERSION == $MAJOR_MINOR_PACKAGE_VERSION ]]; then echo "true"; else echo "false"; fi)
-            if [[ $branch == "develop" || $NEWER_VERSION == $MAJOR_MINOR_BRANCH_VERSION || $IS_CURRENT_RELEASE_BRANCH == true ]]; then
+            IS_CURRENT_OR_HIGHER_RELEASE_BRANCH=$(if [[ $PATCH_BRANCH_VERSION == "x" && $NEWER_VERSION == $MAJOR_MINOR_BRANCH_VERSION ]]; then echo "true"; else echo "false"; fi)
+
+            echo "::notice ::NEWER_VERSION: $NEWER_VERSION"
+            echo "::notice ::MAJOR_MINOR_BRANCH_VERSION: $MAJOR_MINOR_BRANCH_VERSION"
+            echo "::notice ::IS_CURRENT_OR_HIGHER_RELEASE_BRANCH: $IS_CURRENT_OR_HIGHER_RELEASE_BRANCH"
+            if [[ $branch == "develop" || IS_CURRENT_OR_HIGHER_RELEASE_BRANCH == true ]]; then
               echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
               git checkout $branch
