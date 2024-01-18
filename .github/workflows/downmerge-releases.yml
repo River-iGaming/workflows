@@ -34,7 +34,7 @@ jobs:
           # Determine the current branch and package version
           CURRENT_BRANCH="$(git branch --show-current)"
 
-          if [[ "$CURRENT_BRANCH" =~ "release"]]; then
+          if [[ "$CURRENT_BRANCH" =~ "release" ]]; then
             CURRENT_BRANCH_VERSION=$(echo $CURRENT_BRANCH | cut -d'/' -f2)
             CURRENT_MAJOR_MINOR_PACKAGE_VERSION=$(echo $CURRENT_BRANCH_VERSION | cut -d'.' -f1,2)
           else
