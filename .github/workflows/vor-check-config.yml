@@ -26,12 +26,11 @@ jobs:
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "::set-output name=package-version::$PACKAGE_VERSION"
-      - name: Check branch name and package version should match
+      - name: Check branch name and package version prefix should match
         run: |
         if [[ "${BRANCH_VERSION_PREFIX}" == "${PACKAGE_VERSION%%.*}" ]]; then
           echo "Branch name matches package version prefix"
         else
-          echo "Branch name does not match package version prefix"
           echo "::error::Branch name [$BRANCH_VERSION_PREFIX] does not match package version [$PACKAGE_VERSION] prefix"
           exit 1
       - name: Check if tag exists
