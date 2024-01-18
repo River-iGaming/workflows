@@ -36,10 +36,10 @@ jobs:
 
           if [[ "$CURRENT_BRANCH" =~ "release" ]]; then
             CURRENT_BRANCH_VERSION=$(echo $CURRENT_BRANCH | cut -d'/' -f2)
-            CURRENT_MAJOR_MINOR_PACKAGE_VERSION=$(echo $CURRENT_BRANCH_VERSION | cut -d'.' -f1,2)
+            CURRENT_MAJOR_MINOR_VERSION=$(echo $CURRENT_BRANCH_VERSION | cut -d'.' -f1,2)
           else
             BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-            CURRENT_MAJOR_MINOR_PACKAGE_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
+            CURRENT_MAJOR_MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
           fi
 
           # Iterate through branches and downmerge if they match the pattern
@@ -52,10 +52,10 @@ jobs:
             BRANCH_VERSION=$(echo $branch | cut -d'/' -f2)
             MAJOR_MINOR_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f1,2)
             PATCH_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f3)
-            NEWER_VERSION="$(printf '%s\n' "$MAJOR_MINOR_BRANCH_VERSION" "$CURRENT_MAJOR_MINOR_PACKAGE_VERSION" | sort -V | tail -n 1)"
-            IS_CURRENT_RELEASE_BRANCH=$(if [[ $PATCH_BRANCH_VERSION == "x" && $MAJOR_MINOR_BRANCH_VERSION == $CURRENT_MAJOR_MINOR_PACKAGE_VERSION ]]; then echo "true"; else echo "false"; fi)
+            NEWER_VERSION="$(printf '%s\n' "$MAJOR_MINOR_BRANCH_VERSION" "$CURRENT_MAJOR_MINOR_VERSION" | sort -V | tail -n 1)"
+            IS_CURRENT_RELEASE_BRANCH=$(if [[ $PATCH_BRANCH_VERSION == "x" && $MAJOR_MINOR_BRANCH_VERSION == $CURRENT_MAJOR_MINOR_VERSION ]]; then echo "true"; else echo "false"; fi)
 
-            if [[ $branch == "develop" || ("$CURRENT_MAJOR_MINOR_PACKAGE_VERSION" != "$MAJOR_MINOR_BRANCH_VERSION" && $NEWER_VERSION == $MAJOR_MINOR_BRANCH_VERSION) || $IS_CURRENT_RELEASE_BRANCH == true ]]; then
+            if [[ $branch == "develop" || ("$CURRENT_MAJOR_MINOR_VERSION" != "$MAJOR_MINOR_BRANCH_VERSION" && $NEWER_VERSION == $MAJOR_MINOR_BRANCH_VERSION) || $IS_CURRENT_RELEASE_BRANCH == true ]]; then
               echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
               git checkout $branch
