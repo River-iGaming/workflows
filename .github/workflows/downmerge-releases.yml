@@ -35,12 +35,12 @@ jobs:
           CURRENT_BRANCH="$(git branch --show-current)"
 
           if [[ "$CURRENT_BRANCH" =~ "release" ]]; then
-            CURRENT_BRANCH_VERSION=$(echo $CURRENT_BRANCH | cut -d'/' -f2)
-            CURRENT_MAJOR_MINOR_VERSION=$(echo $CURRENT_BRANCH_VERSION | cut -d'.' -f1,2)
+            BASE_PACKAGE_VERSION=$(echo $CURRENT_BRANCH | cut -d'/' -f2)
           else
             BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-            CURRENT_MAJOR_MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
           fi
+          
+          CURRENT_MAJOR_MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
 
           # Iterate through branches and downmerge if they match the pattern
           for branch in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/*' "refs/remotes/origin/${{ inputs.base-branch }}"); do
