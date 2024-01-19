@@ -32,9 +32,15 @@ jobs:
 
           MANUAL_MERGE=false
           # Determine the current branch and package version
-          BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
           CURRENT_BRANCH="$(git branch --show-current)"
-          MAJOR_MINOR_PACKAGE_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
+
+          if [[ "$CURRENT_BRANCH" =~ "release" ]]; then
+            BASE_PACKAGE_VERSION=$(echo $CURRENT_BRANCH | cut -d'/' -f2)
+          else
+            BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          fi
+          
+          CURRENT_MAJOR_MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)
 
           # Iterate through branches and downmerge if they match the pattern
           for branch in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/*' "refs/remotes/origin/${{ inputs.base-branch }}"); do
@@ -46,9 +52,10 @@ jobs:
             BRANCH_VERSION=$(echo $branch | cut -d'/' -f2)
             MAJOR_MINOR_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f1,2)
             PATCH_BRANCH_VERSION=$(echo $BRANCH_VERSION | cut -d'.' -f3)
-            NEWER_VERSION="$(printf '%s\n' "$MAJOR_MINOR_BRANCH_VERSION" "$MAJOR_MINOR_PACKAGE_VERSION" | sort -V | tail -n 1)"
-            IS_CURRENT_RELEASE_BRANCH=$(if [[ $PATCH_BRANCH_VERSION == "x" && $MAJOR_MINOR_BRANCH_VERSION == $MAJOR_MINOR_PACKAGE_VERSION ]]; then echo "true"; else echo "false"; fi)
-            if [[ $branch == "develop" || $NEWER_VERSION == $MAJOR_MINOR_BRANCH_VERSION || $IS_CURRENT_RELEASE_BRANCH == true ]]; then
+            NEWER_VERSION="$(printf '%s\n' "$MAJOR_MINOR_BRANCH_VERSION" "$CURRENT_MAJOR_MINOR_VERSION" | sort -V | tail -n 1)"
+            IS_CURRENT_RELEASE_BRANCH=$(if [[ $PATCH_BRANCH_VERSION == "x" && $MAJOR_MINOR_BRANCH_VERSION == $CURRENT_MAJOR_MINOR_VERSION ]]; then echo "true"; else echo "false"; fi)
+
+            if [[ $branch == "develop" || ("$CURRENT_MAJOR_MINOR_VERSION" != "$MAJOR_MINOR_BRANCH_VERSION" && $NEWER_VERSION == $MAJOR_MINOR_BRANCH_VERSION) || $IS_CURRENT_RELEASE_BRANCH == true ]]; then
               echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
               git checkout $branch
