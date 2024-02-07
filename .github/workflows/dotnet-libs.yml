@@ -4,10 +4,10 @@ on:
   workflow_call:
     inputs:
       dotnet-version:
-        description: dotnet version to use (defaults to 5.0.x)
+        description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '5.0.x'
+        default: '7.0.x'
       nuget-registry-url:
         description: The url address for nuget registry
         required: false
@@ -45,14 +45,14 @@ jobs:
           needs_context: ${{ toJson(needs) }}
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Setup Cache
         with:
           path: ~/.nuget/packages
@@ -77,12 +77,12 @@ jobs:
 
       - name: Setup Build Tools
         run: |
-          # Disable nuget.org source and river-tech source if present
+          # Disable nuget.org source and river-nexus source if present
 
-          dotnet nuget remove source river-tech || true
+          dotnet nuget remove source river-nexus || true
 
           dotnet nuget add source ${{ inputs.nuget-registry-url }} \
-            -n nexus \
+            -n river-nexus \
             -u ${{ secrets.nexus-username }} \
             -p ${{ secrets.nexus-password }} \
             --store-password-in-clear-text
