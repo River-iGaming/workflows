@@ -28,10 +28,10 @@ on:
         type: string
         default: eu-west-1
       dotnet-version:
-        description: dotnet version to use (defaults to 6.0.x)
+        description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: "6.0.x"
+        default: "7.0.x"
 
       publish:
         description: Set to true to publish artifacts to docker repository
@@ -85,8 +85,8 @@ jobs:
           always-auth: true
           node-version: ${{ inputs.node-version }}
 
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
@@ -277,7 +277,7 @@ jobs:
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
@@ -286,7 +286,7 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Deploy
         if: ${{ steps.metadata.outputs.publishable == 'true' }}

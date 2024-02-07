@@ -4,15 +4,15 @@ on:
   workflow_call:
     inputs:
       dotnet-version:
-        description: dotnet version to use (defaults to 5.0.x)
+        description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '5.0.x'
+        default: '7.0.x'
       dotnet-publish-version:
-        description: dotnet version to use for publish (defaults to net5.0)
+        description: dotnet version to use for publish (defaults to net7.0)
         required: false
         type: string
-        default: net5.0
+        default: net7.0
       solution:
         description: path to project solution
         required: true
@@ -38,7 +38,7 @@ jobs:
       PUBLISH_PATH: specs
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup environmental variables
         run: |
           echo "SOLUTION=${{ inputs.solution }}" >> $GITHUB_ENV
@@ -63,11 +63,11 @@ jobs:
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Setup Cache
         with:
           path: ~/.nuget/packages
@@ -82,7 +82,7 @@ jobs:
         run: dotnet publish $SOLUTION -f ${{ inputs.dotnet-publish-version }} -c Release -o ./$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
@@ -90,7 +90,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to Amazon ECR
         if: ${{ inputs.publish }}
