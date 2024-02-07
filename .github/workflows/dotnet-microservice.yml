@@ -44,10 +44,10 @@ jobs:
           needs_context: ${{ toJson(needs) }}
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
@@ -95,7 +95,7 @@ jobs:
 
       # End 'Prepare Build Metadata and Environment'
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         if: ${{ github.run_attempt == '1' }}
         with:
           path: ~/.nuget/packages
@@ -110,7 +110,7 @@ jobs:
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
@@ -118,7 +118,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to Amazon ECR
         if: ${{ inputs.publish }}
