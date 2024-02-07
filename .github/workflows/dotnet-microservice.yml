@@ -4,10 +4,10 @@ on:
   workflow_call:
     inputs:
       dotnet-version:
-        description: dotnet version to use (defaults to 5.0.x)
+        description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '5.0.x'
+        default: '7.0.x'
       publish:
         description: whether the docker image should be pushed
         required: false
