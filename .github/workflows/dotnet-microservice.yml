@@ -73,7 +73,7 @@ jobs:
 
       - name: Generate Version Number
         id: version
-        uses: River-iGaming/actions/dotnet/versions@v2
+        uses: River-iGaming/actions/dotnet/versions@feature/node20
         with:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}
