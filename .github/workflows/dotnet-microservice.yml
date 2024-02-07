@@ -57,9 +57,9 @@ jobs:
 
           dotnet nuget remove source river-nexus
 
-          echo "Add source for nexus"
+          echo "Add source for river-nexus"
           dotnet nuget add source ${{ inputs.nuget-registry-url }} \
-            -n nexus \
+            -n river-nexus \
             -u ${{ secrets.nexus-username }} \
             -p ${{ secrets.nexus-password }} \
             --store-password-in-clear-text
