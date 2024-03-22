@@ -20,6 +20,11 @@ on:
         description: Url for Nuget server
         required: true
         type: string
+      odin-nuget-server-url:
+        description: Url for Odin Nuget server
+        required: false
+        type: string
+        default: https://nexus.riverigaming.tech/repository/odin-nuget/
     secrets:
       nuget-server-token:
         description: Access token for Nuget server
@@ -62,7 +67,7 @@ jobs:
           rm out/$PACKAGE/Class1.cs
           # Generate .NET classes from Avro Schema
           avromagic --schema-path ${{ inputs.avro-path }} --output-dir ./out/$PACKAGE
-          dotnet add ./out/$PACKAGE package Odin.Messaging.SerDes
+          dotnet add ./out/$PACKAGE package Odin.Messaging.SerDes --source ${{ inputs.odin-nuget-server-url }}
           dotnet pack -c Release -p:PackageVersion=$NUGET_VERSION ./out/$PACKAGE -o ./nupkg/
       - name: Push Nuget package to Nexus
         run: |
