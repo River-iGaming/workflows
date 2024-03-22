@@ -48,10 +48,10 @@ jobs:
           VERSION=$(echo "${PROJECT_VERSION/SNAPSHOT/dev-$BUILD_NUMBER}")
           echo "NUGET_VERSION=$VERSION" >> $GITHUB_ENV
           echo Setting version to: $VERSION
-      - uses: actions/setup-dotnet@v1.7.2
+      - uses: actions/setup-dotnet@v4.0.0
         with:
           source-url: ${{ inputs.nuget-server-url }}
-          dotnet-version: '2.1.x'
+          dotnet-version: '8.0'
       - name: Checkout
         uses: actions/checkout@v2.4.0
         
