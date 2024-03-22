@@ -51,7 +51,8 @@ jobs:
       - uses: actions/setup-dotnet@v4.0.0
         with:
           source-url: ${{ inputs.nuget-server-url }}
-          dotnet-version: '8.0'
+          dotnet-quality: signed
+          dotnet-version: '8.x'
       - name: Checkout
         uses: actions/checkout@v2.4.0
         
