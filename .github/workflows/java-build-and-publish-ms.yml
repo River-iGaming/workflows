@@ -80,10 +80,9 @@ jobs:
         run: |
           echo "# Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Repository: ${{ github.action_repository }}" >> $GITHUB_STEP_SUMMARY
-          echo "Branch: 
+          echo "Repository: ${{ github.action_repository }}" >> $GITHUB_STEP_SUMMARY          
           echo "Exec Project: ${{ inputs.exec-project }}" >> $GITHUB_STEP_SUMMARY
-          echo "Java Version: ${{ inputs.java-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "Java Version: `java -version 2>&1 | grep 'version' 2>&1 | awk -F\" '{ split($2,a,"."); print a[1]"."a[2]}'`" >> $GITHUB_STEP_SUMMARY
 
       - name: Build with Maven
         run: ${{ inputs.maven-command }} ${{ inputs.maven-extra-args }}
