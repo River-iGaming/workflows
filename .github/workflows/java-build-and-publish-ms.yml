@@ -110,7 +110,7 @@ jobs:
           RELEASE_TAG=$( echo $VERSION | sed "s/[^[:alnum:]#._-]/-/g" )
           echo "::notice::Setting ${{ inputs.ecr-repository }} version to: $RELEASE_TAG"
           echo "project-version::$PROJECT_VERSION" >> $GITHUB_OUTPUT
-          echo "final-version::$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "final-version=$RELEASE_TAG" >> $GITHUB_OUTPUT
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
