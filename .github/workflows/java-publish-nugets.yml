@@ -72,5 +72,5 @@ jobs:
           dotnet pack -c Release -p:PackageVersion=$NUGET_VERSION ./out/$PACKAGE -o ./nupkg/
       - name: Push Nuget package to Nexus
         run: |
-          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_AUTH_TOKEN --source ${{ inputs.nuget-publish-server-url }} --api-key ${{ secrets.nuget-server-token }}
+          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_AUTH_TOKEN --source ${{ inputs.nuget-publish-server-url }}
           echo "::notice::Pushed $PACKAGE $NUGET_VERSION to '${{ inputs.nuget-publish-server-url }}'"
