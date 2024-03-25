@@ -72,4 +72,4 @@ jobs:
           dotnet pack -c Release -p:PackageVersion=$NUGET_VERSION ./out/$PACKAGE -o ./nupkg/
       - name: Push Nuget package to Nexus
         run: |
-          dotnet nuget push ./out/$PACKAGE/nupkg/*.nupkg -k $NUGET_AUTH_TOKEN
+          dotnet nuget push ./$PACKAGE/nupkg/*.nupkg -k $NUGET_AUTH_TOKEN
