@@ -51,7 +51,7 @@ jobs:
       image-version: ${{ steps.versioning.outputs.final-version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4.1.1          
       - name: Setup Java JDK
         uses: actions/setup-java@v4.2.1 
         with:
@@ -76,6 +76,15 @@ jobs:
           key: river-cache
           restore-keys: river-cache
 
+      - name: Summary detail
+        run: |
+          echo "# Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Repository: ${{ github.action_repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: 
+          echo "Exec Project: ${{ inputs.exec-project }}" >> $GITHUB_STEP_SUMMARY          
+          echo "Java Version: `java -version 2>&1 | grep 'version' 2>&1 | awk -F\" '{ split($2,a,"."); print a[1]"."a[2]}'`" >> $GITHUB_STEP_SUMMARY
+
       - name: Build with Maven
         run: ${{ inputs.maven-command }} ${{ inputs.maven-extra-args }}
 
@@ -89,7 +98,9 @@ jobs:
         id: versioning
         run: |
           PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "Project version: $PROJECT_VERSION" >> $GITHUB_STEP_SUMMARY
           BRANCH=${{ github.ref_name }}
+          echo "Branch: $BRANCH" >> $GITHUB_STEP_SUMMARY
           if [ ${{github.run_attempt}} -eq 1 ]
           then
             BUILD_NUMBER=${{ github.run_number}}
@@ -141,6 +152,7 @@ jobs:
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::notice::Pushed image $ECR_REPOSITORY:$IMAGE_TAG to $ECR_REGISTRY"
+          echo "Docker image: $ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_STEP_SUMMARY
       - name: Logout of Amazon ECR
         if: always()
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
