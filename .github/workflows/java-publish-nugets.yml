@@ -52,9 +52,7 @@ jobs:
         with:
           source-url: ${{ inputs.nuget-server-url }}
           dotnet-quality: signed
-          dotnet-version: |
-            2.x
-            8.x
+          dotnet-version: 8.x
       - name: Checkout
         uses: actions/checkout@v2.4.0
         
