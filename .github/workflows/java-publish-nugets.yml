@@ -17,14 +17,13 @@ on:
         required: false
         default: ./realtime/src/main/avro
       nuget-server-url:
-        description: Url for Nuget server
+        description: Url for Nuget server to fetch packages
         required: true
         type: string
-      odin-nuget-server-url:
-        description: Url for Odin Nuget server
+      nuget-publish-server-url:
+        description: Url for Nuget server to publish packages
         required: false
         type: string
-        default: https://nexus.rivertech.dev/repository/nuget/index.json
     secrets:
       nuget-server-token:
         description: Access token for Nuget server
@@ -73,4 +72,5 @@ jobs:
           dotnet pack -c Release -p:PackageVersion=$NUGET_VERSION ./out/$PACKAGE -o ./nupkg/
       - name: Push Nuget package to Nexus
         run: |
-          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_AUTH_TOKEN
+          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_AUTH_TOKEN --source ${{ inputs.nuget-publish-server-url }} --api-key ${{ secrets.nuget-server-token }}
+          echo "::notice::Pushed $PACKAGE $NUGET_VERSION to '${{ inputs.nuget-publish-server-url }}'"
