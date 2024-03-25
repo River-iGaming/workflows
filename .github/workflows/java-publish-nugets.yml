@@ -68,7 +68,7 @@ jobs:
           rm out/$PACKAGE/Class1.cs
           # Generate .NET classes from Avro Schema
           avromagic --schema-path ${{ inputs.avro-path }} --output-dir ./out/$PACKAGE
-          dotnet add ./out/$PACKAGE package Odin.Messaging.SerDes --source ${{ inputs.odin-nuget-server-url }}
+          dotnet add ./out/$PACKAGE package Odin.Messaging.SerDes
           dotnet pack -c Release -p:PackageVersion=$NUGET_VERSION ./out/$PACKAGE -o ./nupkg/
       - name: Push Nuget package to Nexus
         run: |
