@@ -17,8 +17,12 @@ on:
         required: false
         default: ./realtime/src/main/avro
       nuget-server-url:
-        description: Url for Nuget server
+        description: Url for Nuget server to fetch packages
         required: true
+        type: string
+      nuget-publish-server-url:
+        description: Url for Nuget server to publish packages
+        required: false
         type: string
     secrets:
       nuget-server-token:
@@ -43,12 +47,14 @@ jobs:
           VERSION=$(echo "${PROJECT_VERSION/SNAPSHOT/dev-$BUILD_NUMBER}")
           echo "NUGET_VERSION=$VERSION" >> $GITHUB_ENV
           echo Setting version to: $VERSION
-      - uses: actions/setup-dotnet@v1.7.2
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v4.0.0      
         with:
           source-url: ${{ inputs.nuget-server-url }}
-          dotnet-version: '2.1.x'
+          dotnet-quality: ga
+          dotnet-version: 8.x
       - name: Checkout
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v4.1.1
         
       - name: Setup Avro Generator
         run: dotnet tool install sucrose.avro.codegen -g
@@ -66,4 +72,5 @@ jobs:
           dotnet pack -c Release -p:PackageVersion=$NUGET_VERSION ./out/$PACKAGE -o ./nupkg/
       - name: Push Nuget package to Nexus
         run: |
-          dotnet nuget push ./out/$PACKAGE/nupkg/*.nupkg -k $NUGET_AUTH_TOKEN
+          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_AUTH_TOKEN --source ${{ inputs.nuget-publish-server-url }}
+          echo "::notice::Pushed $PACKAGE $NUGET_VERSION to '${{ inputs.nuget-publish-server-url }}'"
