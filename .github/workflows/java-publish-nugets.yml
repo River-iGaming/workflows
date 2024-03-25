@@ -24,7 +24,7 @@ on:
         description: Url for Odin Nuget server
         required: false
         type: string
-        default: https://nexus.rivertech.dev/repository/nuget/
+        default: https://nexus.rivertech.dev/repository/nuget/index.json
     secrets:
       nuget-server-token:
         description: Access token for Nuget server
