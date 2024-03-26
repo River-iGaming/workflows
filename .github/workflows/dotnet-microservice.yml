@@ -17,7 +17,7 @@ on:
         description: The url address for nuget registry
         required: false
         type: string
-        default: https://nexus.rivertech.dev/repository/nuget/index.json
+        default: ${{ vars.NUGET_REGISTRY_URL }}
     secrets:
       nexus-username:
         required: true
