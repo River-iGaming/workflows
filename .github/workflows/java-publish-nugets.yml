@@ -16,14 +16,16 @@ on:
         type: string
         required: false
         default: ./realtime/src/main/avro
-      nuget-server-url:
-        description: Url for Nuget server to fetch packages
-        required: true
-        type: string
-      nuget-publish-server-url:
-        description: Url for Nuget server to publish packages
+      nuget-registry-url:
+        description: The url address for nuget registry
         required: false
         type: string
+        default: ${{ vars.NUGET_REGISTRY_URL }}
+      nuget-publish-url:
+        description: The url address where to publish nugets
+        required: false
+        type: string
+        default: ${{ vars.NUGET_PLATFORM_URL }}
     secrets:
       nuget-server-token:
         description: Access token for Nuget server
