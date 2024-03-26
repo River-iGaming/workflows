@@ -12,12 +12,12 @@ on:
         description: The url address for nuget registry
         required: false
         type: string
-        default: https://nexus.rivertech.dev/repository/nuget/index.json
+        default: ${{ vars.NUGET_REGISTRY_URL }}
       nuget-publish-url:
         description: The url address where to publish nugets
         required: false
         type: string
-        default: https://nexus.rivertech.dev/repository/odin-nuget/index.json
+        default: ${{ vars.NUGET_ODIN_URL }}
       publishable:
         description: Whether packages should be deployed to Nuget server
         type: boolean
