@@ -15,7 +15,7 @@ jobs:
           npm install -g eslint eslint-plugin-jsonc          
           echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
       - name: Lint JSON files
-        run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
+        run: eslint config/** -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
       - name: Output Report
         if: ${{ failure() }}
         uses: jwgmeligmeyling/checkstyle-github-action@master
