@@ -64,6 +64,9 @@ jobs:
             -p ${{ secrets.nexus-password }} \
             --store-password-in-clear-text
 
+      - name: Get the branch name
+        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
       # Start 'Prepare Build Metadata and Environment'
       - name: Setup environmental variables
         run: |
@@ -90,6 +93,11 @@ jobs:
         run: |
           if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
               echo "::error::tag $APP_VERSION already exists."
+              exit 1
+          fi
+
+          if env.BRANCH_NAME != 'release/*' &&  ! git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$"; then
+              echo "::error::tag $PACKAGE_VERSION was altered in a non-release branch."
               exit 1
           fi
 
