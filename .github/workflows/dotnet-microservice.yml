@@ -96,7 +96,7 @@ jobs:
               exit 1
           fi
 
-          if ${{ env.BRANCH_NAME }} != 'release/*' &&  ! git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$"; then
+          if ! [[ ${{ env.BRANCH_NAME }} == 'release' ]] &&  ! git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$"; then
               echo "::error::tag $PACKAGE_VERSION was altered in a non-release branch."
               exit 1
           fi
