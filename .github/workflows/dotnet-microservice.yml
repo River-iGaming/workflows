@@ -45,6 +45,11 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Get the branch name
+        run: |
+          echo "BRANCH_NAME=$(GITHUB_REF#refs/heads/)" >> $GITHUB_ENV
+          echo $BRANCH_NAME$
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -63,9 +68,6 @@ jobs:
             -u ${{ secrets.nexus-username }} \
             -p ${{ secrets.nexus-password }} \
             --store-password-in-clear-text
-
-      - name: Get the branch name
-        run: echo "BRANCH_NAME=$(GITHUB_REF#refs/heads/)" >> $GITHUB_ENV
 
       # Start 'Prepare Build Metadata and Environment'
       - name: Setup environmental variables
@@ -92,14 +94,11 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.app-version }}
         run: |
           if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
-              echo "::error::tag $APP_VERSION already exists."
+              echo "::error::Tag $APP_VERSION already exists."
               exit 1
           fi
-
-          echo $BRANCH_NAME
-
-          if ! [[ $BRANCH_NAME$ == 'release' ]] &&  ! git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$"; then
-              echo "::error::tag $PACKAGE_VERSION was altered in a non-release branch."
+          if ! [[ $BRANCH_NAME$ == 'release' ]] && ! git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$"; then
+              echo "::error::Tag $PACKAGE_VERSION was altered in a non-release branch."
               exit 1
           fi
 
