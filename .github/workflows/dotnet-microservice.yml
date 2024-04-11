@@ -100,7 +100,7 @@ jobs:
               echo "::error::Tag $APP_VERSION already exists."
               exit 1
           fi
-          if ! [[ $BRANCH_NAME$ == 'release' ]] && ! git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$"; then
+          if ! [[ $GITHUB_REF$ == 'release' ]] && ! git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$"; then
               echo "::error::Tag $PACKAGE_VERSION was altered in a non-release branch."
               exit 1
           fi
