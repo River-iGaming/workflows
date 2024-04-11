@@ -50,6 +50,9 @@ jobs:
         run: |
           echo "BRANCH_NAME=$(GITHUB_REF#refs/heads/)" >> $GITHUB_ENV
           echo $BRANCH_NAME$
+          echo $GITHUB_REF$
+          echo $GITHUB_HEAD_REF$
+          echo $REF_NAME$
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
