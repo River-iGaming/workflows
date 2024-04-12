@@ -103,7 +103,9 @@ jobs:
 
           echo $GITHUB_REF
 
-          if ${{ contains(github.ref_name, 'release/MW-') }} && ! git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$"; then
+          TAG_EXISTS=$(git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$")
+
+          if !${{ contains(github.ref_name, 'release/MW-') }} && ! TAG_EXISTS ; then
               echo "::error::Tag $PACKAGE_VERSION was altered in a non-release branch."
               exit 1
           fi
