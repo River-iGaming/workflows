@@ -102,8 +102,10 @@ jobs:
 
       - name: Check if Git Tag exists
         id: git-tag-check
-        env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
+        with:
+          app-version: ${{ steps.version.outputs.app-version }}
+          package-version: ${{ env.PACKAGE_VERSION }}
+        # env:
         uses: River-iGaming/actions/dotnet/tag-check@v3-dev
 
       # End 'Prepare Build Metadata and Environment'
