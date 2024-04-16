@@ -72,9 +72,9 @@ jobs:
       # Start 'Prepare Build Metadata and Environment'
       - name: Setup environmental variables
         run: |
-          echo "SOLUTION=$(node -p "require(${{ inputs.package-location }}).vsBuildSolution")" >> $GITHUB_ENV
-          echo "APP_NAME=$(node -p "require(${{ inputs.package-location }}).name")" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$(node -p "require(${{ inputs.package-location }}).version")" >> $GITHUB_ENV
+          echo "SOLUTION=$(node -p "require('${{ inputs.package-location }}').vsBuildSolution")" >> $GITHUB_ENV
+          echo "APP_NAME=$(node -p "require('${{ inputs.package-location }}').name")" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.package-location }}').version")" >> $GITHUB_ENV
 
       - name: Generate Version Number
         id: version
