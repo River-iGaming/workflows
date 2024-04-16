@@ -23,6 +23,11 @@ on:
         type: boolean
         default: false
         required: false
+      package-location:
+        description: package.json path location (defaults to './package.json')
+        required: false
+        type: string
+        default: './package.json'
     secrets:
       nexus-username:
         required: true
@@ -62,8 +67,8 @@ jobs:
 
       - name: Setup environmental variables
         run: |
-          SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          SOLUTION=$(node -p "require(${{ inputs.package-location }}).vsBuildSolution")
+          PACKAGE_VERSION=$(node -p "require(${{ inputs.package-location }}).version")
           echo "SOLUTION=$SOLUTION" >> $GITHUB_ENV
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
