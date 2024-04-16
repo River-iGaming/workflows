@@ -136,7 +136,8 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to Amazon ECR
-        if: ${{ inputs.publish }}
+        id: build-image
+        if: ${{ inputs.publish || !contains(github.ref_name, 'release/MW-') }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
@@ -149,7 +150,7 @@ jobs:
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create git tag for release
-        if: ${{ steps.git-tag-check.conclusion != 'skipped' }}
+        if: ${{ steps.git-tag-check.conclusion != 'skipped' || steps.build-image.conclusion == 'success' }}
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
