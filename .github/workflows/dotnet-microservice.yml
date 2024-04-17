@@ -137,7 +137,8 @@ jobs:
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
-        if: ${{ inputs.publish || !contains(github.ref_name, 'release/MW-') }}
+        if: ${{ inputs.publish || !contains(github.ref_name, 'release/MW-') }} 
+        ### why are they set to publish all the time
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
