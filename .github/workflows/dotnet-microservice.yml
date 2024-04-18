@@ -1,0 +1,146 @@
+name: .NET Build and Publish
+
+on:
+  workflow_call:
+    inputs:
+      dotnet-version:
+        description: dotnet version to use (defaults to 7.0.x)
+        required: false
+        type: string
+        default: '7.0.x'
+      publish:
+        description: whether the docker image should be pushed
+        required: false
+        type: boolean
+        default: false
+      nuget-registry-url:
+        description: The url address for nuget registry
+        required: false
+        type: string
+        default: ${{ vars.NUGET_REGISTRY_URL }}
+      package-location:
+        description: package.json path location (defaults to './package.json')
+        required: false
+        type: string
+        default: './package.json'
+    secrets:
+      nexus-username:
+        required: true
+      nexus-password:
+        required: true
+      aws-access-key-id:
+        required: true
+      aws-secret-access-key:
+        required: true
+jobs:
+  build:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      PUBLISH_PATH: obj/Docker/publish
+    steps:
+      - name: Debug Action Contexts
+        uses: henrygriffiths/debug_action@v1
+        with:
+          secrets_context: ${{ toJson(secrets) }}
+          needs_context: ${{ toJson(needs) }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+
+      - name: Setup Build Tools
+        run: |
+          dotnet nuget list source
+
+          dotnet nuget remove source river-nexus
+
+          echo "Add source for river-nexus"
+          dotnet nuget add source ${{ inputs.nuget-registry-url }} \
+            -n river-nexus \
+            -u ${{ secrets.nexus-username }} \
+            -p ${{ secrets.nexus-password }} \
+            --store-password-in-clear-text
+
+      # Start 'Prepare Build Metadata and Environment'
+      - name: Setup environmental variables
+        run: |
+          echo "SOLUTION=$(node -p "require('${{ inputs.package-location }}').vsBuildSolution")" >> $GITHUB_ENV
+          echo "APP_NAME=$(node -p "require('${{ inputs.package-location }}').name")" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.package-location }}').version")" >> $GITHUB_ENV
+
+      - name: Generate Version Number
+        id: version
+        uses: River-iGaming/actions/dotnet/versions@v2
+        with:
+          type: deploy
+          package-version: ${{ env.PACKAGE_VERSION }}
+
+      - name: Set version envs
+        run: |
+          echo "APP_VERSION=${{ steps.version.outputs.app-version }}" >> $GITHUB_ENV
+
+      - name: Check if Git Tag exists
+        if: ${{ github.run_attempt == '1' }}
+        id: git-tag-check
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+        run: |
+          if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
+              echo "::error::tag $APP_VERSION already exists."
+              exit 1
+          fi
+
+      # End 'Prepare Build Metadata and Environment'
+
+      - uses: actions/cache@v4
+        if: ${{ github.run_attempt == '1' }}
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Dotnet restore/publish
+        run: |
+          dotnet nuget list source
+          dotnet restore $SOLUTION /p:Configuration=Release
+          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: eu-west-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        if: ${{ inputs.publish }}
+        env:
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          GIT_COMMIT: ${{ github.sha }}
+        run: |
+         docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
+         docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
+
+      - name: Logout of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
+
+      - name: Create git tag for release
+        if: ${{ steps.git-tag-check.conclusion != 'skipped' }}
+        run: |
+          git tag $APP_VERSION
+          git push origin $APP_VERSION
+          echo "::notice::Pushed image for $APP_NAME: $APP_VERSION"

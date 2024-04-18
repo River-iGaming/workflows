@@ -3,32 +3,52 @@ on:
   workflow_call:
     inputs:
       node-version:
-        description: Node version to use (defaults to 14)
+        description: Node version to use (defaults to 18)
         required: false
         type: string
-        default: '14'
-      npm-registry-url:
-        description: The url address for npm registry (defaults to https://www.myget.org/F/river-tech/npm/)
+        default: "18"
+      npm-registry:
+        description: The url for npm registry
         required: false
         type: string
-        default: https://www.myget.org/F/river-tech/npm/
+        default: //nexus.rivertech.dev/repository/npm/
+      npm-registry-publish:
+        description: The address for npm registry publish
+        required: false
+        type: string
+        default: //nexus.rivertech.dev/repository/odin-npm/
       npm-registry-scope:
         description: The name of the npm scope (defaults to @odin)
         required: false
         type: string
-        default: '@odin'
+        default: "@odin"
       aws-region:
         description: Which AWS region to use for publish storybook (defaults to eu-west-1)
         required: false
         type: string
         default: eu-west-1
       dotnet-version:
-        description: dotnet version to use (defaults to 6.0.x)
+        description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '6.0.x'
+        default: "7.0.x"
+
+      publish:
+        description: Set to true to publish artifacts to docker repository
+        required: false
+        type: boolean
+        default: true
+
+      tagSuffixPreamble:
+        description: A prefix to add to the tag suffix. Useful for testing.
+        required: false
+        type: string
+        default: ''
+
     secrets:
-      npm-token:
+      nexus-username:
+        required: true
+      nexus-password:
         required: true
       aws-access-key-id:
         required: true
@@ -37,7 +57,7 @@ on:
       github-token:
         required: true
 
-concurrency: 
+concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
@@ -50,17 +70,23 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
+    outputs:
+      app_version: ${{ steps.metadata.outputs.version }}
     steps:
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - name: Debug Action Contexts
+        uses: henrygriffiths/debug_action@v1
         with:
-          node-version: ${{ inputs.node-version }}
+          secrets_context: ${{ toJson(secrets) }}
+          needs_context: ${{ toJson(needs) }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v3.6.0
+        with:
           always-auth: true
-          registry-url: ${{ inputs.npm-registry-url }}
-          scope: ${{ inputs.npm-registry-scope }}
-      
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v2.0.0
+          node-version: ${{ inputs.node-version }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
@@ -80,7 +106,7 @@ jobs:
         uses: actions/checkout@v3.0.0
         if: github.event_name == 'pull_request'
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           token: ${{ secrets.github-token }}
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -90,90 +116,168 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.github-token }}
-      
-      - name: Extract branch name
+
+      - name: NPM TOKEN
+        id: npm_token
+        run: |
+          NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup NPM
+        run: |
+          npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
+          npm config set registry=https:${{ inputs.npm-registry }}
+
+      - name: Install Odin CI tooling (deprecated)
+        run: npm i -g @odin/infra.ci@0.1.22
+        env:
+          NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
+
+      - name: Determine Branch Name
         id: branch
         run: |
-          EVENT=${{ github.event_name }}
-          if [ $EVENT == "pull_request" ]; then
-            BRANCH_NAME=${{github.head_ref}}
-            echo "::set-output name=name::${BRANCH_NAME}"
-          else
-            echo "::set-output name=name::${GITHUB_REF_NAME}"
-          fi
+          # determine branch name (diff source since this workflow can run either on push or pull_request events)
+          case "${{ github.event_name }}" in
+            "pull_request")
+            BRANCH_NAME="${{ github.head_ref }}"
+            ;;
+            *)
+            BRANCH_NAME="${GITHUB_REF_NAME}"
+            ;;
+          esac
+          echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+          echo "::notice ::Branch name: $BRANCH_NAME"
 
-      - name: Check if branch is publishable
-        id: check-branch
+      - name: Prepare Build Metadata and Environment
+        id: metadata
         env:
           BRANCH_NAME: ${{ steps.branch.outputs.name}}
         run: |
-          echo "::notice ::Branch name: $BRANCH_NAME"
+          # enable bash pattern matching
+          shopt -s extglob;
 
-          if ! ([ $BRANCH_NAME = "develop" ] || [ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^(feature|hotfix|dependabot)\/(.*)$ ]] || [[ "$BRANCH_NAME" =~ ^(([0-9]+|\.)+x)$ ]]); then
-            echo "::set-output name=publishable::false"
-            echo "::notice ::Non-publishable branch."
-          else 
-            echo "::set-output name=publishable::true"
-          fi
+          # determine version + tag
+          BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          APP_NAME=$(node -p "require('./package.json').name")
 
-      - name: Install npm
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build:rel
-
-      - name: Install tools
-        run: npm i -g @odin/infra.ci@0.1.22
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm-token }}
-
-      - name: Dotnet restore/publish
-        run: |
-            SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
-            dotnet restore $SOLUTION /p:Configuration=Release
-            dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
-
-      - name: Set environment variables
-        run: |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
-          echo "::notice ::Branch name: $BRANCH_NAME"
-
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
-
-          if [[ "$BRANCH_NAME" =~ ^(feature|dependabot)\/(.*)$ ]]
+          # ensure we have a unique suffix
+          if [ ${{github.run_attempt}} -eq 1 ]
           then
-            echo "APP_VERSION=$PACKAGE_VERSION-demo-${BASH_REMATCH[2]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
-          elif [[ "$BRANCH_NAME" =~ ^hotfix\/(.*)$ ]]
-          then
-            echo "APP_VERSION=$PACKAGE_VERSION-hotfix-${BASH_REMATCH[1]}-$GITHUB_RUN_ID" >> $GITHUB_ENV
+            RUN_ID="${{ github.run_id}}-0"
           else
-            echo "APP_VERSION=$(ci get:app-version --packageVersion=$PACKAGE_VERSION --branch=$BRANCH_NAME --incrementalSuffix=$GITHUB_RUN_ID)${{ steps.branch.outputs.name == 'vnext' && '-vnext-$GITHUB_RUN_ID' || '' }}" >> $GITHUB_ENV
+            RUN_ID="${{ github.run_id}}-${{github.run_attempt}}"
           fi
+
+          TAG_SUFFIX=""
+          IS_PUBLISHABLE="${{ inputs.publish }}"
+          case "$BRANCH_NAME" in
+            "main"|"master")
+            ;;
+            "develop")
+            TAG_SUFFIX="dev-${RUN_ID}"
+            ;;
+
+            "vnext")
+            TAG_SUFFIX="vnext-$RUN_ID"
+            ;;
+
+            # feature
+            feature\/+(?) )
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            ;;
+
+            # named demo branch
+            @(demo)\/+(?) )
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            ;;
+
+            # named demo branch
+            dependabot\/+(?) )
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            ;;
+
+            # demo only branch
+            "demo")
+            TAG_SUFFIX="demo-${RUN_ID}"
+            ;;
+
+            # hotfix
+            hotfix\/+(?) )
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="hotfix-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            ;;
+
+            # Release
+            release\/+(?) )
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="release-${RUN_ID}"
+            ;;
+
+            *)
+            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
+            TAG_SUFFIX="${{ inputs.tagSuffixPreamble }}-${PRETTY_BRANCH_NAME}-${RUN_ID}"
+            ;;
+          esac
+          shopt -u extglob;
+
+
+          # build version number in full with value extracted from package.json + tag suffix if available
+          PACKAGE_VERSION=${BASE_PACKAGE_VERSION}
+          if [ ! -z "${TAG_SUFFIX}" ]; then
+            PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${TAG_SUFFIX}
+          fi
+
+          # expose metadata as workflow variables
+          echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
+
+          # expose metadata as environment variables
+          echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
+          echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
+          echo "APP_VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
+
+          echo "::notice ::App name: $APP_NAME"
+          echo "::notice ::Version: $PACKAGE_VERSION"
+          echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
+          echo "::notice ::Tag: $PACKAGE_VERSION"
 
       - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.0.0
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        uses: mukunku/tag-exists-action@v1.2.0
         id: tag
         with:
-          tag: ${{ env.APP_VERSION }}
+          tag: ${{ steps.metadata.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.github-token }}
 
       - name: Inform if tag exists
-        if: ${{ steps.tag.outputs.exists == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
+      - name: Prep, Lint and Build NodeJS part
+        env:
+          NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
+        run: |
+          npm ci
+          npm run lint
+          npm run build:rel
+
+      - name: Dotnet restore/publish
+        run: |
+          SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
+
+          dotnet restore $SOLUTION /p:Configuration=Release
+          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
+
       - name: Configure AWS credentials
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
-        uses: aws-actions/configure-aws-credentials@v1
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
@@ -181,11 +285,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
-        uses: aws-actions/amazon-ecr-login@v1
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Deploy
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
         run: |
@@ -193,57 +297,14 @@ jobs:
           docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
 
       - name: Logout of Amazon ECR
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create Git tag for release
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         run: |
           git tag $APP_VERSION
           git push origin $APP_VERSION
-
-      - name: Downmerge master to develop
-        if: ${{ steps.check-branch.outputs.publishable == 'true' }}
-        run:  |
-          BRANCH_NAME=${{steps.branch.outputs.name}}
-
-          if [ "$BRANCH_NAME" != "master" ]
-          then
-            echo "::notice ::Skipping downmerge. Branch is not master."
-            exit 0
-          fi
-
-          git fetch
-          git checkout develop
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
-
-          if git merge --no-commit --no-ff --no-edit origin/master
-          then
-            if [ -z "$(git status --porcelain)" ]
-            then
-              echo "::notice ::Nothing to commit"
-            else
-              git commit --no-edit
-              git push origin develop
-            fi
-          else
-            if git merge HEAD
-            then
-              echo "::notice ::"Nothing to merge"
-            else
-              echo "::warning ::"Failed to downmerge. Conflicts between master and develop."
-              git merge --abort
-            fi
-          fi
-
-      - name: Store npm artifact
-        uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: npm-logs
-          path: ~/.npm/_logs/*
-          retention-days: 2
 
   merge:
     name: merge
@@ -268,4 +329,4 @@ jobs:
           type: now
           target_branch: vnext
           github_token: ${{ secrets.github-token }}
-          message: 'feat(*): merge from master'
+          message: "feat(*): merge from master"

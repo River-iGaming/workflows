@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Prepare linter
         run: |          
-          npm install -g eslint eslint-plugin-jsonc          
+          npm install -g eslint@8.57.0 eslint-plugin-jsonc          
           echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
       - name: Lint JSON files
         run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
@@ -57,10 +57,4 @@ jobs:
               COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"                    
               echo "::notice::$COMMENT"
               echo "::set-output name=git-comment::$COMMENT"
-          fi          
-      - name: Commit version bump
-        uses: stefanzweifel/git-auto-commit-action@v4.14.1
-        if: ${{ steps.tag.outputs.exists == 'true' }}
-        with:
-          file_pattern: package.json
-          commit_message: ${{ steps.version-bump.outputs.git-comment }} 
+          fi

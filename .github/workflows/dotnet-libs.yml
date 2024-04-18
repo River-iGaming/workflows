@@ -1,0 +1,128 @@
+name: .NET Build and Publish
+
+on:
+  workflow_call:
+    inputs:
+      dotnet-version:
+        description: dotnet version to use (defaults to 7.0.x)
+        required: false
+        type: string
+        default: '7.0.x'
+      nuget-registry-url:
+        description: The url address for nuget registry
+        required: false
+        type: string
+        default: ${{ vars.NUGET_REGISTRY_URL }}
+      nuget-publish-url:
+        description: The url address where to publish nugets
+        required: false
+        type: string
+        default: ${{ vars.NUGET_ODIN_URL }}
+      publishable:
+        description: Whether packages should be deployed to Nuget server
+        type: boolean
+        default: false
+        required: false
+      package-location:
+        description: package.json path location (defaults to './package.json')
+        required: false
+        type: string
+        default: './package.json'
+    secrets:
+      nexus-username:
+        required: true
+      nexus-password:
+        required: true
+jobs:
+  build:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+
+      - name: Debug Action Contexts
+        uses: henrygriffiths/debug_action@v1
+        with:
+          secrets_context: ${{ toJson(secrets) }}
+          needs_context: ${{ toJson(needs) }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+
+      - uses: actions/cache@v4
+        name: Setup Cache
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Setup environmental variables
+        run: |
+          SOLUTION=$(node -p "require('${{ inputs.package-location }}').vsBuildSolution")
+          PACKAGE_VERSION=$(node -p "require('${{ inputs.package-location }}').version")
+          echo "SOLUTION=$SOLUTION" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+
+      - name: Generate Version Number
+        id: version
+        if: inputs.publishable
+        uses: River-iGaming/actions/dotnet/versions@v2
+        with:
+          type: lib
+          package-version: ${{ env.PACKAGE_VERSION }}
+
+      - name: Setup Build Tools
+        run: |
+          # Disable nuget.org source and river-nexus source if present
+
+          dotnet nuget remove source river-nexus || true
+
+          dotnet nuget add source ${{ inputs.nuget-registry-url }} \
+            -n river-nexus \
+            -u ${{ secrets.nexus-username }} \
+            -p ${{ secrets.nexus-password }} \
+            --store-password-in-clear-text
+
+          dotnet nuget add source ${{ inputs.nuget-publish-url }} \
+            -n publish \
+            -u ${{ secrets.nexus-username }} \
+            -p ${{ secrets.nexus-password }} \
+            --store-password-in-clear-text
+
+      - name: Restore
+        run: |
+          dotnet restore $SOLUTION /p:Configuration=Release
+
+      - name: Build
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+        run: dotnet build -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release
+
+      - name: Test
+        run: npm test
+
+      - name: Publish Nuget
+        if: inputs.publishable
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+        run: |
+          mkdir ./nuget
+          dotnet pack $SOLUTION --no-build -p:PackageVersion=$APP_VERSION -o ./nuget -c Release
+          find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
+
+      - name: Git Tag
+        if: inputs.publishable
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+        run: |
+          git tag $APP_VERSION
+          git push origin $APP_VERSION

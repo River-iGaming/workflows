@@ -1,0 +1,40 @@
+name: Check Node package.json Version Bump
+on:
+  workflow_call:
+jobs:
+  check-version-bump:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout current code
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: package.json
+          sparse-checkout-cone-mode: false
+
+      - name: Get the current version
+        id: current
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout base branch code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          sparse-checkout: package.json
+          sparse-checkout-cone-mode: false
+
+      - name: Get the base branch version
+        id: base
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check version bump
+        run: |
+          current_version="${{ steps.current.outputs.version }}"
+          base_version="${{ steps.base.outputs.version }}"
+
+          if [[ "$(printf '%s\n' "$current_version" "$base_version" | sort -V | tail -n 1)" == "$base_version" ]]; then
+            echo "package.json version is not greater than the base branch. Please bump the version."
+            exit 1
+          else
+            echo "package.json version has been bumped in the pull request."
+          fi
