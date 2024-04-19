@@ -83,23 +83,6 @@ jobs:
         run: |
           echo "APP_VERSION=${{ steps.version.outputs.app-version }}" >> $GITHUB_ENV
 
-      # - name: Check if Git Tag exists
-      #   id: git-tag-check
-      #   env:
-      #     APP_VERSION: ${{ steps.version.outputs.app-version }}
-      #   run: |
-      #     if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
-      #         echo "::error::Tag $APP_VERSION already exists."
-      #         exit 1
-      #     fi
-
-      #     TAG_EXISTS=$(git ls-remote --tags origin | grep -q "refs/tags/$PACKAGE_VERSION$")
-
-      #     if ! ${{ contains(github.ref_name, 'release/MW-') }} && ! TAG_EXISTS ; then
-      #         echo "::error::Tag $PACKAGE_VERSION was altered in a non-release branch."
-      #         exit 1
-      #     fi
-
       - name: Check if Git Tag exists
         id: git-tag-check
         with:
@@ -137,8 +120,7 @@ jobs:
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
-        if: ${{ inputs.publish || !contains(github.ref_name, 'release/MW-') }} 
-        ### why are they set to publish all the time
+        if: ${{ inputs.publish }} 
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
