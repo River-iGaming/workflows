@@ -83,15 +83,13 @@ jobs:
         run: |
           echo "APP_VERSION=${{ steps.version.outputs.app-version }}" >> $GITHUB_ENV
 
-      - name: Check if Git Tag exists
+      - name: Check Valid Git Tag
         id: git-tag-check
         with:
           app-version: ${{ steps.version.outputs.app-version }}
           package-version: ${{ env.PACKAGE_VERSION }}
         # env:
         uses: River-iGaming/actions/dotnet/tag-check@v3-dev
-
-      # End 'Prepare Build Metadata and Environment'
 
       - uses: actions/cache@v4
         if: ${{ github.run_attempt == '1' }}
