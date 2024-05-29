@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: './package.json'
+      docker-compose-location:
+        description: docker-compose.yml path location (defaults to './')
+        required: false
+        type: string
+        default: './'
     secrets:
       nexus-username:
         required: true
@@ -131,8 +136,8 @@ jobs:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
-         docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
-         docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
+         docker-compose -f ${{inputs.docker-compose-location}}docker-compose.yml -f ${{inputs.docker-compose-location}}docker-compose.override.yml -f ${{inputs.docker-compose-location}}docker-compose.ci.yml build
+         docker-compose -f ${{inputs.docker-compose-location}}docker-compose.yml -f ${{inputs.docker-compose-location}}docker-compose.override.yml -f ${{inputs.docker-compose-location}}docker-compose.ci.yml push
 
       - name: Logout of Amazon ECR
         if: always()
