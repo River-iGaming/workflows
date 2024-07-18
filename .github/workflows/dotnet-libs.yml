@@ -75,6 +75,14 @@ jobs:
           type: lib
           package-version: ${{ env.PACKAGE_VERSION }}
 
+      - name: Check Valid Git Tag
+        id: git-tag-check
+        with:
+          app-version: ${{ steps.version.outputs.app-version }}
+          package-version: ${{ env.PACKAGE_VERSION }}
+        # env:
+        uses: River-iGaming/actions/dotnet/tag-check@v3-dev
+
       - name: Setup Build Tools
         run: |
           # Disable nuget.org source and river-nexus source if present
