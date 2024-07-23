@@ -308,8 +308,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           unset-current-credentials: true
-          aws-access-key-id: ${{ secrets.secondary-aws-access-key-id }}
-          aws-secret-access-key: ${{ secrets.secondary-aws-secret-access-key }}
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
           aws-region: ${{ inputs.secondary-aws-region }}
 
       - name: Login to Secondary Amazon ECR
