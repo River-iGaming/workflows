@@ -65,7 +65,7 @@ on:
         required: true
       aws-secret-access-key:
         required: true
-      secondary-aws-acces-key-id:
+      secondary-aws-access-key-id:
         required: false
       secondary-aws-secret-access-key:
         required: false
