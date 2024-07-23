@@ -302,6 +302,14 @@ jobs:
         id: login-ecr
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         uses: aws-actions/amazon-ecr-login@v2
+       
+      - name: Unset Primary AWS Credentials
+        if: ${{ inputs.secondaryEcrLogin }}
+        run: |
+          echo "Unsetting Primary AWS Credentials"
+          echo "::unset-env name=AWS_ACCESS_KEY_ID::"
+          echo "::unset-env name=AWS_SECRET_ACCESS_KEY::"
+
 
       - name: Configure Secondary AWS credentials
         if: ${{ inputs.secondaryEcrLogin }}
