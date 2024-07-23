@@ -302,16 +302,7 @@ jobs:
         id: login-ecr
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         uses: aws-actions/amazon-ecr-login@v2
-       
-      - name: Unset Primary AWS Credentials
-        if: ${{ inputs.secondaryEcrLogin }}
-        run: |
-          echo "Unsetting Primary AWS Credentials"
-          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
-
-
+        
       - name: Configure Secondary AWS credentials
         if: ${{ inputs.secondaryEcrLogin }}
         uses: aws-actions/configure-aws-credentials@v4
