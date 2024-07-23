@@ -307,7 +307,6 @@ jobs:
         if: ${{ inputs.secondaryEcrLogin }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          unset-current-credentials: true
           role-chaining: true
           aws-access-key-id: ${{ secrets.secondary-aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.secondary-aws-secret-access-key }}
