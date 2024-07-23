@@ -307,15 +307,15 @@ jobs:
         if: ${{ inputs.secondaryEcrLogin }}
         run: |
           echo "Unsetting Primary AWS Credentials"
-          echo "::unset-env name=AWS_ACCESS_KEY_ID::"
-          echo "::unset-env name=AWS_SECRET_ACCESS_KEY::"
+          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
 
 
       - name: Configure Secondary AWS credentials
         if: ${{ inputs.secondaryEcrLogin }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          unset-current-credentials: true
           aws-access-key-id: ${{ secrets.secondary-aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.secondary-aws-secret-access-key }}
           aws-region: ${{ inputs.secondary-aws-region }}
