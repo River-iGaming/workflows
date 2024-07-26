@@ -62,7 +62,8 @@ jobs:
 
               # Merge changes from the remote branch into branch
               if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
-              if [[ $IS_CURRENT_RELEASE_BRANCH == false && (-z "$(git status --porcelain)") ]]; then
+
+              if [[ $IS_CURRENT_RELEASE_BRANCH == false && (-z "$(git status --porcelain)") && (-z "$( ls .git/MERGE* 2>/dev/null )") ]]; then
                 echo "::notice ::Nothing to commit for branch: $branch"
               else
                 git commit --no-edit
