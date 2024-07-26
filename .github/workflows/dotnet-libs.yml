@@ -70,7 +70,7 @@ jobs:
       - name: Generate Version Number
         id: version
         if: inputs.publishable
-        uses: River-iGaming/actions/dotnet/versions@v2
+        uses: River-iGaming/actions/dotnet/versions@v3-dev
         with:
           type: lib
           package-version: ${{ env.PACKAGE_VERSION }}
