@@ -69,7 +69,6 @@ jobs:
 
       - name: Generate Version Number
         id: version
-        if: inputs.publishable
         uses: River-iGaming/actions/dotnet/versions@v3-dev
         with:
           type: lib
