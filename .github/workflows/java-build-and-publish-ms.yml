@@ -103,6 +103,10 @@ jobs:
             develop)
               VERSION=$(echo $BRANCH-$PROJECT_VERSION | sed "s/-SNAPSHOT/-$BUILD_NUMBER/")
               ;;
+            feature/*)
+              FEATURE_NAME=$(echo $BRANCH-$PROJECT_VERSION | sed "s/feature\///")
+              VERSION=$FEATURE_NAME-$BUILD_NUMBER
+              ;;
             *)
               VERSION=$BRANCH-$BUILD_NUMBER
               ;;
