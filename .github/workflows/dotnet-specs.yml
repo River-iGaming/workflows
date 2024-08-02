@@ -47,7 +47,7 @@ jobs:
 
       - name: Generate Version Number
         id: version
-        uses: River-iGaming/actions/dotnet/versions@v2
+        uses: River-iGaming/actions/dotnet/versions@v2-specs
         with:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}
@@ -103,7 +103,6 @@ jobs:
           GIT_COMMIT: ${{ github.sha }}
         run: |
           docker buildx bake -f docker-compose.yml build --progress plain --push
-         
 
       - name: Create git tag for release
         run: |
