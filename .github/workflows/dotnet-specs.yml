@@ -98,8 +98,8 @@ jobs:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
-         docker-compose -f docker-compose.yml build
-         docker-compose -f docker-compose.yml push
+          docker buildx bake -f docker-compose.yml build --progress plain --push
+
       - name: Create git tag for release
         run: |
           git tag $APP_VERSION
