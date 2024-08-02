@@ -326,7 +326,7 @@ jobs:
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml server --progress plain --push
+          docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml web --progress plain --push
 
       - name: Logout of Amazon ECR
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
