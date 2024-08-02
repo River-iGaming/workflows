@@ -27,6 +27,11 @@ on:
         required: false
         type: string
         default: eu-west-1
+      secondary-aws-region:
+        description: Which AWS region to use for publish storybook (defaults to eu-west-1)
+        required: false
+        type: string
+        default: eu-west-1
       dotnet-version:
         description: dotnet version to use (defaults to 7.0.x)
         required: false
@@ -44,6 +49,12 @@ on:
         required: false
         type: string
         default: ''
+      
+      secondaryEcrLogin:
+        description: Logic for secondary ECR login.
+        required: false
+        type: boolean
+        default: false
 
     secrets:
       nexus-username:
@@ -54,6 +65,10 @@ on:
         required: true
       aws-secret-access-key:
         required: true
+      secondary-aws-access-key-id:
+        required: false
+      secondary-aws-secret-access-key:
+        required: false
       github-token:
         required: true
 
@@ -66,8 +81,9 @@ jobs:
     name: Build and publish
     runs-on: ubuntu-latest
     env:
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
-      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
     outputs:
@@ -272,8 +288,8 @@ jobs:
         run: |
           SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
 
-          dotnet restore $SOLUTION /p:Configuration=Release
-          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH
+          dotnet restore $SOLUTION /p:Configuration=Release --verbosity diag
+          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -288,6 +304,19 @@ jobs:
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Configure Secondary AWS credentials
+        if: ${{ inputs.secondaryEcrLogin }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.secondary-aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.secondary-aws-secret-access-key }}
+          aws-region: ${{ inputs.secondary-aws-region }}
+
+      - name: Login to Secondary Amazon ECR
+        id: secondary-login-ecr
+        if: ${{ inputs.secondaryEcrLogin }}
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Deploy
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         env:
@@ -298,6 +327,10 @@ jobs:
 
       - name: Logout of Amazon ECR
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
+
+      - name: Logout of Secondary Amazon ECR
+        if: ${{ inputs.secondaryEcrLogin }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create Git tag for release

@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: ${{ vars.NUGET_REGISTRY_URL }}
+      project-path:
+        description: project path directory(defaults to './')
+        required: false
+        type: string
+        default: './'
     secrets:
       nexus-username:
         required: true
@@ -67,9 +72,9 @@ jobs:
       # Start 'Prepare Build Metadata and Environment'
       - name: Setup environmental variables
         run: |
-          echo "SOLUTION=$(node -p "require('./package.json').vsBuildSolution")" >> $GITHUB_ENV
-          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+          echo "SOLUTION=$(node -p "require('${{ inputs.project-path }}package.json').vsBuildSolution")" >> $GITHUB_ENV
+          echo "APP_NAME=$(node -p "require('${{ inputs.project-path }}package.json').name")" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> $GITHUB_ENV
 
       - name: Generate Version Number
         id: version
@@ -107,7 +112,7 @@ jobs:
         run: |
           dotnet nuget list source
           dotnet restore $SOLUTION /p:Configuration=Release
-          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
+          dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

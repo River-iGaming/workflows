@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Prepare linter
         run: |          
-          npm install -g eslint eslint-plugin-jsonc          
+          npm install -g eslint@8.57.0 eslint-plugin-jsonc          
           echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
       - name: Lint JSON files
         run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
