@@ -125,14 +125,17 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Setup Docker buildx
+        id: buildx-setup
+        uses: docker/setup-buildx-action@v2
+
       - name: Build, tag, and push image to Amazon ECR
         if: ${{ inputs.publish }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
-         docker-compose -f ${{inputs.project-path}}docker-compose.yml -f ${{inputs.project-path}}docker-compose.override.yml -f ${{inputs.project-path}}docker-compose.ci.yml build
-         docker-compose -f ${{inputs.project-path}}docker-compose.yml -f ${{inputs.project-path}}docker-compose.override.yml -f ${{inputs.project-path}}docker-compose.ci.yml push
+          docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml server --progress plain --push
 
       - name: Logout of Amazon ECR
         if: always()
