@@ -288,7 +288,7 @@ jobs:
         run: |
           SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
 
-          dotnet restore $SOLUTION /p:Configuration=Release --verbosity diag
+          dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
