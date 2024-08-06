@@ -113,7 +113,6 @@ jobs:
           echo node version':' $NODE_V
           echo npm version':' $NPM_V
           docker -v
-          docker-compose -v
           DOTNET_CLI_V=$(dotnet --version)
           echo dotnet cli version':' $DOTNET_CLI_V
           git --version
