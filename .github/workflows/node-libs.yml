@@ -248,8 +248,7 @@ jobs:
             exit 0
           fi
 
-          TAG=$TAG docker-compose build
-          TAG=$TAG docker-compose push
+          TAG=$TAG docker buildx bake -f docker-compose.yml web --progress plain --push
 
       - name: Logout of Amazon ECR
         if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
