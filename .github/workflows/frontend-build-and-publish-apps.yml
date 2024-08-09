@@ -48,8 +48,8 @@ on:
         description: A prefix to add to the tag suffix. Useful for testing.
         required: false
         type: string
-        default: ''
-      
+        default: ""
+
       secondaryEcrLogin:
         description: Logic for secondary ECR login.
         required: false
@@ -73,7 +73,7 @@ on:
         required: true
 
 concurrency:
-  group: ${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -142,11 +142,6 @@ jobs:
         run: |
           npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
           npm config set registry=https:${{ inputs.npm-registry }}
-
-      - name: Install Odin CI tooling (deprecated)
-        run: npm i -g @odin/infra.ci@0.1.22
-        env:
-          NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
 
       - name: Determine Branch Name
         id: branch
