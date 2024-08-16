@@ -281,7 +281,7 @@ jobs:
         run: npm run lint
 
       - name: FE build
-        run: npm build:rel
+        run: npm run build:rel
 
       - name: Dotnet restore
         run: dotnet restore $SOLUTION /p:Configuration=Release
