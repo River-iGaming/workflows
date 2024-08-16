@@ -96,7 +96,7 @@ jobs:
           needs_context: ${{ toJson(needs) }}
 
       - name: Setup Node
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v4
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
@@ -118,7 +118,7 @@ jobs:
           git --version
 
       - name: Checkout
-        uses: actions/checkout@v3.0.0
+        uses: actions/checkout@v4
         if: github.event_name == 'pull_request'
         with:
           fetch-depth: 1
@@ -126,7 +126,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
-        uses: actions/checkout@v3.0.0
+        uses: actions/checkout@v4
         if: github.event_name != 'pull_request'
         with:
           fetch-depth: 0
@@ -177,7 +177,7 @@ jobs:
           else
             RUN_ID="${{ github.run_id}}-${{github.run_attempt}}"
           fi
-
+          # todo: use version generator to determine version e.g. github custom action instead of this
           TAG_SUFFIX=""
           IS_PUBLISHABLE="${{ inputs.publish }}"
           case "$BRANCH_NAME" in
@@ -240,6 +240,7 @@ jobs:
             PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${TAG_SUFFIX}
           fi
 
+          SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
           # expose metadata as workflow variables
           echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
           echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
@@ -249,6 +250,7 @@ jobs:
           echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
           echo "APP_VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
+          echo "SOLUTION=${SOLUTION}" >> $GITHUB_ENV
 
           echo "::notice ::App name: $APP_NAME"
           echo "::notice ::Version: $PACKAGE_VERSION"
@@ -270,20 +272,22 @@ jobs:
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
-      - name: Prep, Lint and Build NodeJS part
+      - name: FE restore packages
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
-        run: |
-          npm ci
-          npm run lint
-          npm run build:rel
+        run: npm ci
 
-      - name: Dotnet restore/publish
-        run: |
-          SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
+      - name: FE lint
+        run: npm run lint
 
-          dotnet restore $SOLUTION /p:Configuration=Release
-          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
+      - name: FE build
+        run: npm build:rel
+
+      - name: Dotnet restore
+        run: dotnet restore $SOLUTION /p:Configuration=Release
+
+      - name: Dotnet restore
+        run: dotnet restore $SOLUTION /p:Configuration=Release
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
