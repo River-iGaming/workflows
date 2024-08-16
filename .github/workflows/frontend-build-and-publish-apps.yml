@@ -120,7 +120,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-          # cache: true # todo: enable but we need a lock file
+          # cache: true # todo: enable but we need a lock file - breaking change
 
       - name: Print environment versions
         run: |
