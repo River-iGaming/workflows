@@ -271,12 +271,6 @@ jobs:
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
-      - name: Dotnet restore
-        run: dotnet restore $SOLUTION /p:Configuration=Release
-
-      - name: Dotnet publish
-        run: dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
-
       - name: FE install
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
@@ -288,11 +282,11 @@ jobs:
       - name: FE build
         run: npm run build:rel
 
-      # - name: Dotnet restore
-      #   run: dotnet restore $SOLUTION /p:Configuration=Release
+      - name: Dotnet restore
+        run: dotnet restore $SOLUTION /p:Configuration=Release
 
-      # - name: Dotnet publish
-      #   run: dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
+      - name: Dotnet publish
+        run: dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
