@@ -343,7 +343,6 @@ jobs:
     name: merge
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
 
     steps:
       - name: Get branch name
