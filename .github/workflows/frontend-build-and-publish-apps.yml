@@ -260,12 +260,10 @@ jobs:
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
-        uses: mukunku/tag-exists-action@v1.2.0
+        uses: mukunku/tag-exists-action@v1.6.0
         id: tag
         with:
           tag: ${{ steps.metadata.outputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
 
       - name: Inform if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
