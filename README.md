@@ -6,7 +6,7 @@
 | ---------- | -------------------------------------------- |
 | dotnet-v2  | .NET libs/microservice/specs                 |
 | node-v1    | node e.g. libs for node/lerna/cli/ngx etc... |
-| fe-v2      | frontend app                                 |
+| fe-v3      | frontend app                                 |
 | vor-latest | vor config checks                            |
 
 
