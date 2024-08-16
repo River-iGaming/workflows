@@ -7,7 +7,7 @@ on:
         description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '7.0.x'
+        default: "7.0.x"
       nuget-registry-url:
         description: The url address for nuget registry
         required: false
@@ -27,7 +27,7 @@ on:
         description: package.json path location (defaults to './package.json')
         required: false
         type: string
-        default: './package.json'
+        default: "./package.json"
     secrets:
       nexus-username:
         required: true
@@ -42,7 +42,6 @@ jobs:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:
-
       - name: Debug Action Contexts
         uses: henrygriffiths/debug_action@v1
         with:
@@ -56,14 +55,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-
-      - uses: actions/cache@v4
-        name: Setup Cache
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          cache: true
 
       - name: Setup environmental variables
         run: |
