@@ -95,11 +95,27 @@ jobs:
           secrets_context: ${{ toJson(secrets) }}
           needs_context: ${{ toJson(needs) }}
 
+      - name: Checkout
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.github-token }}
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        if: github.event_name != 'pull_request'
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.github-token }}
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
+          cache: "npm"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -116,21 +132,6 @@ jobs:
           DOTNET_CLI_V=$(dotnet --version)
           echo dotnet cli version':' $DOTNET_CLI_V
           git --version
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        if: github.event_name == 'pull_request'
-        with:
-          fetch-depth: 1
-          token: ${{ secrets.github-token }}
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        if: github.event_name != 'pull_request'
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.github-token }}
 
       - name: NPM TOKEN
         id: npm_token
