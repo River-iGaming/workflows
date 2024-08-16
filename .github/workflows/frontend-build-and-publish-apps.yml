@@ -273,7 +273,7 @@ jobs:
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
-      - name: FE restore packages
+      - name: FE restore
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
         run: npm ci
