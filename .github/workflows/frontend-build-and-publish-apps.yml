@@ -276,7 +276,7 @@ jobs:
       - name: FE restore
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
-        run: npm ci
+        run: npm ci --verbose
 
       - name: FE lint
         run: npm run lint
