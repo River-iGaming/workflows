@@ -286,8 +286,8 @@ jobs:
       - name: Dotnet restore
         run: dotnet restore $SOLUTION /p:Configuration=Release
 
-      - name: Dotnet restore
-        run: dotnet restore $SOLUTION /p:Configuration=Release
+      - name: Dotnet publish
+        run: dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
