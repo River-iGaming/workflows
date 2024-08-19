@@ -15,5 +15,5 @@
 git tag -f v1 {new commit hash} (or use ui for this)
 git push origin v1 -f
 # shorthand
-TAG=dotnet-v3 && git tag -f $TAG && git push origin $TAG -f
+TAG=<TAG> && git tag -f $TAG && git push origin $TAG -f
 ```
