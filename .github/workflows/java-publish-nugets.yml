@@ -16,10 +16,16 @@ on:
         type: string
         required: false
         default: ./realtime/src/main/avro
-      nuget-server-url:
-        description: Url for Nuget server
-        required: true
+      nuget-registry-url:
+        description: The url address for nuget registry
+        required: false
         type: string
+        default: ${{ vars.NUGET_REGISTRY_URL }}
+      nuget-publish-url:
+        description: The url address where to publish nugets
+        required: false
+        type: string
+        default: ${{ vars.NUGET_PLATFORM_URL }}
     secrets:
       nuget-server-token:
         description: Access token for Nuget server
@@ -43,12 +49,14 @@ jobs:
           VERSION=$(echo "${PROJECT_VERSION/SNAPSHOT/dev-$BUILD_NUMBER}")
           echo "NUGET_VERSION=$VERSION" >> $GITHUB_ENV
           echo Setting version to: $VERSION
-      - uses: actions/setup-dotnet@v1.7.2
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v4.0.0      
         with:
-          source-url: ${{ inputs.nuget-server-url }}
-          dotnet-version: '2.1.x'
+          source-url: ${{ inputs.nuget-registry-url }}
+          dotnet-quality: ga
+          dotnet-version: 8.x
       - name: Checkout
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v4.1.1
         
       - name: Setup Avro Generator
         run: dotnet tool install sucrose.avro.codegen -g
@@ -62,8 +70,9 @@ jobs:
           rm out/$PACKAGE/Class1.cs
           # Generate .NET classes from Avro Schema
           avromagic --schema-path ${{ inputs.avro-path }} --output-dir ./out/$PACKAGE
-          dotnet add ./out/$PACKAGE package Confluent.Apache.Avro --version 1.7.7.7
+          dotnet add ./out/$PACKAGE package Odin.Messaging.SerDes
           dotnet pack -c Release -p:PackageVersion=$NUGET_VERSION ./out/$PACKAGE -o ./nupkg/
       - name: Push Nuget package to Nexus
         run: |
-          dotnet nuget push ./out/$PACKAGE/nupkg/*.nupkg -k $NUGET_AUTH_TOKEN
+          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_AUTH_TOKEN --source ${{ inputs.nuget-publish-url }}
+          echo "::notice::Pushed $PACKAGE $NUGET_VERSION to '${{ inputs.nuget-publish-url }}'"

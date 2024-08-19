@@ -2,10 +2,12 @@
 
 ## Tags
 
-| Tag       | Description                                  |
-| --------- | -------------------------------------------- |
-| dotnet-v1 | .NET libs/microservice/specs                 |
-| node-v1   | node e.g. libs for node/lerna/cli/ngx etc... |
+| Tag        | Description                                  |
+| ---------- | -------------------------------------------- |
+| dotnet-v3  | .NET libs/microservice/specs                 |
+| node-v1    | node e.g. libs for node/lerna/cli/ngx etc... |
+| fe-v3      | frontend app                                 |
+| vor-latest | vor config checks                            |
 
 
 ```bash
@@ -13,5 +15,5 @@
 git tag -f v1 {new commit hash} (or use ui for this)
 git push origin v1 -f
 # shorthand
-TAG=<TAG> && git tag -f $TAG && git push origin $TAG -f
+TAG=dotnet-v3 && git tag -f $TAG && git push origin $TAG -f
 ```

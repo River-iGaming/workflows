@@ -4,10 +4,10 @@ on:
   workflow_call:
     inputs:
       dotnet-version:
-        description: dotnet version to use (defaults to 5.0.x)
+        description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '5.0.x'
+        default: '7.0.x'
       publish:
         description: whether the docker image should be pushed
         required: false
@@ -17,7 +17,12 @@ on:
         description: The url address for nuget registry
         required: false
         type: string
-        default: https://nexus.rivertech.dev/repository/nuget/index.json
+        default: ${{ vars.NUGET_REGISTRY_URL }}
+      project-path:
+        description: project path directory(defaults to './')
+        required: false
+        type: string
+        default: './'
     secrets:
       nexus-username:
         required: true
@@ -44,10 +49,10 @@ jobs:
           needs_context: ${{ toJson(needs) }}
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
 
@@ -57,9 +62,9 @@ jobs:
 
           dotnet nuget remove source river-nexus
 
-          echo "Add source for nexus"
+          echo "Add source for river-nexus"
           dotnet nuget add source ${{ inputs.nuget-registry-url }} \
-            -n nexus \
+            -n river-nexus \
             -u ${{ secrets.nexus-username }} \
             -p ${{ secrets.nexus-password }} \
             --store-password-in-clear-text
@@ -67,9 +72,9 @@ jobs:
       # Start 'Prepare Build Metadata and Environment'
       - name: Setup environmental variables
         run: |
-          echo "SOLUTION=$(node -p "require('./package.json').vsBuildSolution")" >> $GITHUB_ENV
-          echo "APP_NAME=$(node -p "require('./package.json').name")" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+          echo "SOLUTION=$(node -p "require('${{ inputs.project-path }}package.json').vsBuildSolution")" >> $GITHUB_ENV
+          echo "APP_NAME=$(node -p "require('${{ inputs.project-path }}package.json').name")" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> $GITHUB_ENV
 
       - name: Generate Version Number
         id: version
@@ -95,7 +100,7 @@ jobs:
 
       # End 'Prepare Build Metadata and Environment'
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         if: ${{ github.run_attempt == '1' }}
         with:
           path: ~/.nuget/packages
@@ -107,10 +112,10 @@ jobs:
         run: |
           dotnet nuget list source
           dotnet restore $SOLUTION /p:Configuration=Release
-          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
+          dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
@@ -118,7 +123,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Setup Docker buildx
+        id: buildx-setup
+        uses: docker/setup-buildx-action@v2
 
       - name: Build, tag, and push image to Amazon ECR
         if: ${{ inputs.publish }}
@@ -126,8 +135,7 @@ jobs:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
-         docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
-         docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
+          docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml server --progress plain --push
 
       - name: Logout of Amazon ECR
         if: always()
