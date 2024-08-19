@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         default: "./package.json"
+      dotnet-cache:
+        description: Whether to use dotnet cache
+        type: boolean
+        default: true
+        required: false
     secrets:
       nexus-username:
         required: true
@@ -56,7 +61,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-          cache: true
+          cache: ${{ inputs.dotnet-cache }}
           cache-dependency-path: "**/packages.lock.json"
 
       - name: Setup environmental variables
@@ -99,7 +104,7 @@ jobs:
       - name: Build
         env:
           APP_VERSION: ${{ steps.version.outputs.app-version }}
-        run: dotnet build -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release
+        run: dotnet build -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release --no-restore
 
       - name: Test
         run: npm test
