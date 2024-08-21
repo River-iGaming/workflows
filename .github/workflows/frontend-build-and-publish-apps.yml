@@ -94,7 +94,7 @@ jobs:
       ODIN_CI_DEBUG_MODE: "true"
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
     outputs:
-      app_version: ${{ steps.metadata.outputs.version }}
+      app-version: ${{ steps.version-builder.outputs.version }}
     steps:
       - name: Debug Action Contexts
         uses: henrygriffiths/debug_action@v1
@@ -173,7 +173,7 @@ jobs:
           echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> $GITHUB_ENV
 
       - name: Generate Version Number
-        id: version
+        id: version-builder
         uses: River-iGaming/actions/dotnet/versions@feature/fe-support
         with:
           type: fe-app
@@ -266,9 +266,8 @@ jobs:
 
           # expose metadata as environment variables
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
-          echo "APP_VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
 
-          echo "::notice ::VER ACTION BUILDER Version: ${{ steps.version.outputs.app-version }}"
+          echo "::notice ::VER ACTION BUILDER Version: ${{ steps.version-builder.outputs.version }}"
           echo "::notice ::Version: $PACKAGE_VERSION"
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
           echo "::notice ::Tag: $PACKAGE_VERSION"
@@ -280,7 +279,7 @@ jobs:
         uses: mukunku/tag-exists-action@v1.6.0
         id: tag
         with:
-          tag: ${{ steps.metadata.outputs.version }}
+          tag: ${{ steps.version-builder.outputs.version }}
 
       - name: Inform if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
@@ -339,6 +338,7 @@ jobs:
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          APP_VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
           docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml web --progress plain --push
 
@@ -353,8 +353,9 @@ jobs:
       - name: Create Git tag for release
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
+          TAG=${{ steps.version-builder.outputs.version }}
+          git tag $TAG
+          git push origin $TAG
 
   merge:
     name: merge
