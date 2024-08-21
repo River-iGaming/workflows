@@ -182,97 +182,15 @@ jobs:
 
       - name: Prepare Build Metadata and Environment
         id: metadata
-        env:
-          BRANCH_NAME: ${{ steps.branch.outputs.name}}
         run: |
-          # todo: remove
-          # enable bash pattern matching
-          shopt -s extglob;
-
-          # determine version + tag
-          BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-
-          # ensure we have a unique suffix
-          if [ ${{github.run_attempt}} -eq 1 ]
-          then
-            RUN_ID="${{ github.run_id}}-0"
-          else
-            RUN_ID="${{ github.run_id}}-${{github.run_attempt}}"
-          fi
-          # todo: use version generator to determine version e.g. github custom action instead of this
-          TAG_SUFFIX=""
-          IS_PUBLISHABLE="${{ inputs.publish }}"
-          case "$BRANCH_NAME" in
-            "main"|"master")
-            ;;
-            "develop")
-            TAG_SUFFIX="dev-${RUN_ID}"
-            ;;
-
-            "vnext")
-            TAG_SUFFIX="vnext-$RUN_ID"
-            ;;
-
-            # feature
-            feature\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-
-            # named demo branch
-            @(demo)\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-
-            # named demo branch
-            dependabot\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-
-            # demo only branch
-            "demo")
-            TAG_SUFFIX="demo-${RUN_ID}"
-            ;;
-
-            # hotfix
-            hotfix\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="hotfix-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-
-            # Release
-            release\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="release-${RUN_ID}"
-            ;;
-
-            *)
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="${{ inputs.tagSuffixPreamble }}-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-          esac
-          shopt -u extglob;
-
-
-          # build version number in full with value extracted from package.json + tag suffix if available
-          PACKAGE_VERSION=${BASE_PACKAGE_VERSION}
-          if [ ! -z "${TAG_SUFFIX}" ]; then
-            PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${TAG_SUFFIX}
-          fi
-
           # expose metadata as workflow variables
-          echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
 
           # expose metadata as environment variables
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
-          echo "::notice ::VER ACTION BUILDER Version: ${{ steps.version-builder.outputs.version }}"
-          echo "::notice ::Version: $PACKAGE_VERSION"
+          echo "::notice ::Version: ${{ steps.version-builder.outputs.version }}"
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
-          echo "::notice ::Tag: $PACKAGE_VERSION"
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -340,6 +258,7 @@ jobs:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           APP_NAME: ${{ steps.package-json.outputs.name }}
           APP_VERSION: ${{ steps.version-builder.outputs.version }}
+          GIT_COMMIT: ${{ env.GIT_COMMIT }}
         run: |
           docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml web --progress plain --push
 
