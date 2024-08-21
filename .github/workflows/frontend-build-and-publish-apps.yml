@@ -23,12 +23,12 @@ on:
         type: string
         default: "@odin"
       aws-region:
-        description: Which AWS region to use for publish storybook (defaults to eu-west-1)
+        description: Which AWS region to use for publish (defaults to eu-west-1)
         required: false
         type: string
         default: eu-west-1
       secondary-aws-region:
-        description: Which AWS region to use for publish storybook (defaults to eu-west-1)
+        description: Which AWS region to use for publish (defaults to eu-west-1)
         required: false
         type: string
         default: eu-west-1
