@@ -174,9 +174,9 @@ jobs:
 
       - name: Generate Version Number
         id: version
-        uses: River-iGaming/actions/dotnet/versions@feature/reformat
+        uses: River-iGaming/actions/dotnet/versions@fe-support
         with:
-          type: deploy
+          type: fe-app
           package-version: ${{ env.PACKAGE_VERSION }}
 
       - name: Prepare Build Metadata and Environment
