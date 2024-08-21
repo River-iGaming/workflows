@@ -268,7 +268,7 @@ jobs:
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
           echo "APP_VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
 
-          echo "::notice ::VER ACTION BUILDER Version: ${{ steps.version.outputs.app-version}}}}"
+          echo "::notice ::VER ACTION BUILDER Version: ${{ steps.version.outputs.app-version }}"
           echo "::notice ::Version: $PACKAGE_VERSION"
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
           echo "::notice ::Tag: $PACKAGE_VERSION"
