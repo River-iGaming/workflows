@@ -38,6 +38,12 @@ on:
         type: string
         default: "7.0.x"
 
+      project-path:
+        description: project path directory(defaults to './')
+        required: false
+        type: string
+        default: "./"
+
       publish:
         description: Set to true to publish artifacts to docker repository
         required: false
@@ -160,6 +166,19 @@ jobs:
           echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
           echo "::notice ::Branch name: $BRANCH_NAME"
 
+      - name: Setup environmental variables
+        run: |
+          echo "SOLUTION=$(node -p "require('${{ inputs.project-path }}package.json').vsBuildSolution")" >> $GITHUB_ENV
+          echo "APP_NAME=$(node -p "require('${{ inputs.project-path }}package.json').name")" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> $GITHUB_ENV
+
+      - name: Generate Version Number
+        id: version
+        uses: River-iGaming/actions/dotnet/versions@feature/omit-node-modules
+        with:
+          type: deploy
+          package-version: ${{ env.PACKAGE_VERSION }}
+
       - name: Prepare Build Metadata and Environment
         id: metadata
         env:
@@ -170,7 +189,6 @@ jobs:
 
           # determine version + tag
           BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          APP_NAME=$(node -p "require('./package.json').name")
 
           # ensure we have a unique suffix
           if [ ${{github.run_attempt}} -eq 1 ]
@@ -242,22 +260,19 @@ jobs:
             PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${TAG_SUFFIX}
           fi
 
-          SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
           # expose metadata as workflow variables
           echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
 
           # expose metadata as environment variables
-          echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
           echo "APP_VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
-          echo "SOLUTION=${SOLUTION}" >> $GITHUB_ENV
 
-          echo "::notice ::App name: $APP_NAME"
           echo "::notice ::Version: $PACKAGE_VERSION"
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
           echo "::notice ::Tag: $PACKAGE_VERSION"
+          # temp
+          exit 1
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
