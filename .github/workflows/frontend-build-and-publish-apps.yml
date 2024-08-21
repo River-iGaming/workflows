@@ -191,7 +191,6 @@ jobs:
           # expose metadata as environment variables
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
-          echo "::notice ::Version: ${{ steps.version-builder.outputs.version }}"
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
 
       - name: Check if tag exists
