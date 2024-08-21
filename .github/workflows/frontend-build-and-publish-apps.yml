@@ -176,7 +176,7 @@ jobs:
         id: version
         uses: River-iGaming/actions/dotnet/versions@feature/fe-support
         with:
-          type: fe-app
+          type: "fe-app"
           package-version: ${{ env.PACKAGE_VERSION }}
 
       - name: Prepare Build Metadata and Environment
