@@ -174,7 +174,7 @@ jobs:
 
       - name: Generate Version Number
         id: version
-        uses: River-iGaming/actions/dotnet/versions@fe-support
+        uses: River-iGaming/actions/dotnet/versions@feature/fe-support
         with:
           type: fe-app
           package-version: ${{ env.PACKAGE_VERSION }}
