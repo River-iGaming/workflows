@@ -174,7 +174,7 @@ jobs:
 
       - name: Generate Version Number
         id: version
-        uses: River-iGaming/actions/dotnet/versions@feature/omit-node-modules
+        uses: River-iGaming/actions/dotnet/versions@feature/reformat
         with:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}
