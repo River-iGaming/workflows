@@ -7,7 +7,7 @@ on:
         description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '7.0.x'
+        default: "7.0.x"
       publish:
         description: whether the docker image should be pushed
         required: false
@@ -22,7 +22,7 @@ on:
         description: project path directory(defaults to './')
         required: false
         type: string
-        default: './'
+        default: "./"
     secrets:
       nexus-username:
         required: true
@@ -78,7 +78,8 @@ jobs:
 
       - name: Generate Version Number
         id: version
-        uses: River-iGaming/actions/dotnet/versions@v2
+        # uses: River-iGaming/actions/dotnet/versions@v2
+        uses: River-iGaming/actions/dotnet/versions@feature/fe-support
         with:
           type: deploy
           package-version: ${{ env.PACKAGE_VERSION }}
