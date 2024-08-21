@@ -151,21 +151,6 @@ jobs:
           npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
           npm config set registry=https:${{ inputs.npm-registry }}
 
-      - name: Determine Branch Name
-        id: branch
-        run: |
-          # determine branch name (diff source since this workflow can run either on push or pull_request events)
-          case "${{ github.event_name }}" in
-            "pull_request")
-            BRANCH_NAME="${{ github.head_ref }}"
-            ;;
-            *)
-            BRANCH_NAME="${GITHUB_REF_NAME}"
-            ;;
-          esac
-          echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
-          echo "::notice ::Branch name: $BRANCH_NAME"
-
       - name: Package Json Metadata
         id: package-json
         run: |
