@@ -183,6 +183,8 @@ jobs:
       - name: Prepare Build Metadata and Environment
         id: metadata
         run: |
+          IS_PUBLISHABLE="${{ inputs.publish }}"
+
           # expose metadata as workflow variables
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
 
