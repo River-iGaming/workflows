@@ -142,8 +142,9 @@ jobs:
 
       - name: Create git tag for release
         if: ${{ steps.git-tag-check.conclusion != 'skipped' }}
+        env:
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
-          VERSION=${{ steps.version-builder.outputs.version }}
           git tag $VERSION
           git push origin $VERSION
           echo "::notice::Pushed image for $APP_NAME: $VERSION"

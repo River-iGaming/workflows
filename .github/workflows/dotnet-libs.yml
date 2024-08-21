@@ -72,7 +72,7 @@ jobs:
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Generate Version Number
-        id: version
+        id: version-builder
         if: inputs.publishable
         uses: River-iGaming/actions/dotnet/versions@v2
         with:
@@ -103,8 +103,8 @@ jobs:
 
       - name: Build
         env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
-        run: dotnet build -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release --no-restore
+          VERSION: ${{ steps.version-builder.outputs.version }}
+        run: dotnet build -p:PackageVersion=$VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release --no-restore
 
       - name: Test
         run: npm test
@@ -112,16 +112,16 @@ jobs:
       - name: Publish Nuget
         if: inputs.publishable
         env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
           mkdir ./nuget
-          dotnet pack $SOLUTION --no-build -p:PackageVersion=$APP_VERSION -o ./nuget -c Release
+          dotnet pack $SOLUTION --no-build -p:PackageVersion=$VERSION -o ./nuget -c Release
           find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
 
       - name: Git Tag
         if: inputs.publishable
         env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
+          git tag $VERSION
+          git push origin $VERSION

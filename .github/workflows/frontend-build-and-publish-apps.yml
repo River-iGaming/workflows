@@ -256,10 +256,11 @@ jobs:
         if: ${{ inputs.secondaryEcrLogin }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
-      - name: Create Git tag for release
+      - name: Create git tag for release
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        env:
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
-          VERSION=${{ steps.version-builder.outputs.version }}
           git tag $VERSION
           git push origin $VERSION
 
