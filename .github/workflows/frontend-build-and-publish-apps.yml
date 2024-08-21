@@ -166,24 +166,26 @@ jobs:
           echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
           echo "::notice ::Branch name: $BRANCH_NAME"
 
-      - name: Setup environmental variables
+      - name: Package Json Metadata
+        id: package-json
         run: |
-          echo "SOLUTION=$(node -p "require('${{ inputs.project-path }}package.json').vsBuildSolution")" >> $GITHUB_ENV
-          echo "APP_NAME=$(node -p "require('${{ inputs.project-path }}package.json').name")" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> $GITHUB_ENV
+          echo "build-solution=$(node -p "require('${{ inputs.project-path }}package.json').vsBuildSolution")" >> "$GITHUB_OUTPUT"
+          echo "name=$(node -p "require('${{ inputs.project-path }}package.json').name")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Generate Version Number
         id: version-builder
         uses: River-iGaming/actions/dotnet/versions@feature/fe-support
         with:
           type: fe-app
-          package-version: ${{ env.PACKAGE_VERSION }}
+          package-version: ${{ steps.package-json.outputs.version }}
 
       - name: Prepare Build Metadata and Environment
         id: metadata
         env:
           BRANCH_NAME: ${{ steps.branch.outputs.name}}
         run: |
+          # todo: remove
           # enable bash pattern matching
           shopt -s extglob;
 
@@ -271,8 +273,6 @@ jobs:
           echo "::notice ::Version: $PACKAGE_VERSION"
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
           echo "::notice ::Tag: $PACKAGE_VERSION"
-          # temp
-          exit 1
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -299,10 +299,10 @@ jobs:
         run: npm run build:rel
 
       - name: Dotnet restore
-        run: dotnet restore $SOLUTION /p:Configuration=Release
+        run: dotnet restore ${{ steps.package-json.outputs.build-solution }} /p:Configuration=Release
 
       - name: Dotnet publish
-        run: dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
+        run: dotnet publish ${{ steps.package-json.outputs.build-solution }} -c Release -o ./$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -338,6 +338,7 @@ jobs:
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          APP_NAME: ${{ steps.package-json.outputs.name }}
           APP_VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
           docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml web --progress plain --push
