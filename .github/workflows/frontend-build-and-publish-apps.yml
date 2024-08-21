@@ -274,9 +274,9 @@ jobs:
       - name: Create Git tag for release
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         run: |
-          TAG=${{ steps.version-builder.outputs.version }}
-          git tag $TAG
-          git push origin $TAG
+          VERSION=${{ steps.version-builder.outputs.version }}
+          git tag $VERSION
+          git push origin $VERSION
 
   merge:
     name: merge

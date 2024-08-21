@@ -70,6 +70,7 @@ jobs:
             --store-password-in-clear-text
 
       # Start 'Prepare Build Metadata and Environment'
+      # todo: add Package Json Metadata - same as frontend-build
       - name: Setup environmental variables
         run: |
           echo "SOLUTION=$(node -p "require('${{ inputs.project-path }}package.json').vsBuildSolution")" >> $GITHUB_ENV
@@ -77,22 +78,17 @@ jobs:
           echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> $GITHUB_ENV
 
       - name: Generate Version Number
-        id: version
-        # uses: River-iGaming/actions/dotnet/versions@v2
-        uses: River-iGaming/actions/dotnet/versions@feature/pr-support-plus-fixes
+        id: version-builder
+        uses: River-iGaming/actions/dotnet/versions@v2
         with:
-          type: deploy
+          type: dotnet-app
           package-version: ${{ env.PACKAGE_VERSION }}
-
-      - name: Set version envs
-        run: |
-          echo "APP_VERSION=${{ steps.version.outputs.app-version }}" >> $GITHUB_ENV
 
       - name: Check if Git Tag exists
         if: ${{ github.run_attempt == '1' }}
         id: git-tag-check
         env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          APP_VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
           if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
               echo "::error::tag $APP_VERSION already exists."
@@ -134,6 +130,8 @@ jobs:
         if: ${{ inputs.publish }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          APP_NAME: ${{ env.APP_NAME }} # todo: same as fe-build
+          APP_VERSION: ${{ steps.version-builder.outputs.version }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
           docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml server --progress plain --push
@@ -145,6 +143,7 @@ jobs:
       - name: Create git tag for release
         if: ${{ steps.git-tag-check.conclusion != 'skipped' }}
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
-          echo "::notice::Pushed image for $APP_NAME: $APP_VERSION"
+          VERSION=${{ steps.version-builder.outputs.version }}
+          git tag $VERSION
+          git push origin $VERSION
+          echo "::notice::Pushed image for $APP_NAME: $VERSION"
