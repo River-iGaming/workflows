@@ -160,7 +160,7 @@ jobs:
 
       - name: Generate Version Number
         id: version-builder
-        uses: River-iGaming/actions/dotnet/versions@feature/fe-support
+        uses: River-iGaming/actions/dotnet/versions@v2
         with:
           type: fe-app
           package-version: ${{ steps.package-json.outputs.version }}

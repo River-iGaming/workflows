@@ -49,7 +49,7 @@ jobs:
         id: version-builder
         uses: River-iGaming/actions/dotnet/versions@v2
         with:
-          type: deploy
+          type: dotnet-app
           package-version: ${{ env.PACKAGE_VERSION }}
 
       - name: Check if Git Tag exists
