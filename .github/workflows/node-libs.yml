@@ -6,22 +6,22 @@ on:
         description: "Node version to use (defaults: 18)"
         required: false
         type: string
-        default: '18'
+        default: "18"
       npm-registry:
         description: "The url for npm registry"
         required: false
         type: string
         default: //nexus.rivertech.dev/repository/npm/
       npm-registry-publish:
-          description: "The address for npm registry publish"
-          required: false
-          type: string
-          default: //nexus.rivertech.dev/repository/odin-npm/
+        description: "The address for npm registry publish"
+        required: false
+        type: string
+        default: //nexus.rivertech.dev/repository/odin-npm/
       npm-registry-scope:
         description: "The name of the npm scope (defaults: @odin)"
         required: false
         type: string
-        default: '@odin'
+        default: "@odin"
       junit-report-path:
         description: "The path to unit test report (defaults: ./junit/)"
         required: false
@@ -80,9 +80,8 @@ jobs:
     name: build & publish
     runs-on: ubuntu-latest
     steps:
-
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2 # needed for commit-message in PRs
 
@@ -106,11 +105,11 @@ jobs:
           echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Setup Environment
         run: |
@@ -217,7 +216,7 @@ jobs:
       - name: Check if tag exists
         id: tag
         if: ${{ steps.commit.outputs.publishable == 'true' }}
-        uses: mukunku/tag-exists-action@v1.2.0
+        uses: mukunku/tag-exists-action@v1.6.0
         with:
           tag: ${{ env.PACKAGE_VERSION }}
 
@@ -229,7 +228,7 @@ jobs:
 
       - name: Configure AWS credentials
         if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.aws-access-key-id }}
           aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
@@ -238,7 +237,11 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Setup Docker buildx
+        id: buildx-setup
+        uses: docker/setup-buildx-action@v3
 
       - name: Publish storybook
         if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
@@ -263,8 +266,7 @@ jobs:
             exit 0
           fi
 
-          TAG=$TAG docker-compose build
-          TAG=$TAG docker-compose push
+          TAG=$TAG docker buildx bake -f docker-compose.yml web --progress plain --push
 
       - name: Logout of Amazon ECR
         if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}

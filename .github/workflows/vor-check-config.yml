@@ -4,15 +4,15 @@ on:
   workflow_call:
 
 jobs:
-  checks:    
+  checks:
     name: JSON Lint and Check Tag
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Prepare linter
-        run: |          
-          npm install -g eslint eslint-plugin-jsonc          
+        run: |
+          npm install -g eslint@8.57.0 eslint-plugin-jsonc
           echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
       - name: Lint JSON files
         run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
@@ -26,13 +26,13 @@ jobs:
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "::set-output name=package-version::$PACKAGE_VERSION"
+
       - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.0.0
+        uses: mukunku/tag-exists-action@v1.6.0
         id: tag
         with:
           tag: ${{ steps.get-version.outputs.package-version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: mshick/add-pr-comment@v1
         name: Add PR comment
         if: ${{ steps.tag.outputs.exists == 'true' }}

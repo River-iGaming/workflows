@@ -7,7 +7,7 @@ on:
         description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '7.0.x'
+        default: "7.0.x"
       dotnet-publish-version:
         description: dotnet version to use for publish (defaults to net7.0)
         required: false
@@ -31,7 +31,7 @@ jobs:
   build:
     name: Build and Publish
     runs-on: ubuntu-latest
-    env: 
+    env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -46,15 +46,15 @@ jobs:
           echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
 
       - name: Generate Version Number
-        id: version
+        id: version-builder
         uses: River-iGaming/actions/dotnet/versions@v2
         with:
-          type: deploy
+          type: dotnet-app
           package-version: ${{ env.PACKAGE_VERSION }}
 
       - name: Check if Git Tag exists
         env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          APP_VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
           if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
               echo "::error::tag $APP_VERSION already exists."
@@ -92,19 +92,25 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Setup Docker buildx
+        id: buildx-setup
+        uses: docker/setup-buildx-action@v2
+
       - name: Build, tag, and push image to Amazon ECR
         if: ${{ inputs.publish }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
-         docker-compose -f docker-compose.yml build
-         docker-compose -f docker-compose.yml push
+          docker buildx bake -f docker-compose.yml build --progress plain --push
+
       - name: Create git tag for release
+        env:
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
-          echo "::notice::Pushed image for $APP_NAME: $APP_VERSION"
+          git tag $VERSION
+          git push origin $VERSION
+          echo "::notice::Pushed image for $APP_NAME: $VERSION"
       - name: Logout of Amazon ECR
         if: always()
         run: docker logout ${{ steps.login-ecr.outputs.registry }}

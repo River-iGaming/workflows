@@ -7,7 +7,7 @@ on:
         description: dotnet version to use (defaults to 7.0.x)
         required: false
         type: string
-        default: '7.0.x'
+        default: "7.0.x"
       nuget-registry-url:
         description: The url address for nuget registry
         required: false
@@ -23,6 +23,16 @@ on:
         type: boolean
         default: false
         required: false
+      package-location:
+        description: package.json path location (defaults to './package.json')
+        required: false
+        type: string
+        default: "./package.json"
+      dotnet-cache:
+        description: Whether to use dotnet cache
+        type: boolean
+        default: true
+        required: false
     secrets:
       nexus-username:
         required: true
@@ -36,8 +46,8 @@ jobs:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
     steps:
-
       - name: Debug Action Contexts
         uses: henrygriffiths/debug_action@v1
         with:
@@ -51,24 +61,19 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-
-      - uses: actions/cache@v4
-        name: Setup Cache
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/package.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          cache: ${{ inputs.dotnet-cache }}
+          cache-dependency-path: "**/packages.lock.json"
 
       - name: Setup environmental variables
         run: |
-          SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          SOLUTION=$(node -p "require('${{ inputs.package-location }}').vsBuildSolution")
+          PACKAGE_VERSION=$(node -p "require('${{ inputs.package-location }}').version")
           echo "SOLUTION=$SOLUTION" >> $GITHUB_ENV
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Generate Version Number
-        id: version
+		id: version-builder
+        if: inputs.publishable
         uses: River-iGaming/actions/dotnet/versions@v3-dev
         with:
           type: lib
@@ -106,8 +111,8 @@ jobs:
 
       - name: Build
         env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
-        run: dotnet build -p:PackageVersion=$APP_VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release
+          VERSION: ${{ steps.version-builder.outputs.version }}
+        run: dotnet build -p:PackageVersion=$VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release --no-restore
 
       - name: Test
         run: npm test
@@ -115,16 +120,16 @@ jobs:
       - name: Publish Nuget
         if: inputs.publishable
         env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
           mkdir ./nuget
-          dotnet pack $SOLUTION --no-build -p:PackageVersion=$APP_VERSION -o ./nuget -c Release
+          dotnet pack $SOLUTION --no-build -p:PackageVersion=$VERSION -o ./nuget -c Release
           find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
 
       - name: Git Tag
         if: inputs.publishable
         env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
+          git tag $VERSION
+          git push origin $VERSION
