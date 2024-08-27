@@ -72,7 +72,7 @@ jobs:
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Generate Version Number
-		id: version-builder
+        id: version-builder
         if: inputs.publishable
         uses: River-iGaming/actions/dotnet/versions@v3-dev
         with:
