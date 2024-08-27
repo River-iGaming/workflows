@@ -82,7 +82,7 @@ jobs:
       - name: Check Valid Git Tag
         id: git-tag-check
         with:
-          app-version: ${{ steps.version.outputs.app-version }}
+          app-version: ${{ steps.version-builder.outputs.app-version }}
           package-version: ${{ env.PACKAGE_VERSION }}
         # env:
         uses: River-iGaming/actions/dotnet/tag-check@v3-dev
