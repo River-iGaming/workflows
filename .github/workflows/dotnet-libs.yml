@@ -62,7 +62,7 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
           cache: ${{ inputs.dotnet-cache }}
-          cache-dependency-path: "./Directory.Build.props"
+          cache-dependency-path: "./Directory.Packages.props"
 
       - name: Setup environmental variables
         run: |
