@@ -128,6 +128,7 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
           cache: true
+          cache-dependency-path: "./Directory.Packages.props"
 
       - name: Print environment versions
         run: |
