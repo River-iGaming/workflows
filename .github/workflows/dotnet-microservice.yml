@@ -134,7 +134,7 @@ jobs:
           APP_VERSION: ${{ steps.version-builder.outputs.version }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
-          docker buildx bake -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml server --progress plain --push
+       docker buildx bake -f ${{inputs.project-path}}docker-compose.yml -f ${{inputs.project-path}}docker-compose.override.yml -f ${{inputs.project-path}}docker-compose.ci.yml server --progress plain --push
 
       - name: Logout of Amazon ECR
         if: always()
