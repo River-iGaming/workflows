@@ -202,9 +202,7 @@ jobs:
         id: versioning
         if: ${{ steps.commit.outputs.publishable == 'true' }}
         run: |
-          if [[ ${{ inputs.repo-template }} == "lerna" ]]; then
-            VERSION_FILE=lerna
-          elif [[ ${{ inputs.repo-template }} == "node" ]]; then
+          if [[ ${{ inputs.repo-template }} == "lerna" || ${{ inputs.repo-template }} == "node" ]]; then
             VERSION_FILE=package
           else
             echo "::error ::Repo template '${{ inputs.repo-template }}' not handled!"
