@@ -5,8 +5,8 @@
 | Tag        | Description                                  |
 | ---------- | -------------------------------------------- |
 | dotnet-v3  | .NET libs/microservice/specs                 |
-| node-v1    | node e.g. libs for node/lerna/cli/ngx etc... |
-| fe-v4      | frontend app                                 |
+| node-v2    | node e.g. libs for node/lerna/cli/ngx etc... |
+| fe-v3      | frontend app                                 |
 | vor-latest | vor config checks                            |
 
 
