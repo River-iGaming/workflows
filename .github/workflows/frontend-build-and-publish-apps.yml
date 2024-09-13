@@ -22,7 +22,7 @@ on:
         required: false
         type: string
         default: "@odin"
-      packageManager:
+      package-manager:
         description: "Specify which package manager to use for repo e.g. 'npm', 'pnpm' (defaults: 'npm')"
         required: false
         type: string
