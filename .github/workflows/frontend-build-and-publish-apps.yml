@@ -201,12 +201,12 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
         run: |
-          if [[ ${{ inputs.packageManager }} == "npm" ]]; then
+          if [[ ${{ inputs.package-manager }} == "npm" ]]; then
             npm ci
-          elif [[ ${{ inputs.packageManager }} == "pnpm" ]]; then
+          elif [[ ${{ inputs.package-manager }} == "pnpm" ]]; then
             pnpm i
           else
-            echo "::error ::Package manager '${{ inputs.packageManager }}' not handled!"
+            echo "::error ::Package manager '${{ inputs.package-manager }}' not handled!"
             exit 1
           fi
 
