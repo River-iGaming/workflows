@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: "@odin"
+      packageManager:
+        description: "Specify which package manager to use for repo e.g. 'npm', 'pnpm' (defaults: 'npm')"
+        required: false
+        type: string
+        default: npm
       aws-region:
         description: Which AWS region to use for publish (defaults to eu-west-1)
         required: false
@@ -121,7 +126,7 @@ jobs:
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
-          cache: "npm"
+          cache: ${{ inputs.packageManager }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -195,7 +200,15 @@ jobs:
       - name: FE install
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
-        run: npm ci
+        run: |
+          if [[ ${{ inputs.packageManager }} == "npm" ]]; then
+            npm ci
+          elif [[ ${{ inputs.packageManager }} == "pnpm" ]]; then
+            pnpm i
+          else
+            echo "::error ::Package manager '${{ inputs.packageManager }}' not handled!"
+            exit 1
+          fi
 
       - name: FE lint
         run: npm run lint
