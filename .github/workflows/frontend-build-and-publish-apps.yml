@@ -126,7 +126,7 @@ jobs:
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
-          cache: ${{ inputs.packageManager }}
+          cache: ${{ inputs.package-manager }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
