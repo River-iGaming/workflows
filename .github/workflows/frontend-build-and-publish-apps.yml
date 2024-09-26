@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: "@odin"
+      package-manager:
+        description: "Specify which package manager to use for repo e.g. 'npm', 'pnpm' (defaults: 'npm')"
+        required: false
+        type: string
+        default: npm
       aws-region:
         description: Which AWS region to use for publish (defaults to eu-west-1)
         required: false
@@ -102,6 +107,12 @@ jobs:
           secrets_context: ${{ toJson(secrets) }}
           needs_context: ${{ toJson(needs) }}
 
+      - name: Validate input
+        run: |
+          if [[ "${{ inputs.package-manager }}" != "npm" && "${{ inputs.package-manager }}" != "pnpm" ]]; then
+            echo "Invalid package manager: '${{ inputs.package-manager}}'. Please use 'npm' or 'pnpm'."
+            exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@v4
         if: github.event_name == 'pull_request'
@@ -116,12 +127,16 @@ jobs:
         with:
           token: ${{ secrets.github-token }}
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        if: inputs.package-manager == 'pnpm'
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
-          cache: "npm"
+          cache: ${{ inputs.package-manager }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -195,7 +210,15 @@ jobs:
       - name: FE install
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
-        run: npm ci
+        run: |
+          if [[ ${{ inputs.package-manager }} == "npm" ]]; then
+            npm ci
+          elif [[ ${{ inputs.package-manager }} == "pnpm" ]]; then
+            pnpm i
+          else
+            echo "::error ::Package manager '${{ inputs.package-manager }}' not handled!"
+            exit 1
+          fi
 
       - name: FE lint
         run: npm run lint
