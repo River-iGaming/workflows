@@ -192,7 +192,9 @@ jobs:
           # expose metadata as environment variables
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
+          echo "MONTH_YEAR=$(date +'%Y-%m')" >> $GITHUB_ENV
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
+          echo "::notice ::MONTH_YEAR: $MONTH_YEAR"
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -224,7 +226,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .angular/cache
-          key: ${{ runner.os }}-ng-$(date +'%Y-%m')
+          key: ${{ runner.os }}-ng-${{ env.MONTH_YEAR }}
           restore-keys: |
             ${{ runner.os }}-ng-
 
