@@ -244,8 +244,8 @@ jobs:
       - name: Output current directory
         run: pwd
 
-      - name: Output .eslintcache content
-        run: cat .eslintcache
+      # - name: Output .eslintcache content
+      #   run: cat .eslintcache
 
       - name: FE lint
         run: npm run lint
