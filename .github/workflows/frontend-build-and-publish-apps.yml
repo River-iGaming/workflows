@@ -229,7 +229,10 @@ jobs:
             ${{ runner.os }}-eslint-
 
       - name: Output folder structure
-        run: ls
+        run: ls -aL
+
+      - name: Output current directory
+        run: pwd
 
       - name: Output .eslintcache content
         run: cat .eslintcache
