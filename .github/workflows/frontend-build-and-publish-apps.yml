@@ -220,13 +220,23 @@ jobs:
             exit 1
           fi
 
-      - name: Cache eslint
+      - name: Cache build cache
         uses: actions/cache@v4
         with:
-          path: .eslintcache
+          path: |
+            .eslintcache
+            .angular/cache
           key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*', '.eslintcache') }}
           restore-keys: |
             ${{ runner.os }}-eslint-
+
+      # - name: Cache eslint
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: .eslintcache
+      #     key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*', '.eslintcache') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-eslint-
 
       - name: Output folder structure
         run: ls -aL
@@ -239,6 +249,9 @@ jobs:
 
       - name: FE lint
         run: npm run lint
+
+      - name: ng cache info
+        run: ng cache info
 
       - name: FE build
         run: npm run build:rel
