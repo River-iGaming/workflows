@@ -98,7 +98,6 @@ jobs:
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
-      YEAR_MONTH: $(date +'%Y-%m')
     outputs:
       app-version: ${{ steps.version-builder.outputs.version }}
     steps:
@@ -192,8 +191,8 @@ jobs:
 
           # expose metadata as environment variables
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
+          echo "YEAR_MONTH=$(date +'%Y-%m')" >> $GITHUB_ENV
 
-          # echo "MONTH_YEAR=$(date +'%Y-%m')" >> $GITHUB_ENV
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
 
       - name: Check if tag exists
