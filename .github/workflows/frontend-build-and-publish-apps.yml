@@ -224,9 +224,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .eslintcache
-          key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*') }}
+          key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*', '.eslintcache') }}
           restore-keys: |
             ${{ runner.os }}-eslint-
+
+      - name: Output .eslintcache content
+        run: cat .eslintcache
 
       - name: FE lint
         run: npm run lint
