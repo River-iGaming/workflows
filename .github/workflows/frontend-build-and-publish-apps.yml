@@ -98,6 +98,7 @@ jobs:
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+      YEAR_MONTH: $(date +'%Y-%m')
     outputs:
       app-version: ${{ steps.version-builder.outputs.version }}
     steps:
@@ -192,9 +193,8 @@ jobs:
           # expose metadata as environment variables
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
 
-          echo "MONTH_YEAR=$(date +'%Y-%m')" >> $GITHUB_ENV
+          # echo "MONTH_YEAR=$(date +'%Y-%m')" >> $GITHUB_ENV
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
-          echo "::notice ::MONTH_YEAR: $MONTH_YEAR"
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -226,7 +226,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .angular/cache
-          key: ${{ runner.os }}-ng-${{ env.MONTH_YEAR }}
+          key: ${{ runner.os }}-ng-${{ env.YEAR_MONTH }}
           restore-keys: |
             ${{ runner.os }}-ng-
 
@@ -238,9 +238,6 @@ jobs:
       #     key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*', '.eslintcache') }}
       #     restore-keys: |
       #       ${{ runner.os }}-eslint-
-
-      - name: ng cache info
-        run: npm run ng cache info
 
       - name: FE lint
         run: npm run lint
