@@ -220,16 +220,15 @@ jobs:
             exit 1
           fi
 
-      - name: Cache build cache
+      - name: Cache ng caching
         uses: actions/cache@v4
         with:
-          path: |
-            .eslintcache
-            .angular/cache
-          key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*', '.eslintcache') }}
+          path: .angular/cache
+          key: ${{ runner.os }}-ng-${{ format('MM-YYYY', github.event.created_at) }}
           restore-keys: |
-            ${{ runner.os }}-eslint-
+            ${{ runner.os }}-ng-
 
+      # todo: try to renable if its working
       # - name: Cache eslint
       #   uses: actions/cache@v4
       #   with:
