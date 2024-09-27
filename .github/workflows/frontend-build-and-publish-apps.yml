@@ -224,7 +224,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .angular/cache
-          key: ${{ runner.os }}-ng-${{ format('MM-YYYY', github.event.created_at) }}
+          key: ${{ runner.os }}-ng-${{ format('MM-YYYY', github.repository.pushed_at) }}
           restore-keys: |
             ${{ runner.os }}-ng-
 
@@ -237,22 +237,12 @@ jobs:
       #     restore-keys: |
       #       ${{ runner.os }}-eslint-
 
-      - name: Output folder structure
-        run: ls -aL
-
-      - name: Output current directory
-        run: pwd
-
-      # - name: Output .eslintcache content
-      #   run: cat .eslintcache
       - name: ng cache info
         run: npm run ng cache info
 
       - name: FE lint
         run: npm run lint
 
-      - name: ng cache info
-        run: npm run ng cache info
       - name: FE build
         run: npm run build:rel
 
