@@ -220,6 +220,14 @@ jobs:
             exit 1
           fi
 
+      - name: Cache eslint
+        uses: actions/cache@v4
+        with:
+          path: .eslintcache
+          key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*') }}
+          restore-keys: |
+            ${{ runner.os }}-eslint-
+
       - name: FE lint
         run: npm run lint
 
