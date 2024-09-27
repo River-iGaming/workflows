@@ -246,13 +246,14 @@ jobs:
 
       # - name: Output .eslintcache content
       #   run: cat .eslintcache
+      - name: ng cache info
+        run: npm run ng cache info
 
       - name: FE lint
         run: npm run lint
 
       - name: ng cache info
-        run: ng cache info
-
+        run: npm run ng cache info
       - name: FE build
         run: npm run build:rel
 
