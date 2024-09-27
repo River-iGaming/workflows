@@ -191,6 +191,7 @@ jobs:
 
           # expose metadata as environment variables
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
+          echo "YEAR_MONTH=$(date +'%Y-%m')" >> $GITHUB_ENV
 
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
 
@@ -219,6 +220,23 @@ jobs:
             echo "::error ::Package manager '${{ inputs.package-manager }}' not handled!"
             exit 1
           fi
+
+      - name: Cache ng caching
+        uses: actions/cache@v4
+        with:
+          path: .angular/cache
+          key: ${{ runner.os }}-ng-${{ env.YEAR_MONTH }}
+          restore-keys: |
+            ${{ runner.os }}-ng-
+
+      # todo: try to renable if its working
+      # - name: Cache eslint
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: .eslintcache
+      #     key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*', '.eslintcache') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-eslint-
 
       - name: FE lint
         run: npm run lint
