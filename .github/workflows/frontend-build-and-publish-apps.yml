@@ -228,6 +228,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-eslint-
 
+      - name: Output folder structure
+        run: ls
+
       - name: Output .eslintcache content
         run: cat .eslintcache
 
