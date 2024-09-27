@@ -224,7 +224,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .angular/cache
-          key: ${{ runner.os }}-ng-${{ format('MM-YYYY', github.repository.pushed_at) }}
+          key: ${{ runner.os }}-ng-$(date +'%Y-%m')
           restore-keys: |
             ${{ runner.os }}-ng-
 
