@@ -288,7 +288,7 @@ jobs:
           APP_VERSION: ${{ steps.version-builder.outputs.version }}
           GIT_COMMIT: ${{ env.GIT_COMMIT }}
         run: |
-          npm run docker:build
+          npm run docker:deploy
 
       - name: Logout of Amazon ECR
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
