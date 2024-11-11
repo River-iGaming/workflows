@@ -288,7 +288,7 @@ jobs:
           APP_VERSION: ${{ steps.version-builder.outputs.version }}
           GIT_COMMIT: ${{ env.GIT_COMMIT }}
         run: |
-          docker buildx bake -f ./apps/whitelabel/docker-compose.yml -f ./apps/whitelabel/docker-compose.override.yml -f ./apps/whitelabel/docker-compose.ci.yml web --progress plain --push
+          docker buildx bake -f ${{inputs.project-path}}/docker-compose.yml -f ${{inputs.project-path}}/docker-compose.override.yml -f ${{inputs.project-path}}/docker-compose.ci.yml server --progress plain --push
 
       - name: Logout of Amazon ECR
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
