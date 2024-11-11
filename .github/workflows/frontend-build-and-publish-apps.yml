@@ -171,6 +171,7 @@ jobs:
         id: package-json
         run: |
           echo "build-solution=$(node -p "require('${{ inputs.project-path }}/package.json').vsBuildSolution")" >> "$GITHUB_OUTPUT"
+          echo "project-name=$(node -p "require('${{ inputs.project-path }}/package.json').projectName")" >> "$GITHUB_OUTPUT"
           echo "name=$(node -p "require('${{ inputs.project-path }}/package.json').name")" >> "$GITHUB_OUTPUT"
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
@@ -239,10 +240,10 @@ jobs:
       #       ${{ runner.os }}-eslint-
 
       - name: FE lint
-        run: npm run lint
+        run: npm run lint --project "${{ steps.package-json.outputs.project-name}}"
 
       - name: FE build
-        run: npm run build:rel
+        run: npm run build:rel --project "${{ steps.package-json.outputs.project-name}}"
 
       - name: Dotnet restore
         run: dotnet restore ${{ steps.package-json.outputs.build-solution }} /p:Configuration=Release
