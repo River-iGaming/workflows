@@ -240,10 +240,10 @@ jobs:
       #       ${{ runner.os }}-eslint-
 
       - name: FE lint
-        run: npm run lint --project "${{ steps.package-json.outputs.project-name}}"
+        run: npm run lint --project='${{ steps.package-json.outputs.project-name}}'
 
       - name: FE build
-        run: npm run build:rel --project "${{ steps.package-json.outputs.project-name}}"
+        run: npm run build:rel --project='${{ steps.package-json.outputs.project-name}}'
 
       - name: Dotnet restore
         run: dotnet restore ${{ steps.package-json.outputs.build-solution }} /p:Configuration=Release
