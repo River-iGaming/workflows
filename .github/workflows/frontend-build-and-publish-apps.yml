@@ -44,10 +44,10 @@ on:
         default: "7.0.x"
 
       project-path:
-        description: project path directory(defaults to './')
+        description: project path directory(defaults to '.')
         required: false
         type: string
-        default: "./"
+        default: "."
 
       publish:
         description: Set to true to publish artifacts to docker repository
@@ -170,9 +170,9 @@ jobs:
       - name: Package Json Metadata
         id: package-json
         run: |
-          echo "build-solution=$(node -p "require('${{ inputs.project-path }}package.json').vsBuildSolution")" >> "$GITHUB_OUTPUT"
-          echo "name=$(node -p "require('${{ inputs.project-path }}package.json').name")" >> "$GITHUB_OUTPUT"
-          echo "version=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "build-solution=$(node -p "require('${{ inputs.project-path }}/package.json').vsBuildSolution")" >> "$GITHUB_OUTPUT"
+          echo "name=$(node -p "require('${{ inputs.project-path }}/package.json').name")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Generate Version Number
         id: version-builder
@@ -248,7 +248,7 @@ jobs:
         run: dotnet restore ${{ steps.package-json.outputs.build-solution }} /p:Configuration=Release
 
       - name: Dotnet publish
-        run: dotnet publish ${{ steps.package-json.outputs.build-solution }} -c Release -o ./apps/whitelabel/$PUBLISH_PATH --no-restore
+        run: dotnet publish ${{ steps.package-json.outputs.build-solution }} -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
