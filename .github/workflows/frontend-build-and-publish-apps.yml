@@ -280,10 +280,6 @@ jobs:
         id: buildx-setup
         uses: docker/setup-buildx-action@v3
 
-      - name: List Dirs
-        run: |
-          find . -type d \( ! -path "*/src/*" -a ! -path "*/node_modules/*" -a ! -path "*/wwwroot/*" \) | sed -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
-
       - name: Deploy
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         env:
