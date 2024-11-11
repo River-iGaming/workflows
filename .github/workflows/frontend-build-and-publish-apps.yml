@@ -248,7 +248,7 @@ jobs:
         run: dotnet restore ${{ steps.package-json.outputs.build-solution }} /p:Configuration=Release
 
       - name: Dotnet publish
-        run: dotnet publish ${{ steps.package-json.outputs.build-solution }} -c Release -o ${{ inputs.project-path }}/obj/Docker/publish --no-restore
+        run: dotnet publish ${{ steps.package-json.outputs.build-solution }} -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
