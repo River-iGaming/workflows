@@ -9,7 +9,7 @@ on:
         description: project path directory(defaults to 'src/**')
         required: false
         type: string
-        default: "src/**"
+        default: "ClientApp/src/**"
 
 jobs:
   core-files-modified:
