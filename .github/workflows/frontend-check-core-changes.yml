@@ -26,7 +26,7 @@ jobs:
         uses: tj-actions/changed-files@v35
         with:
           files_ignore_separator: ","
-          files: "ClientApp/src/**/*.{ts,html,scss}"
+          files: "apps/**/*.{ts,html,scss}"
           files_ignore: "*.app.*, *.vars.*, *.module.*, index.*"
 
       - name: Get Diff From Upstream
