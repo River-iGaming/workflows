@@ -163,7 +163,7 @@ jobs:
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create git tag for release
-        if: ${{ inputs.create-tag and steps.build-image.conclusion == 'success' }}
+        if: ${{ inputs.create-tag && steps.build-image.conclusion == 'success' }}
         env:
           VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
