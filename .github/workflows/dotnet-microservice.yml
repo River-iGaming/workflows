@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: "./"
+      create-tag:
+        description: Create a git tag on the code being built
+        required: false
+        type: boolean
+        default: false
     secrets:
       nexus-username:
         required: true
@@ -90,6 +95,7 @@ jobs:
           echo "APP_VERSION=${{ steps.version-builder.outputs.app-version }}" >> $GITHUB_ENV
 
       - name: Check Valid Git Tag
+        if: ${{ inputs.create-tag }}
         id: git-tag-check
         with:
           app-version: ${{ steps.version-builder.outputs.app-version }}
@@ -157,7 +163,7 @@ jobs:
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create git tag for release
-        if: ${{ steps.build-image.conclusion == 'success' }}
+        if: ${{ inputs.create-tag and steps.build-image.conclusion == 'success' }}
         env:
           VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
