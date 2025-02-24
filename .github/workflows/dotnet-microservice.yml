@@ -143,6 +143,7 @@ jobs:
           path: ${{ inputs.project-path }}
           registry: ${{ steps.login-ecr.outputs.registry }}
           version: ${{ steps.version-builder.outputs.app-version }}
+          dry-run: true
 
       - name: Logout of Amazon ECR
         if: always()
