@@ -117,7 +117,7 @@ jobs:
           if [ -f "${{ inputs.project-path }}/package.json" ] && jq -e '.scripts.test' ${{ inputs.project-path }}/package.json > /dev/null; then
             echo "RUN_TESTS=true" >> $GITHUB_ENV
           else
-            echo "No tests found in this project"
+            echo "No tests found"
             echo "RUN_TESTS=false" >> $GITHUB_ENV
           fi
 
