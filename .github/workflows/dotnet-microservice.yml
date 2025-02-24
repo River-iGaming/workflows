@@ -4,27 +4,32 @@ on:
   workflow_call:
     inputs:
       dotnet-version:
-        description: dotnet version to use (defaults to 7.0.x)
+        description: "dotnet version to use (defaults to 7.0.x)"
         required: false
         type: string
         default: "7.0.x"
       publish:
-        description: whether the docker image should be pushed
+        description: "Set to true to execute the docker image build step and push to container registry"
         required: false
         type: boolean
         default: false
       nuget-registry-url:
-        description: The url address for nuget registry
+        description: "The url address for nuget registry"
         required: false
         type: string
         default: ${{ vars.NUGET_REGISTRY_URL }}
       project-path:
-        description: project path directory(defaults to '.')
+        description: "Path leading to the root of the project (defaults to '.', the git repository root)"
         required: false
         type: string
         default: "."
       create-tag:
-        description: Create a git tag on the code being built
+        description: "Create a git tag on the code being built"
+        required: false
+        type: boolean
+        default: false
+      dry-run:
+        description: "Set to true to avoid publishing image to container registry"
         required: false
         type: boolean
         default: false
@@ -143,7 +148,7 @@ jobs:
           path: ${{ inputs.project-path }}
           registry: ${{ steps.login-ecr.outputs.registry }}
           tag: ${{ steps.version-builder.outputs.app-version }}
-          dry-run: true
+          dry-run: ${{ inputs.dry-run }}
 
       - name: Logout of Amazon ECR
         if: always()
