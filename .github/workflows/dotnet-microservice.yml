@@ -147,7 +147,7 @@ jobs:
           APP_NAME: ${{ env.APP_NAME }} # todo: same as fe-build
           APP_VERSION: ${{ steps.version-builder.outputs.version }}
           GIT_COMMIT: ${{ github.sha }}
-        uses: River-iGaming/actions/docker-buildx@feature/dockerbuildx
+        uses: River-iGaming/actions/docker-buildx@docker-buildx/v1.0.0
         with:
           path: ${{ inputs.project-path }}
           registry: ${{ steps.login-ecr.outputs.registry }}
