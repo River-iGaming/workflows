@@ -13,6 +13,10 @@ on:
         required: false
         type: boolean
         default: false
+      docker-repository:
+        description: "Repository where the docker image will be published to."
+        required: true
+        type: string
       nuget-registry-url:
         description: "The url address for nuget registry"
         required: false
@@ -147,8 +151,10 @@ jobs:
         with:
           path: ${{ inputs.project-path }}
           registry: ${{ steps.login-ecr.outputs.registry }}
+          repository: ${{ inputs.docker-repository }}
           tag: ${{ steps.version-builder.outputs.app-version }}
           dry-run: ${{ inputs.dry-run }}
+
 
       - name: Logout of Amazon ECR
         if: always()
