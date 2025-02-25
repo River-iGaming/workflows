@@ -129,28 +129,26 @@ jobs:
         run: |
           dotnet nuget list source
           dotnet restore $SOLUTION /p:Configuration=Release
+          dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
           
-      - name: Dotnet build
-        run: dotnet build $SOLUTION -c Release --no-restore
+#      - name: Dotnet build
+#        run: dotnet build $SOLUTION -c Release --no-restore
 
-      - name: Check for tests
-        id: check-npm-test
-        run: |
-          if [ -f "${{ inputs.project-path }}/package.json" ] && jq -e '.scripts.test' ${{ inputs.project-path }}/package.json > /dev/null; then
-            echo "RUN_TESTS=true" >> $GITHUB_ENV
-          else
-            echo "Test script not found. Skipping tests."
-            echo "RUN_TESTS=false" >> $GITHUB_ENV
-          fi
+#      - name: Check for tests
+#        id: check-npm-test
+#        run: |
+#          if [ -f "${{ inputs.project-path }}/package.json" ] && jq -e '.scripts.test' ${{ inputs.project-path }}/package.json > /dev/null; then
+#            echo "RUN_TESTS=true" >> $GITHUB_ENV
+#          else
+#            echo "Test script not found. Skipping tests."
+#            echo "RUN_TESTS=false" >> $GITHUB_ENV
+#          fi
 
       - name: Test
-        if: env.RUN_TESTS == 'true'
-        run: |
-          ls -R ${{ inputs.project-path }}/test
-          npm test
+        run: npm run test --if-present
 
-      - name: Dotnet publish
-        run: dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
+#      - name: Dotnet publish
+#        run: dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
         
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
