@@ -135,7 +135,7 @@ jobs:
           
       - name: Test
         run: |
-          find test -name "*.csproj" | xargs -i dotnet test {} --no-build -c Release --filter Category!=e2e --test-adapter-path ${{ inputs.project-path }}/$PUBLISH_PATH
+          find test -name "*.csproj" | xargs -i dotnet test {} --no-build -c Release --filter Category!=e2e
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
