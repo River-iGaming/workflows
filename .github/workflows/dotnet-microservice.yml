@@ -131,7 +131,6 @@ jobs:
           dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
 
-          
       - name: Test
         run: npm test --if-present
 
