@@ -129,13 +129,11 @@ jobs:
         run: |
           dotnet nuget list source
           dotnet restore $SOLUTION /p:Configuration=Release
-          dotnet publish $SOLUTION -c Release --no-restore
-          # dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
+          dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
 
           
       - name: Test
-        run: |
-          find test -name "*.csproj" | xargs -i dotnet test {} --no-build -c Release --filter Category!=e2e
+        run: npm test
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
