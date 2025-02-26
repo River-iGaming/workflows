@@ -133,7 +133,7 @@ jobs:
 
           
       - name: Test
-        run: npm test
+        run: npm test --if-present
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
