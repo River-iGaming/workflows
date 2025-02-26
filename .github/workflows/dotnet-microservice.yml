@@ -124,9 +124,6 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-
-      - name: Test
-        run: npm run test --if-present
         
       - name: Dotnet restore/publish
         run: |
@@ -134,6 +131,10 @@ jobs:
           dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
           
+      - name: Test
+        run: |
+          find test -name "*.csproj" | xargs -i dotnet test {} --no-build -c Release --filter Category!=e2e --test-adapter-path ${{ inputs.project-path }}/$PUBLISH_PATH
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
