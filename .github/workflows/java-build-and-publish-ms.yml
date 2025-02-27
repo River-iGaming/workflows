@@ -26,6 +26,11 @@ on:
         description: Additional maven arguments to be appended to command
         required: false
         type: string
+      docker-platforms:
+        description: "Comma seperated list of platforms to use when building the docker image"
+        required: false
+        type: string
+        default: "linux/amd64,linux/arm64"
     secrets:
       nexus-username:
         required: true
@@ -159,6 +164,7 @@ jobs:
           --build-arg GIT_REF=${{ github.ref }} \
           --build-arg VERSION=${{ env.VERSION }} \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+          --platform ${{ inputs.docker-platforms }} \
           --progress plain --push .
 
           echo "::notice::Pushed image $ECR_REPOSITORY:$IMAGE_TAG to $ECR_REGISTRY"
