@@ -57,6 +57,11 @@ on:
         type: boolean
         default: false
         required: false
+      publishable:
+        description: "Determine whether to publish even when doesn't meet branch criteria. (defaults: false)"
+        type: boolean
+        default: false
+        required: false
     secrets:
       npm-token:
         required: false
@@ -165,10 +170,11 @@ jobs:
 
       - name: Check if branch is publishable
         id: check-branch
+        if: !inputs.publishable
         env:
           BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
-          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^vnext\/.*$ ]] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
+          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             PUBLISHABLE=false
             echo "::notice ::Non-publishable branch."
           else 
