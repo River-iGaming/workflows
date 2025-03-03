@@ -221,13 +221,19 @@ jobs:
 
       - name: Generate Version Number
         id: version-builder
-        # todo: use v2 once merged
+        # todo: use v2 once merged x
         uses: River-iGaming/actions/dotnet/versions@feature/fe-lib
         # uses: River-iGaming/actions/dotnet/versions@v2
         if: ${{ steps.versioning.conclusion == 'success' }}
         with:
           type: fe-lib
           package-version: ${{ steps.versioning.outputs.version }}
+
+      - name: Update package version
+        if: ${{ steps.versioning.conclusion == 'success' && steps.version-builder.outputs.version != steps.versioning.outputs.version }}
+        run: |
+          npm version ${{ steps.version-builder.outputs.version }} --no-git-tag-version
+          echo "Package version updated to ${{ steps.version-builder.outputs.version }}"
 
       - name: Check if tag exists
         id: tag
