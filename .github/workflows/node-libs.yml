@@ -57,7 +57,7 @@ on:
         type: boolean
         default: false
         required: false
-      publishable:
+      skip-publish-branch-check:
         description: "Determine whether to publish even when doesn't meet branch criteria. (defaults: false)"
         type: boolean
         default: false
@@ -170,9 +170,9 @@ jobs:
 
       - name: Check if branch is publishable
         id: check-branch
-        if: ${{ !inputs.publishable }}
+        if: ${{ !inputs.skip-publish-branch-check }}
         env:
-          BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name }}
         run: |
           if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             PUBLISHABLE=false
@@ -185,7 +185,7 @@ jobs:
       - name: Check if commit is publishable
         id: commit
         env:
-          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
+          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message }}
         run: |
           # todo: for PR should we use PR title instead?
           if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
@@ -199,14 +199,14 @@ jobs:
       - name: Determine publish
         id: check-publish
         run: |
-          PUBLISHABLE=${{steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true'}}
-          STORYBOOK_PUBLISHABLE=${{inputs.has-storybook == true && steps.commit.outputs.publishable == 'true'}}
+          PUBLISHABLE=${{ (inputs.skip-publish-branch-check || steps.check-branch.outputs.publishable == 'true') && steps.commit.outputs.publishable == 'true' }}
+          STORYBOOK_PUBLISHABLE=$([[ "${{ inputs.has-storybook }}" == "true" && "$PUBLISHABLE" == "true" ]] && echo "true" || echo "false")
           echo "publish=$PUBLISHABLE" >> $GITHUB_OUTPUT
           echo "storybook-publish=$STORYBOOK_PUBLISHABLE" >> $GITHUB_OUTPUT
 
       - name: Get package version
         id: versioning
-        if: ${{ steps.commit.outputs.publishable == 'true' }}
+        if: ${{ steps.check-publish.outputs.publishable == 'true' }}
         run: |
           if [[ ${{ inputs.repo-template }} == "lerna" ]]; then
             VERSION_FILE=lerna
@@ -223,19 +223,20 @@ jobs:
         id: version-builder
         uses: River-iGaming/actions/dotnet/versions@feature/fe-lib
         # uses: River-iGaming/actions/dotnet/versions@v2
+        if: ${{ steps.versioning.outputs.version != '' }}
         with:
           type: fe-lib
           package-version: ${{ steps.versioning.outputs.version }}
 
       - name: Check if tag exists
         id: tag
-        if: ${{ steps.commit.outputs.publishable == 'true' }}
+        if: ${{ steps.check-publish.outputs.publishable == 'true' }}
         uses: mukunku/tag-exists-action@v1.6.0
         with:
           tag: ${{ steps.version-builder.outputs.version }}
 
       - name: Error if tag exists
-        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
+        if: ${{ steps.check-publish.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
