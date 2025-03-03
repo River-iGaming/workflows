@@ -170,7 +170,7 @@ jobs:
 
       - name: Check if branch is publishable
         id: check-branch
-        if: !inputs.publishable
+        if: ${{ !inputs.publishable }}
         env:
           BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
         run: |
