@@ -206,7 +206,7 @@ jobs:
 
       - name: Get package version
         id: versioning
-        if: ${{ steps.check-publish.outputs.publishable == 'true' }}
+        if: ${{ steps.check-publish.outputs.publish == 'true' }}
         run: |
           if [[ ${{ inputs.repo-template }} == "lerna" ]]; then
             VERSION_FILE=lerna
@@ -230,13 +230,13 @@ jobs:
 
       - name: Check if tag exists
         id: tag
-        if: ${{ steps.check-publish.outputs.publishable == 'true' }}
+        if: ${{ steps.check-publish.outputs.publish == 'true' }}
         uses: mukunku/tag-exists-action@v1.6.0
         with:
           tag: ${{ steps.version-builder.outputs.version }}
 
       - name: Error if tag exists
-        if: ${{ steps.check-publish.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
+        if: ${{ steps.check-publish.outputs.publish == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
