@@ -223,7 +223,7 @@ jobs:
         id: version-builder
         uses: River-iGaming/actions/dotnet/versions@feature/fe-lib
         # uses: River-iGaming/actions/dotnet/versions@v2
-        if: ${{ steps.versioning.outputs.version != '' }}
+        if: ${{ steps.versioning.conclusion == 'success' }}
         with:
           type: fe-lib
           package-version: ${{ steps.versioning.outputs.version }}
