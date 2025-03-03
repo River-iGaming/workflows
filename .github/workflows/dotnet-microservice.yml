@@ -161,14 +161,14 @@ jobs:
           APP_NAME: ${{ env.APP_NAME }} # todo: same as fe-build
           APP_VERSION: ${{ steps.version-builder.outputs.version }}
           GIT_COMMIT: ${{ github.sha }}
-        uses: River-iGaming/actions/docker-buildx@docker-buildx/v1.0.0
+        uses: River-iGaming/actions/docker-buildx@docker-buildx/v1.1.0
         with:
           path: ${{ inputs.project-path }}
           registry: ${{ steps.login-ecr.outputs.registry }}
           repository: ${{ inputs.docker-repository }}
           tag: ${{ steps.version-builder.outputs.app-version }}
           dry-run: ${{ inputs.dry-run }}
-
+          build-args: "NODE_VERSION APP_ENV GIT_COMMIT"
 
       - name: Logout of Amazon ECR
         if: always()
