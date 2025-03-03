@@ -221,6 +221,7 @@ jobs:
 
       - name: Generate Version Number
         id: version-builder
+        # todo: use v2 once merged
         uses: River-iGaming/actions/dotnet/versions@feature/fe-lib
         # uses: River-iGaming/actions/dotnet/versions@v2
         if: ${{ steps.versioning.conclusion == 'success' }}
