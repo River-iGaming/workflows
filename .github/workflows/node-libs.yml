@@ -57,6 +57,11 @@ on:
         type: boolean
         default: false
         required: false
+      skip-publish-branch-check:
+        description: "Determine whether to publish even when doesn't meet branch criteria. (defaults: false)"
+        type: boolean
+        default: false
+        required: false
     secrets:
       npm-token:
         required: false
@@ -165,8 +170,9 @@ jobs:
 
       - name: Check if branch is publishable
         id: check-branch
+        if: ${{ !inputs.skip-publish-branch-check }}
         env:
-          BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name }}
         run: |
           if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             PUBLISHABLE=false
@@ -179,7 +185,7 @@ jobs:
       - name: Check if commit is publishable
         id: commit
         env:
-          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message}}
+          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message }}
         run: |
           # todo: for PR should we use PR title instead?
           if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
@@ -192,15 +198,16 @@ jobs:
 
       - name: Determine publish
         id: check-publish
+        env:
+          PUBLISHABLE: ${{ (inputs.skip-publish-branch-check || steps.check-branch.outputs.publishable == 'true') && steps.commit.outputs.publishable == 'true' }}
         run: |
-          PUBLISHABLE=${{steps.check-branch.outputs.publishable == 'true' && steps.commit.outputs.publishable == 'true'}}
-          STORYBOOK_PUBLISHABLE=${{inputs.has-storybook == true && steps.commit.outputs.publishable == 'true'}}
+          STORYBOOK_PUBLISHABLE=${{ inputs.has-storybook && env.PUBLISHABLE }}
           echo "publish=$PUBLISHABLE" >> $GITHUB_OUTPUT
           echo "storybook-publish=$STORYBOOK_PUBLISHABLE" >> $GITHUB_OUTPUT
 
       - name: Get package version
         id: versioning
-        if: ${{ steps.commit.outputs.publishable == 'true' }}
+        if: ${{ steps.check-publish.outputs.publish == 'true' }}
         run: |
           if [[ ${{ inputs.repo-template }} == "lerna" ]]; then
             VERSION_FILE=lerna
@@ -211,17 +218,31 @@ jobs:
             exit 1
           fi
           PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+          echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate Version Number
+        id: version-builder
+        uses: River-iGaming/actions/dotnet/versions@v2
+        if: ${{ steps.versioning.conclusion == 'success' }}
+        with:
+          type: fe-lib
+          package-version: ${{ steps.versioning.outputs.version }}
+
+      - name: Update package version
+        if: ${{ steps.versioning.conclusion == 'success' && steps.version-builder.outputs.version != steps.versioning.outputs.version }}
+        run: |
+          npm version ${{ steps.version-builder.outputs.version }} --no-git-tag-version
+          echo "Package version updated to ${{ steps.version-builder.outputs.version }}"
 
       - name: Check if tag exists
         id: tag
-        if: ${{ steps.commit.outputs.publishable == 'true' }}
+        if: ${{ steps.check-publish.outputs.publish == 'true' }}
         uses: mukunku/tag-exists-action@v1.6.0
         with:
-          tag: ${{ env.PACKAGE_VERSION }}
+          tag: ${{ steps.version-builder.outputs.version }}
 
       - name: Error if tag exists
-        if: ${{ steps.commit.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
+        if: ${{ steps.check-publish.outputs.publish == 'true' && steps.tag.outputs.exists == 'true' }}
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
@@ -242,22 +263,17 @@ jobs:
       - name: Setup Docker buildx
         id: buildx-setup
         uses: docker/setup-buildx-action@v3
+        if: ${{ steps.login-ecr.conclusion == 'success' }}
 
       - name: Publish storybook
-        if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
+        if: ${{ steps.login-ecr.conclusion == 'success' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
-          BRANCH_NAME: ${{ steps.git.outputs.branch-name}}
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name }}
+          TAG: ${{ steps.version-builder.outputs.version }}
         run: |
-          TAG=$PACKAGE_VERSION
           STORYBOOK_NAME=$(node -p "require('./storybook/package.json').name")
           echo "Storybook Docker Repo Name: $STORYBOOK_NAME"
-
-          if [[ "$BRANCH_NAME" = "develop" ]]; then
-            TAG=$TAG-dev-$GITHUB_RUN_ID
-          elif [[ "$BRANCH_NAME" =~ ^feature\/(.*)$ ]]; then
-            TAG=$TAG-demo-${BASH_REMATCH[1]}-$GITHUB_RUN_ID
-          fi
 
           [[ $ECR_HOST =~ ^([0-9]*) ]] && REGISTRY=${BASH_REMATCH[1]}
 
@@ -269,11 +285,13 @@ jobs:
           TAG=$TAG docker buildx bake -f docker-compose.yml web --progress plain --push
 
       - name: Logout of Amazon ECR
-        if: ${{ steps.check-publish.outputs.storybook-publish == 'true' }}
+        if: ${{ steps.login-ecr.conclusion == 'success' }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Publish
         if: ${{ steps.check-publish.outputs.publish == 'true' }}
+        env:
+          PACKAGE_VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
           echo "Publishing ..."
           ${{ inputs.publish-command }}
