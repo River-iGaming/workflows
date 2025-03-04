@@ -198,9 +198,10 @@ jobs:
 
       - name: Determine publish
         id: check-publish
+        env:
+          PUBLISHABLE: ${{ (inputs.skip-publish-branch-check || steps.check-branch.outputs.publishable == 'true') && steps.commit.outputs.publishable == 'true' }}
         run: |
-          PUBLISHABLE=${{ (inputs.skip-publish-branch-check || steps.check-branch.outputs.publishable == 'true') && steps.commit.outputs.publishable == 'true' }}
-          STORYBOOK_PUBLISHABLE=$([[ "${{ inputs.has-storybook }}" == "true" && "$PUBLISHABLE" == "true" ]] && echo "true" || echo "false")
+          STORYBOOK_PUBLISHABLE=${{ inputs.has-storybook && env.PUBLISHABLE }}
           echo "publish=$PUBLISHABLE" >> $GITHUB_OUTPUT
           echo "storybook-publish=$STORYBOOK_PUBLISHABLE" >> $GITHUB_OUTPUT
 
