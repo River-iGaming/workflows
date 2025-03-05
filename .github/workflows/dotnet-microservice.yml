@@ -4,25 +4,39 @@ on:
   workflow_call:
     inputs:
       dotnet-version:
-        description: dotnet version to use (defaults to 7.0.x)
+        description: "dotnet version to use (defaults to 7.0.x)"
         required: false
         type: string
-        default: '7.0.x'
+        default: "7.0.x"
       publish:
-        description: whether the docker image should be pushed
+        description: "Set to true to execute the docker image build step and push to container registry"
         required: false
         type: boolean
         default: false
+      docker-repository:
+        description: "Repository where the docker image will be published to."
+        required: true
+        type: string
       nuget-registry-url:
-        description: The url address for nuget registry
+        description: "The url address for nuget registry"
         required: false
         type: string
         default: ${{ vars.NUGET_REGISTRY_URL }}
       project-path:
-        description: project path directory(defaults to './')
+        description: "Path leading to the root of the project (defaults to '.', the git repository root)"
         required: false
         type: string
-        default: './'
+        default: "."
+      create-tag:
+        description: "Create a git tag on the code being built"
+        required: false
+        type: boolean
+        default: false
+      dry-run:
+        description: "Set to true to avoid publishing image to container registry"
+        required: false
+        type: boolean
+        default: false
     secrets:
       nexus-username:
         required: true
@@ -70,33 +84,33 @@ jobs:
             --store-password-in-clear-text
 
       # Start 'Prepare Build Metadata and Environment'
+      # todo: add Package Json Metadata - same as frontend-build
       - name: Setup environmental variables
         run: |
-          echo "SOLUTION=$(node -p "require('${{ inputs.project-path }}package.json').vsBuildSolution")" >> $GITHUB_ENV
-          echo "APP_NAME=$(node -p "require('${{ inputs.project-path }}package.json').name")" >> $GITHUB_ENV
-          echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.project-path }}package.json').version")" >> $GITHUB_ENV
+          echo "Setting up env variables. Context: $GITHUB_REF"
+          echo "SOLUTION=$(node -p "require('${{ inputs.project-path }}/package.json').vsBuildSolution")" >> $GITHUB_ENV
+          echo "APP_NAME=$(node -p "require('${{ inputs.project-path }}/package.json').name")" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(node -p "require('${{ inputs.project-path }}/package.json').version")" >> $GITHUB_ENV
 
       - name: Generate Version Number
-        id: version
-        uses: River-iGaming/actions/dotnet/versions@v2
+        id: version-builder
+        uses: River-iGaming/actions/dotnet/versions@v3-dev
         with:
-          type: deploy
+          type: dotnet-app
           package-version: ${{ env.PACKAGE_VERSION }}
 
       - name: Set version envs
         run: |
-          echo "APP_VERSION=${{ steps.version.outputs.app-version }}" >> $GITHUB_ENV
+          echo "APP_VERSION=${{ steps.version-builder.outputs.app-version }}" >> $GITHUB_ENV
 
-      - name: Check if Git Tag exists
-        if: ${{ github.run_attempt == '1' }}
+      - name: Check Valid Git Tag
+        if: ${{ inputs.create-tag }}
         id: git-tag-check
-        env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
-        run: |
-          if git ls-remote --tags origin | grep -q "refs/tags/$APP_VERSION$"; then
-              echo "::error::tag $APP_VERSION already exists."
-              exit 1
-          fi
+        with:
+          app-version: ${{ steps.version-builder.outputs.app-version }}
+          package-version: ${{ env.PACKAGE_VERSION }}
+        # env:
+        uses: River-iGaming/actions/dotnet/tag-check@v3-dev
 
       # End 'Prepare Build Metadata and Environment'
 
@@ -112,8 +126,22 @@ jobs:
         run: |
           dotnet nuget list source
           dotnet restore $SOLUTION /p:Configuration=Release
-          dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}$PUBLISH_PATH --no-restore
+          dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
 
+      - name: Check for npm test script
+        id: check-npm-test
+        run: |
+          if [ -f "${{ inputs.project-path }}/package.json" ] && jq -e '.scripts.test' ${{ inputs.project-path }}/package.json > /dev/null; then
+            echo "RUN_TESTS=true" >> $GITHUB_ENV
+          else
+            echo "No tests found"
+            echo "RUN_TESTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Test
+        if: env.RUN_TESTS == 'true'
+        run: npm test
+        
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -126,21 +154,34 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to Amazon ECR
+        id: build-image
         if: ${{ inputs.publish }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          APP_NAME: ${{ env.APP_NAME }} # todo: same as fe-build
+          APP_VERSION: ${{ steps.version-builder.outputs.version }}
           GIT_COMMIT: ${{ github.sha }}
-        run: |
-         docker-compose -f ${{inputs.project-path}}docker-compose.yml -f ${{inputs.project-path}}docker-compose.override.yml -f ${{inputs.project-path}}docker-compose.ci.yml build
-         docker-compose -f ${{inputs.project-path}}docker-compose.yml -f ${{inputs.project-path}}docker-compose.override.yml -f ${{inputs.project-path}}docker-compose.ci.yml push
+          appName: ${{ env.APP_NAME }}
+          appVersion: ${{ steps.version-builder.outputs.version }}
+          gitCommit: ${{ github.sha }}
+        uses: River-iGaming/actions/docker-buildx@docker-buildx/v1.1.0
+        with:
+          path: ${{ inputs.project-path }}
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          repository: ${{ inputs.docker-repository }}
+          tag: ${{ steps.version-builder.outputs.app-version }}
+          dry-run: ${{ inputs.dry-run }}
+          build-args: "appName appVersion gitCommit"
 
       - name: Logout of Amazon ECR
         if: always()
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create git tag for release
-        if: ${{ steps.git-tag-check.conclusion != 'skipped' }}
+        if: ${{ inputs.create-tag && steps.build-image.conclusion == 'success' }}
+        env:
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
-          echo "::notice::Pushed image for $APP_NAME: $APP_VERSION"
+          git tag $VERSION
+          git push origin $VERSION
+          echo "::notice::Pushed image for $APP_NAME: $VERSION"

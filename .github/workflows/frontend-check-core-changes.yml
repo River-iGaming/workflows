@@ -4,6 +4,12 @@ on:
     secrets:
       github-token:
         required: true
+    inputs:
+      project-path:
+        description: project path directory(defaults to 'src/**')
+        required: false
+        type: string
+        default: "ClientApp/src/**"
 
 jobs:
   core-files-modified:
@@ -26,7 +32,7 @@ jobs:
         uses: tj-actions/changed-files@v35
         with:
           files_ignore_separator: ","
-          files: "ClientApp/src/**/*.{ts,html,scss}"
+          files: "${{ inputs.project-path }}/*.{ts,html,scss}"
           files_ignore: "*.app.*, *.vars.*, *.module.*, index.*"
 
       - name: Get Diff From Upstream

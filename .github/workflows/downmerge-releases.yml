@@ -33,11 +33,17 @@ jobs:
           MANUAL_MERGE=false
           # Determine the current branch and package version
           CURRENT_BRANCH="$(git branch --show-current)"
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+
+          if [[ "$PACKAGE_VERSION" == *"-"* || "$PACKAGE_VERSION" == *"+"* ]]; then 
+            echo "::error ::Downmerge is not allowed for prerelease versions or versions with metadata."
+            exit 1
+          fi
 
           if [[ "$CURRENT_BRANCH" =~ "release" ]]; then
             BASE_PACKAGE_VERSION=$(echo $CURRENT_BRANCH | cut -d'/' -f2)
           else
-            BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
+            BASE_PACKAGE_VERSION=$PACKAGE_VERSION
           fi
           
           CURRENT_MAJOR_MINOR_VERSION=$(echo $BASE_PACKAGE_VERSION | cut -d'.' -f1,2)

@@ -22,13 +22,18 @@ on:
         required: false
         type: string
         default: "@odin"
+      package-manager:
+        description: "Specify which package manager to use for repo e.g. 'npm', 'pnpm' (defaults: 'npm')"
+        required: false
+        type: string
+        default: npm
       aws-region:
-        description: Which AWS region to use for publish storybook (defaults to eu-west-1)
+        description: Which AWS region to use for publish (defaults to eu-west-1)
         required: false
         type: string
         default: eu-west-1
       secondary-aws-region:
-        description: Which AWS region to use for publish storybook (defaults to eu-west-1)
+        description: Which AWS region to use for publish (defaults to eu-west-1)
         required: false
         type: string
         default: eu-west-1
@@ -37,6 +42,12 @@ on:
         required: false
         type: string
         default: "7.0.x"
+
+      project-path:
+        description: project path directory(defaults to '.')
+        required: false
+        type: string
+        default: "."
 
       publish:
         description: Set to true to publish artifacts to docker repository
@@ -48,8 +59,8 @@ on:
         description: A prefix to add to the tag suffix. Useful for testing.
         required: false
         type: string
-        default: ''
-      
+        default: ""
+
       secondaryEcrLogin:
         description: Logic for secondary ECR login.
         required: false
@@ -73,7 +84,7 @@ on:
         required: true
 
 concurrency:
-  group: ${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -86,8 +97,9 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: true
       PUBLISH_PATH: obj/Docker/publish
       ODIN_CI_DEBUG_MODE: "true"
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
     outputs:
-      app_version: ${{ steps.metadata.outputs.version }}
+      app-version: ${{ steps.version-builder.outputs.version }}
     steps:
       - name: Debug Action Contexts
         uses: henrygriffiths/debug_action@v1
@@ -95,16 +107,43 @@ jobs:
           secrets_context: ${{ toJson(secrets) }}
           needs_context: ${{ toJson(needs) }}
 
+      - name: Validate input
+        run: |
+          if [[ "${{ inputs.package-manager }}" != "npm" && "${{ inputs.package-manager }}" != "pnpm" ]]; then
+            echo "Invalid package manager: '${{ inputs.package-manager}}'. Please use 'npm' or 'pnpm'."
+            exit 1
+          fi
+      - name: Checkout
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.github-token }}
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        if: github.event_name != 'pull_request'
+        with:
+          token: ${{ secrets.github-token }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        if: inputs.package-manager == 'pnpm'
+
       - name: Setup Node
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v4
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
+          cache: ${{ inputs.package-manager }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
+          cache: true
+          cache-dependency-path: "./Directory.Packages.props"
 
       - name: Print environment versions
         run: |
@@ -113,25 +152,9 @@ jobs:
           echo node version':' $NODE_V
           echo npm version':' $NPM_V
           docker -v
-          docker-compose -v
           DOTNET_CLI_V=$(dotnet --version)
           echo dotnet cli version':' $DOTNET_CLI_V
           git --version
-
-      - name: Checkout
-        uses: actions/checkout@v3.0.0
-        if: github.event_name == 'pull_request'
-        with:
-          fetch-depth: 1
-          token: ${{ secrets.github-token }}
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Checkout
-        uses: actions/checkout@v3.0.0
-        if: github.event_name != 'pull_request'
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.github-token }}
 
       - name: NPM TOKEN
         id: npm_token
@@ -144,131 +167,41 @@ jobs:
           npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
           npm config set registry=https:${{ inputs.npm-registry }}
 
-      - name: Install Odin CI tooling (deprecated)
-        run: npm i -g @odin/infra.ci@0.1.22
-        env:
-          NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
-
-      - name: Determine Branch Name
-        id: branch
+      - name: Package Json Metadata
+        id: package-json
         run: |
-          # determine branch name (diff source since this workflow can run either on push or pull_request events)
-          case "${{ github.event_name }}" in
-            "pull_request")
-            BRANCH_NAME="${{ github.head_ref }}"
-            ;;
-            *)
-            BRANCH_NAME="${GITHUB_REF_NAME}"
-            ;;
-          esac
-          echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
-          echo "::notice ::Branch name: $BRANCH_NAME"
+          echo "build-solution=$(node -p "require('${{ inputs.project-path }}/package.json').vsBuildSolution")" >> "$GITHUB_OUTPUT"
+          echo "project-name=$(node -p "require('${{ inputs.project-path }}/package.json').projectName || ''")" >> "$GITHUB_OUTPUT"
+          echo "name=$(node -p "require('${{ inputs.project-path }}/package.json').name")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Generate Version Number
+        id: version-builder
+        uses: River-iGaming/actions/dotnet/versions@v2
+        with:
+          type: fe-app
+          package-version: ${{ steps.package-json.outputs.version }}
 
       - name: Prepare Build Metadata and Environment
         id: metadata
-        env:
-          BRANCH_NAME: ${{ steps.branch.outputs.name}}
         run: |
-          # enable bash pattern matching
-          shopt -s extglob;
-
-          # determine version + tag
-          BASE_PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          APP_NAME=$(node -p "require('./package.json').name")
-
-          # ensure we have a unique suffix
-          if [ ${{github.run_attempt}} -eq 1 ]
-          then
-            RUN_ID="${{ github.run_id}}-0"
-          else
-            RUN_ID="${{ github.run_id}}-${{github.run_attempt}}"
-          fi
-
-          TAG_SUFFIX=""
           IS_PUBLISHABLE="${{ inputs.publish }}"
-          case "$BRANCH_NAME" in
-            "main"|"master")
-            ;;
-            "develop")
-            TAG_SUFFIX="dev-${RUN_ID}"
-            ;;
-
-            "vnext")
-            TAG_SUFFIX="vnext-$RUN_ID"
-            ;;
-
-            # feature
-            feature\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-
-            # named demo branch
-            @(demo)\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-
-            # named demo branch
-            dependabot\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="demo-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-
-            # demo only branch
-            "demo")
-            TAG_SUFFIX="demo-${RUN_ID}"
-            ;;
-
-            # hotfix
-            hotfix\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="hotfix-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-
-            # Release
-            release\/+(?) )
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="release-${RUN_ID}"
-            ;;
-
-            *)
-            PRETTY_BRANCH_NAME=$(basename $BRANCH_NAME | tr _ - )
-            TAG_SUFFIX="${{ inputs.tagSuffixPreamble }}-${PRETTY_BRANCH_NAME}-${RUN_ID}"
-            ;;
-          esac
-          shopt -u extglob;
-
-
-          # build version number in full with value extracted from package.json + tag suffix if available
-          PACKAGE_VERSION=${BASE_PACKAGE_VERSION}
-          if [ ! -z "${TAG_SUFFIX}" ]; then
-            PACKAGE_VERSION=${BASE_PACKAGE_VERSION}-${TAG_SUFFIX}
-          fi
 
           # expose metadata as workflow variables
-          echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
           echo "publishable=${IS_PUBLISHABLE}" >> "$GITHUB_OUTPUT"
 
           # expose metadata as environment variables
-          echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
           echo "GIT_COMMIT=${{ github.event.after }}" >> $GITHUB_ENV
-          echo "APP_VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
+          echo "YEAR_MONTH=$(date +'%Y-%m')" >> $GITHUB_ENV
 
-          echo "::notice ::App name: $APP_NAME"
-          echo "::notice ::Version: $PACKAGE_VERSION"
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
-          echo "::notice ::Tag: $PACKAGE_VERSION"
 
       - name: Check if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
-        uses: mukunku/tag-exists-action@v1.2.0
+        uses: mukunku/tag-exists-action@v1.6.0
         id: tag
         with:
-          tag: ${{ steps.metadata.outputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.github-token }}
+          tag: ${{ steps.version-builder.outputs.version }}
 
       - name: Inform if tag exists
         if: ${{ steps.metadata.outputs.publishable == 'true' && steps.tag.outputs.exists == 'true' }}
@@ -276,20 +209,47 @@ jobs:
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
-      - name: Prep, Lint and Build NodeJS part
+      - name: FE install
         env:
           NODE_AUTH_TOKEN: ${{ steps.npm_token.outputs.token }}
         run: |
-          npm ci
-          npm run lint
-          npm run build:rel
+          if [[ ${{ inputs.package-manager }} == "npm" ]]; then
+            npm ci
+          elif [[ ${{ inputs.package-manager }} == "pnpm" ]]; then
+            pnpm i
+          else
+            echo "::error ::Package manager '${{ inputs.package-manager }}' not handled!"
+            exit 1
+          fi
 
-      - name: Dotnet restore/publish
-        run: |
-          SOLUTION=$(node -p "require('./package.json').vsBuildSolution")
+      - name: Cache ng caching
+        uses: actions/cache@v4
+        with:
+          path: .angular/cache
+          key: ${{ runner.os }}-ng-${{ env.YEAR_MONTH }}
+          restore-keys: |
+            ${{ runner.os }}-ng-
 
-          dotnet restore $SOLUTION /p:Configuration=Release --verbosity diag
-          dotnet publish $SOLUTION -c Release -o ./$PUBLISH_PATH --no-restore
+      # todo: try to renable if its working
+      # - name: Cache eslint
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: .eslintcache
+      #     key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*', '.eslintcache') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-eslint-
+
+      - name: FE lint
+        run: npm run lint --project='${{ steps.package-json.outputs.project-name}}'
+
+      - name: FE build
+        run: npm run build:rel --project='${{ steps.package-json.outputs.project-name}}'
+
+      - name: Dotnet restore
+        run: dotnet restore ${{ steps.package-json.outputs.build-solution }} /p:Configuration=Release
+
+      - name: Dotnet publish
+        run: dotnet publish ${{ steps.package-json.outputs.build-solution }} -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
 
       - name: Configure AWS credentials
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -317,13 +277,19 @@ jobs:
         if: ${{ inputs.secondaryEcrLogin }}
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Setup Docker buildx
+        id: buildx-setup
+        uses: docker/setup-buildx-action@v3
+
       - name: Deploy
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          APP_NAME: ${{ steps.package-json.outputs.name }}
+          APP_VERSION: ${{ steps.version-builder.outputs.version }}
+          GIT_COMMIT: ${{ env.GIT_COMMIT }}
         run: |
-          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml build
-          docker-compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.ci.yml push
+          docker buildx bake -f ${{inputs.project-path}}/docker-compose.yml -f ${{inputs.project-path}}/docker-compose.override.yml -f ${{inputs.project-path}}/docker-compose.ci.yml web --progress plain --push
 
       - name: Logout of Amazon ECR
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -333,11 +299,13 @@ jobs:
         if: ${{ inputs.secondaryEcrLogin }}
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
-      - name: Create Git tag for release
+      - name: Create git tag for release
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        env:
+          VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
-          git tag $APP_VERSION
-          git push origin $APP_VERSION
+          git tag $VERSION
+          git push origin $VERSION
 
   merge:
     name: merge
