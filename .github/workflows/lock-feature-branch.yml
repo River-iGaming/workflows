@@ -1,0 +1,41 @@
+name: Lock Feature Branch After Code Review Approval
+
+on:
+  workflow_call:
+    inputs:
+      require_code_owner_reviews:
+        description: "Require Code Owner approval"
+        required: false
+        type: boolean
+        default: true
+      required_approvals:
+        description: "The number of approvals required"
+        required: false
+        type: number
+        default: 1
+
+jobs:
+  lock-branch:
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lock Feature Branch
+        run: |
+          BRANCH_NAME=${{ github.event.pull_request.head.ref }}
+          REQUIRE_CODE_OWNERS=${{ inputs.require_code_owner_reviews }}
+          REQUIRED_APPROVING_REVIEWS=${{ inputs.required_approvals }}
+
+          echo "Locking $BRANCH_NAME after approval..."
+          gh api -X PUT "/repos/${{ github.repository }}/branches/$BRANCH_NAME/protection" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -d "{
+              \"required_pull_request_reviews\": {
+                \"dismiss_stale_reviews\": true,
+                \"require_code_owner_reviews\": $REQUIRE_CODE_OWNERS,
+                \"required_approvals\": $REQUIRED_APPROVING_REVIEWS
+              },
+              \"enforce_admins\": true
+            }"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
