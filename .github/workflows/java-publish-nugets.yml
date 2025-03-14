@@ -26,6 +26,11 @@ on:
         required: false
         type: string
         default: ${{ vars.NUGET_PLATFORM_URL }}
+      avro-codegen-version:
+        description: The version of Avro CodeGen tool
+        required: false
+        type: string
+        default: 3.1.1
     secrets:
       nuget-server-token:
         description: Access token for Nuget server
@@ -59,7 +64,7 @@ jobs:
         uses: actions/checkout@v4.1.1
         
       - name: Setup Avro Generator
-        run: dotnet tool install sucrose.avro.codegen -g
+        run: dotnet tool install sucrose.avro.codegen -g --version ${{ inputs.avro-codegen-version }}
 
       - name: Generate Avro nuget package
         env: 
