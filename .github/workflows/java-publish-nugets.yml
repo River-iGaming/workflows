@@ -30,7 +30,7 @@ on:
         description: The version of Avro CodeGen tool
         required: false
         type: string
-        default: 3.1.1
+        default: 3.1.0
     secrets:
       nuget-server-token:
         description: Access token for Nuget server
