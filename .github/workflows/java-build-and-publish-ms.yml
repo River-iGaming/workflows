@@ -202,7 +202,7 @@ jobs:
           --platform ${{ inputs.docker-platforms }} \
           --progress plain --push .
 
-          echo "::notice::Pushed image $ECR_REPOSITORY: $IMAGE_TAG"
+          echo "::notice::Pushed image \`$ECR_REPOSITORY\`: \`$IMAGE_TAG\`"
 
       # end of common multi-platform build functionality
       #########
