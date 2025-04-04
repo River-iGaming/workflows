@@ -104,7 +104,6 @@ jobs:
           echo "APP_VERSION=${{ steps.version-builder.outputs.app-version }}" >> $GITHUB_ENV
 
       - name: Check Valid Git Tag
-        if: ${{ inputs.create-tag }}
         id: git-tag-check
         with:
           app-version: ${{ steps.version-builder.outputs.app-version }}
