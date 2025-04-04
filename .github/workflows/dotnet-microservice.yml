@@ -127,19 +127,8 @@ jobs:
           dotnet restore $SOLUTION /p:Configuration=Release
           dotnet publish $SOLUTION -c Release -o ${{ inputs.project-path }}/$PUBLISH_PATH --no-restore
 
-      - name: Check for npm test script
-        id: check-npm-test
-        run: |
-          if [ -f "${{ inputs.project-path }}/package.json" ] && jq -e '.scripts.test' ${{ inputs.project-path }}/package.json > /dev/null; then
-            echo "RUN_TESTS=true" >> $GITHUB_ENV
-          else
-            echo "No tests found"
-            echo "RUN_TESTS=false" >> $GITHUB_ENV
-          fi
-
       - name: Test
-        if: env.RUN_TESTS == 'true'
-        run: npm test
+        run: npm test --if-present
         
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
