@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: "@odin"
+      package-manager:
+        description: "Specify which package manager to use for repo e.g. 'npm', 'pnpm' (defaults: 'npm')"
+        required: false
+        type: string
+        default: npm
       junit-report-path:
         description: "The path to unit test report (defaults: ./junit/)"
         required: false
@@ -85,6 +90,12 @@ jobs:
     name: build & publish
     runs-on: ubuntu-latest
     steps:
+      - name: Validate input
+        run: |
+          if [[ "${{ inputs.package-manager }}" != "npm" && "${{ inputs.package-manager }}" != "pnpm" ]]; then
+          echo "Invalid package manager: '${{ inputs.package-manager}}'. Please use 'npm' or 'pnpm'."
+          exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -109,12 +120,16 @@ jobs:
           fi
           echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        if: inputs.package-manager == 'pnpm'
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
-          cache: "npm"
+          cache: ${{ inputs.package-manager }}
 
       - name: Setup Environment
         run: |
@@ -152,7 +167,15 @@ jobs:
           echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
 
       - name: Restore dependencies
-        run: npm ci
+        run: |
+          if [[ ${{ inputs.package-manager }} == "npm" ]]; then
+            npm ci
+          elif [[ ${{ inputs.package-manager }} == "pnpm" ]]; then
+            pnpm i
+          else
+            echo "::error ::Package manager '${{ inputs.package-manager }}' not handled!"
+            exit 1
+          fi
 
       - name: Lint
         if: ${{!inputs.skip-lint}}
@@ -177,7 +200,7 @@ jobs:
           if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             PUBLISHABLE=false
             echo "::notice ::Non-publishable branch."
-          else 
+          else
             PUBLISHABLE=true
           fi
           echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
