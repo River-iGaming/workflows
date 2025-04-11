@@ -49,6 +49,12 @@ on:
         type: string
         default: "."
 
+      skip-git-tag:
+        description: Set to true to skip creating a git tag for the release
+        required: false
+        type: boolean
+        default: false
+
       publish:
         description: Set to true to publish artifacts to docker repository
         required: false
@@ -66,6 +72,11 @@ on:
         required: false
         type: boolean
         default: false
+
+      docker-repository:
+        description: "Repository where the docker image will be published to."
+        required: true
+        type: string
 
     secrets:
       nexus-username:
@@ -185,6 +196,10 @@ jobs:
       - name: Prepare Build Metadata and Environment
         id: metadata
         run: |
+          # From this point forward we can do further controls and checks
+          # to determine if the package should be published.  
+          # All steps after this point use the publish state determined
+          # by the metadata step
           IS_PUBLISHABLE="${{ inputs.publish }}"
 
           # expose metadata as workflow variables
@@ -281,15 +296,25 @@ jobs:
         id: buildx-setup
         uses: docker/setup-buildx-action@v3
 
-      - name: Deploy
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
         env:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           APP_NAME: ${{ steps.package-json.outputs.name }}
           APP_VERSION: ${{ steps.version-builder.outputs.version }}
           GIT_COMMIT: ${{ env.GIT_COMMIT }}
-        run: |
-          docker buildx bake -f ${{inputs.project-path}}/docker-compose.yml -f ${{inputs.project-path}}/docker-compose.override.yml -f ${{inputs.project-path}}/docker-compose.ci.yml web --progress plain --push
+          appName: ${{ steps.package-json.outputs.name }}
+          appVersion: ${{ steps.version-builder.outputs.version }}
+          gitCommit: ${{ github.sha }}
+        uses: River-iGaming/actions/docker-buildx@docker-buildx/v1.1.0
+        with:
+          path: ${{ inputs.project-path }}
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          repository: ${{ inputs.docker-repository }}
+          tag: ${{ steps.version-builder.outputs.app-version }}
+          dry-run: ${{ inputs.dry-run }}
+          build-args: "appName appVersion gitCommit"
 
       - name: Logout of Amazon ECR
         if: ${{ steps.metadata.outputs.publishable == 'true' }}
@@ -300,7 +325,7 @@ jobs:
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create git tag for release
-        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        if: ${{ (!inputs.skip-git-tag) || steps.metadata.outputs.publishable == 'true' }}
         env:
           VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
