@@ -49,6 +49,12 @@ on:
         type: string
         default: "."
 
+      skip-git-tag:
+        description: Set to true to skip creating a git tag for the release
+        required: false
+        type: boolean
+        default: false
+
       publish:
         description: Set to true to publish artifacts to docker repository
         required: false
@@ -300,7 +306,7 @@ jobs:
         run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Create git tag for release
-        if: ${{ steps.metadata.outputs.publishable == 'true' }}
+        if: ${{ (!inputs.skip-git-tag) || steps.metadata.outputs.publishable == 'true' }}
         env:
           VERSION: ${{ steps.version-builder.outputs.version }}
         run: |
