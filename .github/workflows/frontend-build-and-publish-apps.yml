@@ -212,7 +212,7 @@ jobs:
           echo "::notice ::IsPublishable: $IS_PUBLISHABLE"
 
       - name: Check if tag exists
-        if: ${{ (!inputs.skip-git-tag) ||steps.metadata.outputs.publishable == 'true' }}
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         uses: mukunku/tag-exists-action@v1.6.0
         id: tag
         with:
