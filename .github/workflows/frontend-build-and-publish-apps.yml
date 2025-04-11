@@ -73,6 +73,11 @@ on:
         type: boolean
         default: false
 
+      docker-repository:
+        description: "Repository where the docker image will be published to."
+        required: true
+        type: string
+
     secrets:
       nexus-username:
         required: true
