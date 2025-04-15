@@ -245,14 +245,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ng-
 
-      # todo: try to renable if its working
-      # - name: Cache eslint
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: .eslintcache
-      #     key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'eslint.config.*', '.eslintcache') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-eslint-
+      - name: Cache Nx and ESLint
+        uses: actions/cache@v3
+        with:
+          path: |
+            .nx/cache
+            .eslintcache
+          key: ${{ runner.os }}-nx-${{ hashFiles('**/workspace.json', '**/project.json', 'package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nx-
 
       - name: FE lint
         run: npm run lint -- --project='${{ steps.package-json.outputs.project-name}}'
