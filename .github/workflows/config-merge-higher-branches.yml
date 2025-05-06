@@ -1,0 +1,63 @@
+name: Merge to Higher Branches
+on:
+  workflow_call:
+    secrets:
+      github-token:
+        required: true
+jobs:
+  merge-higher:
+    name: Merge to Higher Branches
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: MergeHigher
+        id: mergehigher
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          CURRENT_BRANCH=$(git branch --show-current)
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [[ ! "$CURRENT_BRANCH" =~ ^[0-9]+\.x$ ]]; then
+            echo "::notice ::Not a versioned branch like '**.x'. Skipping."
+            exit 0
+          fi
+
+          CURRENT_MAJOR=$(echo "$PACKAGE_VERSION" | cut -d'.' -f1)
+          echo "current_branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
+          echo "current_major=$CURRENT_MAJOR" >> $GITHUB_OUTPUT
+
+          git fetch --all
+
+          # Get all version branches like **.x
+          ALL_BRANCHES=$(git branch -r | grep -E 'origin/[0-9]+\.x' | sed 's|origin/||' | sort -V)
+
+          for TARGET_BRANCH in $ALL_BRANCHES; do
+            TARGET_MAJOR=$(echo "$TARGET_BRANCH" | cut -d'.' -f1)
+
+            if [[ "$TARGET_MAJOR" -gt "$CURRENT_MAJOR" ]]; then
+              echo "::notice ::Attempting merge $CURRENT_BRANCH → $TARGET_BRANCH"
+
+              git checkout $TARGET_BRANCH
+              if git merge --no-commit --no-ff origin/$CURRENT_BRANCH; then
+                echo "::notice ::MergeHigher branch: $TARGET_BRANCH from: $CURRENT_BRANCH"
+              else
+                MANUAL_MERGE=true
+                echo "::error ::Merge conflict when merging $CURRENT_BRANCH into $TARGET_BRANCH"
+                exit 1
+              fi
+            fi
+            echo "manual-merge=${MANUAL_MERGE}" >> "$GITHUB_OUTPUT"
+          done
+      - name: Manual Merge Notification
+        if: ${{ steps.mergehigher.outputs.manual-merge == 'true' }}
+        run: |
+            echo "::error ::Auto merged conflicts. Review Changes Manually."
+            exit 1
