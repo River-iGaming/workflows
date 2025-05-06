@@ -10,15 +10,15 @@ on:
       semver:
         default: 'patch'
         required: false
-        type: string  # 'major' | 'minor' | 'patch'
+        type: string
       package_path:
         required: false
         type: string
         default: './'
       node-version:
-          required: false
-          type: string
-          default: "22"
+        required: false
+        type: string
+        default: "22"
     secrets:
       github-token:
         required: true
@@ -30,20 +30,34 @@ jobs:
   auto-bump:
     name: Auto Bump ${{ inputs.semver }} on ${{ inputs.branch }}
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 2
           token: ${{ secrets.github-token }}
           ref: ${{ inputs.branch }}
 
+      - name: Skip if last commit was an auto-bump
+        id: skip-check
+        run: |
+          msg=$(git log -1 --pretty=%B HEAD)
+          echo "Last commit message: $msg"
+          if [[ "$msg" == chore\(package\):\ auto\ bump\ version\ to* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Node.js
+        if: steps.skip-check.outputs.skip == 'false'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version }}
 
       - name: Bump ${{ inputs.semver }} version
+        if: steps.skip-check.outputs.skip == 'false'
         id: bump
         working-directory: ${{ inputs.package_path }}
         run: |
@@ -65,6 +79,7 @@ jobs:
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
       - name: Commit and push version bump
+        if: steps.skip-check.outputs.skip == 'false'
         working-directory: ${{ inputs.package_path }}
         run: |
           git config user.email "deploy-bot@riverigaming.com"
@@ -74,13 +89,14 @@ jobs:
           git push origin ${{ inputs.branch }}
 
       - name: Set output if version was bumped
+        if: steps.skip-check.outputs.skip == 'false'
         id: set_output
         run: |
-            if [[ $(git diff --name-only HEAD~1..HEAD) == *"package.json"* ]]; then
-              echo "version_bumped=true" >> $GITHUB_ENV
-            else
-              echo "version_bumped=false" >> $GITHUB_ENV
-            fi
+          if [[ $(git diff --name-only HEAD~1..HEAD) == *"package.json"* ]]; then
+            echo "version_bumped=true" >> $GITHUB_ENV
+          else
+            echo "version_bumped=false" >> $GITHUB_ENV
+          fi
 
     outputs:
       version_bumped: ${{ env.version_bumped }}
