@@ -73,3 +73,15 @@ jobs:
           git add package.json
           git commit -m "chore(package): auto bump version to ${{ steps.bump.outputs.new_version }}"
           git push origin ${{ inputs.branch }}
+
+      - name: Set output if version was bumped
+        id: set_output
+        run: |
+            if [[ $(git diff --name-only HEAD~1..HEAD) == *"package.json"* ]]; then
+              echo "version_bumped=true" >> $GITHUB_ENV
+            else
+              echo "version_bumped=false" >> $GITHUB_ENV
+            fi
+
+    outputs:
+      version_bumped: ${{ env.version_bumped }}
