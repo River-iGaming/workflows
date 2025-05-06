@@ -8,7 +8,8 @@ on:
         required: false
         type: string
       semver:
-        required: true
+        default: 'patch'
+        required: false
         type: string  # 'major' | 'minor' | 'patch'
       package_path:
         required: false
