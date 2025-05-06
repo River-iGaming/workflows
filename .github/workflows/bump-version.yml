@@ -20,7 +20,7 @@ on:
           type: string
           default: "22"
     secrets:
-      GITHUB_TOKEN:
+      github-token:
         required: true
 
 permissions:
