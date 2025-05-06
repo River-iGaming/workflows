@@ -30,7 +30,7 @@ jobs:
   auto-bump:
     name: Auto Bump ${{ inputs.semver }} on ${{ inputs.branch }}
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'rig-autobot[version-bump]' }}
+    if: ${{ github.actor != 'rig-autobot' }}
     steps:
       - name: Checkout target branch
         uses: actions/checkout@v4
