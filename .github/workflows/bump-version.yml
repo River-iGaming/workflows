@@ -1,0 +1,74 @@
+name: Auto Bump Version
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        default: 'master'
+        required: false
+        type: string
+      semver:
+        required: true
+        type: string  # 'major' | 'minor' | 'patch'
+      package_path:
+        required: false
+        type: string
+        default: './'
+      node-version:
+          required: false
+          type: string
+          default: "22"
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  auto-bump:
+    name: Auto Bump ${{ inputs.semver }} on ${{ inputs.branch }}
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'rig-autobot[version-bump]' }}
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.branch }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Bump ${{ inputs.semver }} version
+        id: bump
+        working-directory: ${{ inputs.package_path }}
+        run: |
+          current_version=$(jq -r '.version' package.json)
+          echo "Current version: $current_version"
+
+          IFS='.' read -r major minor patch <<< "$current_version"
+          case "${{ inputs.semver }}" in
+            patch) patch=$((patch + 1));;
+            minor) minor=$((minor + 1)); patch=0;;
+            major) major=$((major + 1)); minor=0; patch=0;;
+            *) echo "Invalid semver input"; exit 1;;
+          esac
+
+          new_version="$major.$minor.$patch"
+          echo "New version: $new_version"
+
+          jq ".version = \"$new_version\"" package.json > package.tmp.json && mv package.tmp.json package.json
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Commit and push version bump
+        working-directory: ${{ inputs.package_path }}
+        run: |
+          git config user.email "deploy-bot@riverigaming.com"
+          git config user.name "rig-autobot[version-bump]"
+          git add package.json
+          git commit -m "chore(package): auto bump version to ${{ steps.bump.outputs.new_version }}"
+          git push origin ${{ inputs.branch }}
