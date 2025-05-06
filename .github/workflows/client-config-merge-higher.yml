@@ -23,14 +23,22 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          CURRENT_BRANCH=$(git branch --show-current)
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            CURRENT_BRANCH="${{ github.head_ref }}"
+          else
+            CURRENT_BRANCH="$(git branch --show-current)"
+          fi
+
+          # CURRENT_BRANCH=$(git branch --show-current)
+          # PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "current_branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
+
           if [[ ! "$CURRENT_BRANCH" =~ ^[0-9]+\.x$ ]]; then
             echo "::notice ::Not a versioned branch like '**.x'. Skipping."
             exit 0
           fi
 
-          CURRENT_MAJOR=$(echo "$PACKAGE_VERSION" | cut -d'.' -f1)
+          CURRENT_MAJOR=$(echo "$CURRENT_BRANCH" | cut -d'.' -f1)
           echo "current_branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
           echo "current_major=$CURRENT_MAJOR" >> $GITHUB_OUTPUT
 
