@@ -128,8 +128,9 @@ jobs:
 
                     if [[ -n "$non_version_conflict_lines" ]]; then
                       echo "::warning ::Failed to auto-resolve $file conflicts. Merge error."
+                      git merge --abort
                       echo "::endgroup::"
-                      continue 2 # Skip to the next branch
+                      continue 2
                     fi
 
                     git checkout --ours $file
@@ -143,8 +144,9 @@ jobs:
                     fi
                   else
                     echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
+                    git merge --abort
                     echo "::endgroup::"
-                    continue 2 # Skip to the next branch
+                    continue 2
                   fi
                 done
                 if [ "$MANUAL_MERGE" = true ]; then
