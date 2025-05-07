@@ -128,7 +128,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: projects
-      
+      - run: ls -R
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -167,13 +167,12 @@ jobs:
           EXEC_PROJECT: ${{ matrix.project.path }}
           ECR_REPOSITORY: ${{ matrix.project.ecr-repository }}
         run: |
-          REPO=$(git config --get remote.origin.url)
           DATE=$(date --utc +%FT%TZ)
           docker buildx build \
           --build-arg JAR_FILE=$EXEC_PROJECT/target/*-exec.jar \
           --build-arg GIT_HASH=${{ github.sha }} \
           --build-arg DATE="$DATE" \
-          --build-arg GIT_REPO=$REPO \
+          --build-arg GIT_REPO=$GITHUB_REPOSITORY \
           --build-arg GIT_REF=${{ github.ref }} \
           --build-arg VERSION=${{ env.IMAGE_TAG }} \
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
