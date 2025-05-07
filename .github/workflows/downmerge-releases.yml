@@ -13,6 +13,14 @@ on:
           required: false
           type: string
           default: "package.json"
+        commit-types:
+          description: Commit types to be downmerged
+          required: false
+          type: string
+          default: |
+            feat
+            fix
+            release
     secrets:
       github-token:
         required: true
@@ -34,6 +42,23 @@ jobs:
           git fetch
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
+
+          readarray -t COMMIT_TYPES <<< "${{ inputs.commit-types }}"
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          COMMIT_TYPE_MATCHED=false
+          for type in "${COMMIT_TYPES[@]}"; do
+            if [[ "$COMMIT_MESSAGE" == "$type"* ]]; then
+              echo "Matched commit type: $type"
+              COMMIT_TYPE_MATCHED=true
+              break
+            fi
+          done
+
+          if [ "$COMMIT_TYPE_MATCHED" = false ]; then
+            ALLOWED_TYPES=$(IFS=", "; echo "${COMMIT_TYPES[*]}")
+            echo "No commit types matched for \"$COMMIT_MESSAGE\" | Allowed types: [$ALLOWED_TYPES]"
+            exit 1
+          fi
 
           MANUAL_MERGE=false
           # Determine the current branch and package version
