@@ -112,7 +112,12 @@ jobs:
           echo "::notice::Setting ${{ inputs.ecr-repository }} version to: $RELEASE_TAG"
           echo "project-version=$PROJECT_VERSION" >> $GITHUB_OUTPUT
           echo "final-version=$RELEASE_TAG" >> $GITHUB_OUTPUT
-      
+      - uses: actions/upload-artifact@v4
+        id: artifact-upload-step
+        name: Uploading artifacts
+        with:
+          name: projects
+          path: "**/target/*-exec.jar"
         
   package:
     runs-on: ubuntu-latest
