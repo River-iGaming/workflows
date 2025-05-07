@@ -89,7 +89,6 @@ jobs:
           git push origin ${{ inputs.branch }}
 
       - name: Set output if version was bumped
-        if: steps.skip-check.outputs.skip == 'false'
         id: set_output
         run: |
           if [[ $(git diff --name-only HEAD~1..HEAD) == *"package.json"* ]]; then
