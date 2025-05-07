@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: make fake files
         run: |
-          mkdir {p1,p2,p3}/target
+          mkdir -p {p1,p2,p3}/target
           a >> p1/target/project-exec.jar
           b >> p2/target/project-exec.jar
           c >> p3/target/project-exec.jar
