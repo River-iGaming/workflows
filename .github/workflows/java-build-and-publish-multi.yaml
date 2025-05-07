@@ -42,6 +42,7 @@ on:
         value: ${{ jobs.build.outputs.final-version }}
 jobs:
   build:
+    name: Build projects
     runs-on: ubuntu-latest
     outputs:
       project-version: ${{ steps.versioning.outputs.project-version }}
@@ -113,10 +114,11 @@ jobs:
         with:
           name: projects
           path: |
-            dockerfile
+            Dockerfile
             **/target/*-exec.jar
         
   package:
+    name: Publish docker images
     runs-on: ubuntu-latest
     needs: build
     strategy:
