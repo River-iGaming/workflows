@@ -7,6 +7,15 @@ on:
           required: false
           type: string
           default: "package.json"
+      target-branch-pattern:
+        description: Regex pattern for target branches (e.g. "[0-9]+\\.x")
+        required: false
+        type: string
+        default: "[0-9]+\\.x"
+      target-branches:
+        description: Explicit list of target branches to merge into (overrides pattern)
+        required: false
+        type: string
     secrets:
       github-token:
         required: true
@@ -29,13 +38,14 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+          BRANCH_PATTERN="${{ inputs.target-branch-pattern }}"
           MANUAL_MERGE=false
           TARGET_BRANCH_OUTPUT=""
 
           CURRENT_BRANCH="$(git branch --show-current)"
           echo "current_branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
 
-          if [[ ! "$CURRENT_BRANCH" =~ ^[0-9]+\.x$ ]]; then
+          if [[ ! "$CURRENT_BRANCH" =~ ^${BRANCH_PATTERN}$ ]]; then
             echo "::notice ::Not a versioned branch like '**.x'. Skipping."
             exit 0
           fi
@@ -44,8 +54,14 @@ jobs:
 
           git fetch --all
 
-          ALL_BRANCHES=$(git branch -r | grep -oE 'origin/[0-9]+\.x$' | sed 's|origin/||' | sort -V)
-          echo "::notice ::Branches to merge $ALL_BRANCHES"
+          if [[ -n "${{ inputs.target-branches }}" ]]; then
+            IFS=',' read -r -a TARGET_BRANCH_ARRAY <<< "${{ inputs.target-branches }}"
+            ALL_BRANCHES="${TARGET_BRANCH_ARRAY[@]}"
+          else
+            ALL_BRANCHES=$(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
+          fi
+
+          echo "::notice ::Branches to merge: $ALL_BRANCHES"
 
           for TARGET_BRANCH in $ALL_BRANCHES; do
             TARGET_MAJOR=$(echo "$TARGET_BRANCH" | cut -d'.' -f1)
@@ -67,14 +83,17 @@ jobs:
                 for file in $CONFLICTS; do
                   if [[ "$file" == "$VERSION_FILE" ]]; then
                     echo "::notice ::Auto-resolving $file version conflicts."
-                    conflict_content=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
 
+                    conflict_content=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
+                    echo "::notice ::Conflict content: $conflict_content"
+                    
                     non_version_conflict_lines=$(echo "$conflict_content" | \
                       grep -vE '<<<<<<<|=======|>>>>>>>' | \
                       grep -vE '^\s*"version"\s*:' || true)
 
                     if [[ -n "$non_version_conflict_lines" ]]; then
                       echo "::error ::Unresolvable conflicts in $file"
+                      git merge --abort
                       MANUAL_MERGE=true
                       continue 2
                     fi
@@ -85,9 +104,10 @@ jobs:
                     git push origin $TARGET_BRANCH
                     echo "::notice ::Resolved version conflict in $file"
                     TARGET_BRANCH_OUTPUT=$TARGET_BRANCH
-                    continue
+                    continue 2
                   else
                     echo "::error ::Conflict in $file - not auto-resolvable"
+                    git merge --abort
                     MANUAL_MERGE=true
                     continue 2
                   fi
