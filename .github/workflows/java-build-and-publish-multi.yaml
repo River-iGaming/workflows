@@ -165,7 +165,7 @@ jobs:
           --platform ${{ inputs.docker-platforms }} \
           --progress plain --push .
 
-          echo "::notice::Pushed image \`$ECR_REPOSITORY\`: \`$IMAGE_TAG\`"
+          echo "::notice::Pushed image $ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Logout of Amazon ECR
         if: always()
