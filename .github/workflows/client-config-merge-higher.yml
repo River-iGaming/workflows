@@ -1,6 +1,12 @@
 name: Merge to Higher Branches
 on:
   workflow_call:
+    inputs:
+      version-file:
+          description: File containing the app version
+          required: false
+          type: string
+          default: "package.json"
     secrets:
       github-token:
         required: true
@@ -8,8 +14,9 @@ jobs:
   merge-higher:
     name: Merge to Higher Branches
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      manual-merge: ${{ steps.mergehigher.outputs.manual-merge }}
+      target-branch: ${{ steps.mergehigher.outputs.target-branch }}
     steps:
       - name: Checkout full history
         uses: actions/checkout@v3
@@ -22,15 +29,10 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+          MANUAL_MERGE=false
+          TARGET_BRANCH_OUTPUT=""
 
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            CURRENT_BRANCH="${{ github.head_ref }}"
-          else
-            CURRENT_BRANCH="$(git branch --show-current)"
-          fi
-
-          # CURRENT_BRANCH=$(git branch --show-current)
-          # PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          CURRENT_BRANCH="$(git branch --show-current)"
           echo "current_branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
 
           if [[ ! "$CURRENT_BRANCH" =~ ^[0-9]+\.x$ ]]; then
@@ -39,33 +41,83 @@ jobs:
           fi
 
           CURRENT_MAJOR=$(echo "$CURRENT_BRANCH" | cut -d'.' -f1)
-          echo "current_branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
-          echo "current_major=$CURRENT_MAJOR" >> $GITHUB_OUTPUT
 
           git fetch --all
 
-          # Get all version branches like **.x
           ALL_BRANCHES=$(git branch -r | grep -E 'origin/[0-9]+\.x' | sed 's|origin/||' | sort -V)
 
           for TARGET_BRANCH in $ALL_BRANCHES; do
             TARGET_MAJOR=$(echo "$TARGET_BRANCH" | cut -d'.' -f1)
-
             if [[ "$TARGET_MAJOR" -gt "$CURRENT_MAJOR" ]]; then
-              echo "::notice ::Attempting merge $CURRENT_BRANCH → $TARGET_BRANCH"
+              echo "::notice ::Attempting to merge $CURRENT_BRANCH → $TARGET_BRANCH"
 
               git checkout $TARGET_BRANCH
-              if git merge --no-commit --no-ff origin/$CURRENT_BRANCH; then
-                echo "::notice ::MergeHigher branch: $TARGET_BRANCH from: $CURRENT_BRANCH"
+              if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
+                if [[ "$(git status --porcelain)" ]]; then
+                  git commit --no-edit
+                  git push origin $TARGET_BRANCH
+                else
+                  echo "::notice ::Nothing to commit for $TARGET_BRANCH"
+                fi
               else
-                MANUAL_MERGE=true
-                echo "::error ::Merge conflict when merging $CURRENT_BRANCH into $TARGET_BRANCH"
-                exit 1
+                CONFLICTS=$(git diff --name-only --diff-filter=U)
+                VERSION_FILE="${{ inputs.version-file }}"
+
+                for file in $CONFLICTS; do
+                  if [[ "$file" == "$VERSION_FILE" ]]; then
+                    echo "::notice ::Auto-resolving $file version conflicts."
+                    conflict_content=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
+
+                    non_version_conflict_lines=$(echo "$conflict_content" | \
+                      grep -vE '<<<<<<<|=======|>>>>>>>' | \
+                      grep -vE '^\s*"version"\s*:' || true)
+
+                    if [[ -n "$non_version_conflict_lines" ]]; then
+                      echo "::error ::Unresolvable conflicts in $file"
+                      MANUAL_MERGE=true
+                      continue 2
+                    fi
+
+                    git checkout --ours $file
+                    git add $file
+                    git commit -m "chore(package): auto-resolve version conflict"
+                    git push origin $TARGET_BRANCH
+                    echo "::notice ::Resolved version conflict in $file"
+                    TARGET_BRANCH_OUTPUT=$TARGET_BRANCH
+                    continue
+                  else
+                    echo "::error ::Conflict in $file - not auto-resolvable"
+                    MANUAL_MERGE=true
+                    continue 2
+                  fi
+                done
+                if [ "$MANUAL_MERGE" = false ]; then
+                  git commit -m "chore(*): auto-resolve version conflicts"
+                  git push origin $branch
+                fi
               fi
+              TARGET_BRANCH_OUTPUT=$TARGET_BRANCH
             fi
-            echo "manual-merge=${MANUAL_MERGE}" >> "$GITHUB_OUTPUT"
           done
+
+          echo "manual-merge=$MANUAL_MERGE" >> $GITHUB_OUTPUT
+          echo "target-branch=$TARGET_BRANCH_OUTPUT" >> $GITHUB_OUTPUT
+
       - name: Manual Merge Notification
         if: ${{ steps.mergehigher.outputs.manual-merge == 'true' }}
         run: |
-            echo "::error ::Auto merged conflicts. Review Changes Manually."
-            exit 1
+          echo "::error ::Conflicts occurred that couldn't be auto-resolved. Please resolve manually."
+          exit 1
+
+  bump-version:
+    name: Bump Patch Version
+    needs: merge-higher
+    if: ${{ needs.merge-higher.outputs.manual-merge == 'false' && needs.merge-higher.outputs.target-branch != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Auto Bump
+        uses: River-iGaming/actions/auto-bump@feature/auto-bump
+        with:
+          branch: ${{ needs.merge-higher.outputs.target-branch }}
+          semver: patch
+          github-token: ${{ secrets.github-token }}
