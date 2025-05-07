@@ -33,6 +33,7 @@ jobs:
 
     outputs:
       version_bumped: ${{ steps.set_output.outputs.version_bumped }}
+      new_version: ${{ steps.bump.outputs.new_version }}
       all: ${{ steps.bundle_output.outputs.all }}
 
     steps:
@@ -104,4 +105,4 @@ jobs:
       - name: Bundle outputs into JSON
         id: bundle_output
         run: |
-          echo "all={\"version_bumped\":\"${{ steps.set_output.outputs.version_bumped }}\"}" >> $GITHUB_OUTPUT
+          echo "all={\"version_bumped\":\"${{ steps.set_output.outputs.version_bumped }}\",\"new_version\":\"${{ steps.bump.outputs.new_version }}\"}" >> $GITHUB_OUTPUT
