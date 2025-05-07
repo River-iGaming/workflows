@@ -112,7 +112,9 @@ jobs:
         name: Uploading artifacts
         with:
           name: projects
-          path: "**/target/*-exec.jar"
+          path: |
+            dockerfile
+            **/target/*-exec.jar
         
   package:
     runs-on: ubuntu-latest
