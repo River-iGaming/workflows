@@ -1,11 +1,10 @@
 on:
   workflow_call:
-    # inputs:
-    #   exec-project:
-    #     description: The main executable project
-    #     required: false
-    #     type: string
-    #     default: '.'
+    inputs:
+      projects:
+        description: all project to build docker stuff u hekk
+        required: true
+        type: string
 
 jobs:
   build:
@@ -28,9 +27,12 @@ jobs:
   package:
     runs-on: ubuntu-latest
     needs: build
+    strategy:
+      matrix:
+        project: ${{ fromJSON(github.event.inputs.projects)}}
     steps: 
       - uses: actions/download-artifact@v4
         with:
           name: projects
       - name: Display structure of downloaded files
-        run: ls -R
+        run: ls -R  ${{ matrix.project }}
