@@ -44,7 +44,7 @@ jobs:
 
           git fetch --all
 
-          ALL_BRANCHES=$(git branch -r | grep -E 'origin/[0-9]+\.x' | sed 's|origin/||' | sort -V)
+          ALL_BRANCHES=$(git branch -r | grep -oE 'origin/[0-9]+\.x$' | sed 's|origin/||' | sort -V)
 
           for TARGET_BRANCH in $ALL_BRANCHES; do
             TARGET_MAJOR=$(echo "$TARGET_BRANCH" | cut -d'.' -f1)
@@ -78,7 +78,7 @@ jobs:
                       continue 2
                     fi
 
-                    git checkout --ours $file
+                    git checkout --theirs $file
                     git add $file
                     git commit -m "chore(package): auto-resolve version conflict"
                     git push origin $TARGET_BRANCH
