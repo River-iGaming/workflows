@@ -14,9 +14,9 @@ jobs:
       - name: make fake files
         run: |
           mkdir -p {p1,p2,p3}/target
-          a >> p1/target/project-exec.jar
-          b >> p2/target/project-exec.jar
-          c >> p3/target/project-exec.jar
+          echo a >> p1/target/project-exec.jar
+          echo b >> p2/target/project-exec.jar
+          echo c >> p3/target/project-exec.jar
       - uses: actions/upload-artifact@v4
         id: artifact-upload-step
         with:
