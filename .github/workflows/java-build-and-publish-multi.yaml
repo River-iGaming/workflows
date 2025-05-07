@@ -160,8 +160,8 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ needs.build.outputs.final-version }}
-          EXEC_PROJECT: ${{ matrix.project }}
-          ECR_REPOSITORY: wallet-poc-${{ matrix.project }}
+          EXEC_PROJECT: ${{ matrix.project.path }}
+          ECR_REPOSITORY: ${{ matrix.project.ecr-repository }}
         run: |
           REPO=$(git config --get remote.origin.url)
           DATE=$(date --utc +%FT%TZ)
