@@ -45,6 +45,7 @@ jobs:
           git fetch --all
 
           ALL_BRANCHES=$(git branch -r | grep -oE 'origin/[0-9]+\.x$' | sed 's|origin/||' | sort -V)
+          echo "::notice ::Branches to merge $ALL_BRANCHES"
 
           for TARGET_BRANCH in $ALL_BRANCHES; do
             TARGET_MAJOR=$(echo "$TARGET_BRANCH" | cut -d'.' -f1)
@@ -53,11 +54,11 @@ jobs:
 
               git checkout $TARGET_BRANCH
               if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
-                if [[ "$(git status --porcelain)" ]]; then
-                  git commit --no-edit
-                  git push origin $TARGET_BRANCH
+                if [[ (-z "$(git status --porcelain)") ]]; then
+                  echo "::notice ::Nothing to commit for branch: $TARGET_BRANCH"
                 else
-                  echo "::notice ::Nothing to commit for $TARGET_BRANCH"
+                  git commit --no-edit
+                  git push origin $branch
                 fi
               else
                 CONFLICTS=$(git diff --name-only --diff-filter=U)
