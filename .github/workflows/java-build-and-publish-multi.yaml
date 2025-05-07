@@ -115,6 +115,8 @@ jobs:
           name: projects
           path: |
             Dockerfile
+            dockerfile
+            docker-compose.*
             **/target/*-exec.jar
         
   package:
