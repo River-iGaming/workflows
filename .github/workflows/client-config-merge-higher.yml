@@ -19,6 +19,7 @@ on:
     secrets:
       github-token:
         required: true
+
 jobs:
   get-branches:
     name: Merge to Higher Branches
@@ -32,7 +33,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get current branch
+      - name: Get branch info
         id: branch-info
         run: |
           git config user.email "deploy-bot@riverigaming.com"
@@ -56,9 +57,14 @@ jobs:
             mapfile -t ALL_BRANCHES < <(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
           fi
 
+          CURRENT_MAJOR=$(echo "$CURRENT_BRANCH" | cut -d'.' -f1)
+
           FILTERED_BRANCHES=()
-          for branch in "${ALL_BRANCHES[@]}"; do
-            [[ "$branch" != "$CURRENT_BRANCH" ]] && FILTERED_BRANCHES+=("$branch")
+          for BRANCH in "${ALL_BRANCHES[@]}"; do
+            BRANCH_MAJOR=$(echo "$BRANCH" | cut -d'.' -f1)
+            if [[ "$BRANCH" != "$CURRENT_BRANCH" && "$BRANCH_MAJOR" -gt "$CURRENT_MAJOR" ]]; then
+              FILTERED_BRANCHES+=("$BRANCH")
+            fi
           done
 
           echo "::notice ::Branches to merge: ${FILTERED_BRANCHES[@]}"
@@ -72,6 +78,7 @@ jobs:
     name: Merge and Bump for ${{ matrix.branch }}
     runs-on: ubuntu-latest
     needs: get-branches
+    if: ${{ needs.get-branches.outputs.all-branches != '[]' }}
     strategy:
       matrix:
         branch: ${{ fromJson(needs.get-branches.outputs.all-branches) }}
@@ -175,8 +182,6 @@ jobs:
           git status
           echo "::endgroup::"
 
-          git checkout ${{ matrix.branch }}
           git add package.json
           git commit -m "chore(package): auto bump version to $NEW_VERSION"
           git push origin ${{ matrix.branch }}
-    
