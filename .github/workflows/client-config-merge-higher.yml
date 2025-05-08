@@ -2,11 +2,15 @@ name: Merge to Higher Branches
 on:
   workflow_call:
     inputs:
+      base-branch:
+        description: Base branch of the repo to downmerge to
+        required: false
+        type: string
       version-file:
-          description: File containing the app version
-          required: false
-          type: string
-          default: "package.json"
+        description: File containing the app version
+        required: false
+        type: string
+        default: "package.json"
       target-branch-pattern:
         description: Regex pattern for target branches (e.g. "[0-9]+\\.x")
         required: false
@@ -39,8 +43,11 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           BRANCH_PATTERN="${{ inputs.target-branch-pattern }}"
+          BASE_BRANCH="${{ inputs.base-branch }}"
           MANUAL_MERGE=false
           TARGET_BRANCH_OUTPUT=""
+
+          echo "::notice ::Base Branches to merge: $BASE_BRANCH"
 
           CURRENT_BRANCH="$(git branch --show-current)"
           echo "current_branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
