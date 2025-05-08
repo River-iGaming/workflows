@@ -19,6 +19,8 @@ on:
     secrets:
       github-token:
         required: true
+concurrency:
+  group: ${{ github.workflow }}
 
 jobs:
   get-branches:
@@ -110,8 +112,11 @@ jobs:
               echo "::notice ::Nothing to commit for branch: $TARGET_BRANCH"
             else
               git commit --no-edit
-              # git push origin $branch
             fi
+            echo "::group::Git Branch & Status --no-edit"
+            git branch
+            git status
+            echo "::endgroup::"
           else
             CONFLICTS=$(git diff --name-only --diff-filter=U)
             VERSION_FILE="${{ inputs.version-file }}"
@@ -138,6 +143,11 @@ jobs:
                 git add $file
                 git commit -m "chore(package): auto-resolve version conflict"
                 echo "::notice ::Resolved version conflict in $file"
+
+                echo "::group::Git Branch & Status chore(package)"
+                git branch
+                git status
+                echo "::endgroup::"
               else
                 echo "::error ::Conflict in $file - not auto-resolvable"
                 git merge --abort
@@ -146,12 +156,14 @@ jobs:
                 exit 1
               fi
             done
-            if [ "$MANUAL_MERGE" = false ]; then
-              git commit -m "chore(*): auto-resolve version conflicts"
-            fi
+            git commit -m "chore(*): auto-resolve version conflicts"
           fi
 
-          # git push origin $TARGET_BRANCH
+          echo "::group::Git Branch & Status end one"
+          git branch
+          git status
+          echo "::endgroup::"
+
           echo "manual-merge=$MANUAL_MERGE" >> $GITHUB_OUTPUT
 
       - name: Manual Merge Notification
