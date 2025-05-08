@@ -84,7 +84,7 @@ jobs:
     strategy:
       matrix:
         branch: ${{ fromJson(needs.get-branches.outputs.all-branches) }}
-      
+    
     steps:
       - name: Checkout full history
         uses: actions/checkout@v3
@@ -111,7 +111,8 @@ jobs:
             if [[ (-z "$(git status --porcelain)") ]]; then
               echo "::notice ::Nothing to commit for branch: $TARGET_BRANCH"
             else
-              git commit --no-edit
+              # git commit --no-edit
+              echo "::notice ::Merged committed for branch $TARGET_BRANCH, processed to version bump"
             fi
             echo "::group::Git Branch & Status --no-edit"
             git branch
@@ -125,15 +126,15 @@ jobs:
               if [[ "$file" == "$VERSION_FILE" ]]; then
                 echo "::notice ::Auto-resolving $file version conflicts."
 
-                conflict_content=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
-                echo "::notice ::Conflict content: $conflict_content"
-                
-                non_version_conflict_lines=$(echo "$conflict_content" | \
+                CONFLICT_CONTENT=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
+                cho "::notice::Conflict content: $CONFLICT_CONTENT"
+
+                NON_VERSION_CONFLICT_LINES=$(echo "$CONFLICT_CONTENT" | \
                   grep -vE '<<<<<<<|=======|>>>>>>>' | \
                   grep -vE '^\s*"version"\s*:' || true)
 
-                if [[ -n "$non_version_conflict_lines" ]]; then
-                  echo "::error ::Unresolvable conflicts in $file"
+                if [[ -n "$NON_VERSION_CONFLICT_LINES" ]]; then
+                  echo "::warning::Failed to auto-resolve $file conflicts. Merge error."
                   git merge --abort
                   echo "manual_merge=true" >> $GITHUB_OUTPUT
                   exit 1
@@ -141,8 +142,8 @@ jobs:
 
                 git checkout --theirs $file
                 git add $file
-                git commit -m "chore(package): auto-resolve version conflict"
-                echo "::notice ::Resolved version conflict in $file"
+                # git commit -m "chore(package): auto-resolve version conflict"
+                echo "::notice ::Resolved version conflict in $file, processed to version bump"
 
                 echo "::group::Git Branch & Status chore(package)"
                 git branch
@@ -156,7 +157,7 @@ jobs:
                 exit 1
               fi
             done
-            git commit -m "chore(*): auto-resolve version conflicts"
+            # git commit -m "chore(*): auto-resolve version conflicts"
           fi
 
           echo "::group::Git Branch & Status end one"
@@ -179,7 +180,7 @@ jobs:
         with:
           branch: ${{ matrix.branch }}
           semver: patch
-          commit: 'false'
+          skipcp: 'true'
           github-token: ${{ secrets.github-token }}
       
       - name: Commit and Push
@@ -195,5 +196,5 @@ jobs:
           echo "::endgroup::"
 
           git add package.json
-          git commit -m "chore(package): auto bump version to $NEW_VERSION"
+          git commit -m "chore(package): auto bump version to $NEW_VERSION and change merged"
           git push origin ${{ matrix.branch }}
