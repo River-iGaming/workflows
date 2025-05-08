@@ -11,7 +11,7 @@ jobs:
   check-version-bump:
     runs-on: ubuntu-latest
     outputs:
-      isVersionMatch: ${{ steps.check-version.outputs.match }}
+      is-match: ${{ steps.check-version.outputs.is-match }}
 
     steps:
       - name: Checkout current code
@@ -43,11 +43,11 @@ jobs:
 
           if [[ "$(printf '%s\n' "$current_version" "$base_version" | sort -V | tail -n 1)" == "$base_version" ]]; then
             echo "package.json version is not greater than the base branch. Please bump the version."
-            echo "::set-output match=true"
+            echo "::set-output is-match=true"
             if ${{ inputs.fail-on-match == true }}; then
               exit 1
             fi
           else
             echo "package.json version has been bumped in the pull request."
-            echo "::set-output match=false"
+            echo "::set-output is-match=false"
           fi
