@@ -86,14 +86,16 @@ jobs:
       - name: Merge ${{ needs.get-branches.outputs.current-branch }} into ${{ matrix.branch }}
         id: merge
         run: |
+          git fetch --all
+          git config user.email "deploy-bot@riverigaming.com"
+          git config user.name "rig-autobot"
+
           CURRENT_BRANCH="${{ needs.get-branches.outputs.current-branch }}"
           TARGET_BRANCH="${{ matrix.branch }}"
           MANUAL_MERGE=false
 
           echo "::notice ::Attempting to merge $CURRENT_BRANCH → $TARGET_BRANCH"
           
-          git fetch origin $CURRENT_BRANCH
-          git fetch origin $TARGET_BRANCH
           git checkout $TARGET_BRANCH
 
           if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
