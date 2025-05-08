@@ -7,6 +7,10 @@ on:
         required: true
         type: boolean
         default: true
+    outputs:
+      is-match:
+        description: Whether the version in the pull request is the same as the base branch
+        value: ${{ jobs.check-version-bump.outputs.is-match }}
 jobs:
   check-version-bump:
     runs-on: ubuntu-latest
