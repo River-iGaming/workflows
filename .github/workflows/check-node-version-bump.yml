@@ -1,9 +1,20 @@
 name: Check Node package.json Version Bump
 on:
   workflow_call:
+    inputs:
+      fail-on-match:
+        description: Fail if the version in the pull request is the same as the base branch
+        type: boolean
+        default: true
+    outputs:
+      is-match:
+        description: Whether the version in the pull request is the same as the base branch
+        value: ${{ jobs.check-version-bump.outputs.is-match }}
 jobs:
   check-version-bump:
     runs-on: ubuntu-latest
+    outputs:
+      is-match: ${{ steps.check-version.outputs.is-match }}
 
     steps:
       - name: Checkout current code
@@ -28,13 +39,18 @@ jobs:
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Check version bump
+        id: check-version
         run: |
           current_version="${{ steps.current.outputs.version }}"
           base_version="${{ steps.base.outputs.version }}"
 
           if [[ "$(printf '%s\n' "$current_version" "$base_version" | sort -V | tail -n 1)" == "$base_version" ]]; then
+            echo "is-match=true" >> $GITHUB_OUTPUT
             echo "package.json version is not greater than the base branch. Please bump the version."
-            exit 1
+            if ${{ inputs.fail-on-match == true }}; then
+              exit 1
+            fi
           else
+            echo "is-match=false" >> $GITHUB_OUTPUT
             echo "package.json version has been bumped in the pull request."
           fi
