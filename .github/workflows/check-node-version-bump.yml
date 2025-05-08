@@ -4,7 +4,6 @@ on:
     inputs:
       fail-on-match:
         description: Fail if the version in the pull request is the same as the base branch
-        required: true
         type: boolean
         default: true
     outputs:
