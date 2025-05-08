@@ -8,13 +8,8 @@ on:
           required: false
           type: string
           default: "master"
-        version-file:
-          description: File containing the app version
-          required: false
-          type: string
-          default: "package.json"
         commit-types:
-          description: Commit types to be downmerged
+          description: Allowed commit types for downmerge
           required: false
           type: string
           default: |
@@ -31,45 +26,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.github-token }}
 
+      - name: Check if downmerge allowed
+        id: check-downmerge
+        run: |        
+          # Check if commit type matches
+          COMMIT_TYPE_MATCHED=false
+          readarray -t COMMIT_TYPES <<< "${{ inputs.commit-types }}"
+          COMMIT_TYPES=($(printf "%s\n" "${COMMIT_TYPES[@]}" | sed '/^\s*$/d')) # Remove empty and whitespace-only lines
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          for type in "${COMMIT_TYPES[@]}"; do
+            if [[ "$COMMIT_MESSAGE" == "$type"* ]]; then
+              echo "::notice::Matched commit type: $type"
+              COMMIT_TYPE_MATCHED=true
+              break
+            fi
+          done
+          if [ "$COMMIT_TYPE_MATCHED" = false ]; then
+            ALLOWED_TYPES=$(IFS=", "; echo "${COMMIT_TYPES[*]}")
+            echo "::error::No commit types matched for \"$COMMIT_MESSAGE\" | Allowed types: [$ALLOWED_TYPES]"
+            echo "downmerge-allowed=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          # Check for prerelease or metadata in package version
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+          if [[ "$PACKAGE_VERSION" == *"-"* || "$PACKAGE_VERSION" == *"+"* ]]; then 
+            echo "::error::Downmerge is not allowed for prerelease versions or versions with metadata."
+            echo "downmerge-allowed=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          echo "downmerge-allowed=true" >> "$GITHUB_OUTPUT"
+
       - name: Downmerge
         id: downmerge
+        if: ${{ steps.check-downmerge.outputs.downmerge-allowed == 'true' }}
         run: |
           git fetch
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
 
-          readarray -t COMMIT_TYPES <<< "${{ inputs.commit-types }}"
-          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-          COMMIT_TYPE_MATCHED=false
-          for type in "${COMMIT_TYPES[@]}"; do
-            if [[ "$COMMIT_MESSAGE" == "$type"* ]]; then
-              echo "Matched commit type: $type"
-              COMMIT_TYPE_MATCHED=true
-              break
-            fi
-          done
-
-          if [ "$COMMIT_TYPE_MATCHED" = false ]; then
-            ALLOWED_TYPES=$(IFS=", "; echo "${COMMIT_TYPES[*]}")
-            echo "No commit types matched for \"$COMMIT_MESSAGE\" | Allowed types: [$ALLOWED_TYPES]"
-            exit 1
-          fi
-
-          MANUAL_MERGE=false
           # Determine the current branch and package version
           BASE_BRANCH="${{ inputs.base-branch }}"
           CURRENT_BRANCH="$(git branch --show-current)"
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-
-          if [[ "$PACKAGE_VERSION" == *"-"* || "$PACKAGE_VERSION" == *"+"* ]]; then 
-            echo "::error ::Downmerge is not allowed for prerelease versions or versions with metadata."
-            exit 1
-          fi
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
 
           if [[ "$CURRENT_BRANCH" =~ "release" ]]; then
             BASE_PACKAGE_VERSION=$(echo $CURRENT_BRANCH | cut -d'/' -f2)
@@ -77,90 +82,116 @@ jobs:
             BASE_PACKAGE_VERSION=$PACKAGE_VERSION
           fi
 
-          # Iterate through branches and downmerge if they match the pattern
-          for branch in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release-test/*' "refs/remotes/origin/${{ inputs.base-branch }}"); do
-            echo "::group::Branch: $branch"
+          # Get a list of branches for downmerge
+          BRANCHES=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release-test/*' "refs/remotes/origin/$BASE_BRANCH")
+          DOWNMERGE_BRANCHES=()
+          for branch in $BRANCHES; do
             branch="${branch#origin/}" # Remove the 'origin/' prefix
-            if [ "$branch" == "$CURRENT_BRANCH" ]; then
-              echo "::notice ::Skipping current branch: $branch"
-              echo "::endgroup::"
-              continue
-            fi
-
             BRANCH_VERSION=$(echo $branch | cut -d'/' -f2)
             NEWER_VERSION="$(printf '%s\n' "$BRANCH_VERSION" "$BASE_PACKAGE_VERSION" | sort -V | tail -n 1)"
-            # IS_CURRENT_RELEASE_BRANCH=$(if [[ $BRANCH_VERSION == $BASE_PACKAGE_VERSION ]]; then echo "true"; else echo "false"; fi)
 
-            echo "::notice ::Current branch: $CURRENT_BRANCH"
-            echo "::notice ::Branch version: $BRANCH_VERSION"
-            echo "::notice ::Base package version: $BASE_PACKAGE_VERSION"
-            echo "::notice ::Newer version: $NEWER_VERSION"
+            if [[ $branch == $BASE_BRANCH || ($NEWER_VERSION == $BRANCH_VERSION && "$BRANCH_VERSION" != "$BASE_PACKAGE_VERSION") ]]; then
+              DOWNMERGE_BRANCHES+=("$branch")
+            fi
+          done
 
-            if [[ $branch == $BASE_BRANCH || $NEWER_VERSION == $BRANCH_VERSION ]]; then
-              echo "::notice ::Downmerging branch: $branch from: $CURRENT_BRANCH"
+          MANUAL_MERGE=false
+          DOWNMERGE_FAILED_BRANCHES=()
 
-              git checkout $branch
+          process_branch() {
+            local branch="$1"
+            echo "::notice::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
-              # Merge changes from the remote branch into branch
-              if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
-                if [[ (-z "$(git status --porcelain)") ]]; then
-                  echo "::notice ::Nothing to commit for branch: $branch"
-                else
-                  git commit --no-edit
-                  git push origin $branch
-                fi
+            git checkout "$branch"
+
+            if git merge --no-commit --no-ff --no-edit "$CURRENT_BRANCH"; then
+              if [[ -z "$(git status --porcelain)" ]]; then
+                echo "::notice::Nothing to commit for branch: $branch"
               else
-                CONFLICTS="$(git diff --name-only --diff-filter=U)"
-                VERSION_FILE="${{ inputs.version-file }}"
+                git commit --no-edit
+                git push origin "$branch"
+              fi
+            else
+              CONFLICTS="$(git diff --name-only --diff-filter=U)"
+              echo "::warning::Conflicts: $CONFLICTS"
+              for file in $CONFLICTS; do
+                if [[ "$file" == "package.json" ]]; then
+                  echo "::notice::Auto-resolving $file version conflicts."
 
-                echo "::notice ::Conflicts: $CONFLICTS"
-                for file in $CONFLICTS; do
-                  if [ "$file" == "$VERSION_FILE" ]; then
-                    echo "::notice ::Auto-resolving $file version conflicts."
+                  CONFLICT_CONTENT=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
+                  echo "::notice::Conflict content: $CONFLICT_CONTENT"
 
-                    conflict_content=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
-                    echo "::notice ::Conflict content: $conflict_content"
+                  NON_VERSION_CONFLICT_LINES=$(echo "$CONFLICT_CONTENT" | \
+                    grep -vE '<<<<<<<|=======|>>>>>>>' | \
+                    grep -vE '^\s*"version"\s*:' || true)
 
-                    non_version_conflict_lines=$(echo "$conflict_content" | \
-                      grep -vE '<<<<<<<|=======|>>>>>>>' | \
-                      grep -vE '^\s*"version"\s*:' || true)
-                    echo "::notice ::non_version_conflict_lines: $non_version_conflict_lines"  
-
-                    if [[ -n "$non_version_conflict_lines" ]]; then
-                      echo "::warning ::Failed to auto-resolve $file conflicts. Merge error."
-                      git merge --abort
-                      echo "::endgroup::"
-                      continue 2
-                    fi
-
-                    git checkout --ours $file
-                    git add $file
-
-                    if [[ (-z "$(git status --porcelain)") ]]; then
-                      echo "::notice ::Nothing to commit for branch: $branch."
-                    else  
-                      echo "::notice ::Auto-resolve $VERSION_FILE version conflicts by choosing the HEAD version."
-                      MANUAL_MERGE=true
-                    fi
-                  else
-                    echo "::warning ::Failed to downmerge to branch: $branch. Merge error."
+                  if [[ -n "$NON_VERSION_CONFLICT_LINES" ]]; then
+                    echo "::warning::Failed to auto-resolve $file conflicts. Merge error."
+                    DOWNMERGE_FAILED_BRANCHES+=("$branch")
                     git merge --abort
-                    echo "::endgroup::"
-                    continue 2
+                    return 1
                   fi
-                done
-                if [ "$MANUAL_MERGE" = true ]; then
-                  git commit -m "chore(*): auto-resolve version conflicts"
-                  git push origin $branch
+
+                  git checkout --ours "$file"
+                  git add "$file"
+
+                  if [[ -z "$(git status --porcelain)" ]]; then
+                    echo "::notice::Nothing to commit for branch: $branch."
+                  else
+                    echo "::notice::Auto-resolve $VERSION_FILE version conflicts by choosing the HEAD version."
+                    MANUAL_MERGE=true
+                  fi
+                else
+                  echo "::error::Failed to downmerge to branch: $branch. Merge error."
+                  DOWNMERGE_FAILED_BRANCHES+=("$branch")
+                  git merge --abort
+                  return 1
                 fi
+              done
+
+              if [ "$MANUAL_MERGE" = true ]; then
+                git commit -m "chore(*): auto-resolve version conflicts"
+                git push origin "$branch"
               fi
             fi
-            echo "manual-merge=${MANUAL_MERGE}" >> "$GITHUB_OUTPUT"
+
+            return 0
+          }
+
+          # Iterate through branches and downmerge
+          for branch in "${DOWNMERGE_BRANCHES[@]}"; do
+            set +e
+            OUTPUT=$(process_branch "$branch" 2>&1)
+            STATUS=$?
+            set -e
+
+            DOWNMERGE_STATUS=$([ "$STATUS" -eq 0 ] && echo "✅" || echo "❌")
+
+            echo "::group::$DOWNMERGE_STATUS - Branch: $branch"
+            echo "$OUTPUT"
             echo "::endgroup::"
           done
+          {
+            echo "manual-merge=${MANUAL_MERGE}"
+            echo "downmerge-failed-branches=$(IFS=', '; echo "${DOWNMERGE_FAILED_BRANCHES[*]}")"
+          } >> "$GITHUB_OUTPUT" 
+      
       - name: Manual Merge Notification
         if: ${{ steps.downmerge.outputs.manual-merge == 'true' }}
         run: |
-            echo "::error ::Auto merged conflicts. Review Changes Manually."
+            echo "::error::Auto merged conflicts. Review Changes Manually."
+            exit 1
+      
+      - name: Failed Merge Notification
+        if: ${{ steps.downmerge.outputs.downmerge-failed-branches != '' }}
+        run: |
+            IFS=',' read -ra BRANCHES <<< "${{ steps.downmerge.outputs.downmerge-failed-branches }}"
+            MSG="::error::Failed to downmerge the following branches:"
+            for b in "${BRANCHES[@]}"; do
+              MSG+="%0A- $b"
+            done
+            MSG+="%0AReview logs manually."
+
+            echo "$MSG"
             exit 1
             
