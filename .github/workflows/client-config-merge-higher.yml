@@ -41,6 +41,7 @@ jobs:
           BRANCH_PATTERN="${{ inputs.target-branch-pattern }}"
           
           CURRENT_BRANCH="$(git branch --show-current)"
+          echo "::notice ::Current Branch: $CURRENT_BRANCH"
 
           if [[ ! "$CURRENT_BRANCH" =~ ^${BRANCH_PATTERN}$ ]]; then
             echo "::notice ::Not a versioned branch like '**.x'. Skipping."
@@ -48,17 +49,23 @@ jobs:
           fi
 
           git fetch --all
-          # todo need to remove current branch exists in the all branches
+
           if [[ -n "${{ inputs.target-branches }}" ]]; then
-            IFS=',' read -r -a TARGET_BRANCH_ARRAY <<< "${{ inputs.target-branches }}"
-            ALL_BRANCHES="${TARGET_BRANCH_ARRAY[@]}"
+            IFS=',' read -r -a ALL_BRANCHES <<< "${{ inputs.target-branches }}"
           else
-            ALL_BRANCHES=$(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
+            mapfile -t ALL_BRANCHES < <(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
           fi
 
-          echo "::notice ::Branches to merge: $ALL_BRANCHES"
+          FILTERED_BRANCHES=()
+          for branch in "${ALL_BRANCHES[@]}"; do
+            [[ "$branch" != "$CURRENT_BRANCH" ]] && FILTERED_BRANCHES+=("$branch")
+          done
 
-          echo "all-branches=$ALL_BRANCHES" >> $GITHUB_OUTPUT
+          echo "::notice ::Branches to merge: ${FILTERED_BRANCHES[@]}"
+
+          json_array=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
+
+          echo "all-branches=$json_array" >> $GITHUB_OUTPUT
           echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
     
   merge-up:
@@ -67,7 +74,7 @@ jobs:
     needs: get-branches
     strategy:
       matrix:
-        branch: ${{ needs.get-branches.outputs.all-branches }}
+        branch: ${{ fromJson(needs.get-branches.outputs.all-branches) }}
       
     steps:
       - name: Checkout full history
