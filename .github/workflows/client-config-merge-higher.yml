@@ -111,7 +111,7 @@ jobs:
             if [[ (-z "$(git status --porcelain)") ]]; then
               echo "::notice ::Nothing to commit for branch: $TARGET_BRANCH"
             else
-              # git commit --no-edit
+              git commit --no-edit
               echo "::notice ::Merged committed for branch $TARGET_BRANCH, processed to version bump"
             fi
             echo "::group::Git Branch & Status --no-edit"
@@ -142,7 +142,7 @@ jobs:
 
                 git checkout --theirs $file
                 git add $file
-                # git commit -m "chore(package): auto-resolve version conflict"
+                git commit -m "chore(package): auto-resolve version conflict"
                 echo "::notice ::Resolved version conflict in $file, processed to version bump"
 
                 echo "::group::Git Branch & Status chore(package)"
@@ -157,7 +157,7 @@ jobs:
                 exit 1
               fi
             done
-            # git commit -m "chore(*): auto-resolve version conflicts"
+            git commit -m "chore(*): auto-resolve version conflicts"
           fi
 
           echo "::group::Git Branch & Status end one"
@@ -192,6 +192,7 @@ jobs:
       
       - name: Commit and Push
         id: commit-push
+        if: ${{ steps.merge.outputs.manual-merge == 'false' }}
         run: |
           NEW_VERSION=$(echo '${{ steps.bump.outputs.all }}' | jq -r '.new_version')
           
@@ -202,6 +203,7 @@ jobs:
           git status
           echo "::endgroup::"
 
-          git add package.json
+          # git add package.json
+          git add -A
           git commit -m "chore(package): auto bump version to $NEW_VERSION and change merged"
           git push origin ${{ matrix.branch }}
