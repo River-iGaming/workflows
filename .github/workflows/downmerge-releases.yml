@@ -95,10 +95,9 @@ jobs:
             fi
           done
 
-          AUTO_RESOLVED_BRANCHES=()
           DOWNMERGE_FAILED_BRANCHES=()
 
-          process_branch() {
+          downmerge_branch() {
             local branch="$1"
             echo "::notice::Downmerging branch: $branch from: $CURRENT_BRANCH"
 
@@ -113,46 +112,10 @@ jobs:
               fi
             else
               CONFLICTS="$(git diff --name-only --diff-filter=U)"
-              MANUAL_MERGE=false
               echo "::warning::Conflicts: $CONFLICTS"
-              for file in $CONFLICTS; do
-                if [[ "$file" == "package.json" ]]; then
-                  echo "::notice::Auto-resolving $file version conflicts."
-
-                  CONFLICT_CONTENT=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
-                  echo "::notice::Conflict content: $CONFLICT_CONTENT"
-
-                  NON_VERSION_CONFLICT_LINES=$(echo "$CONFLICT_CONTENT" | \
-                    grep -vE '<<<<<<<|=======|>>>>>>>' | \
-                    grep -vE '^\s*"version"\s*:' || true)
-
-                  if [[ -n "$NON_VERSION_CONFLICT_LINES" ]]; then
-                    echo "::warning::Failed to auto-resolve $file conflicts. Merge error."
-                    git merge --abort
-                    return 2
-                  fi
-
-                  git checkout --ours "$file"
-                  git add "$file"
-
-                  if [[ -z "$(git status --porcelain)" ]]; then
-                    echo "::notice::Nothing to commit for branch: $branch."
-                  else
-                    echo "::notice::Auto-resolve $VERSION_FILE version conflicts by choosing the HEAD version."
-                    MANUAL_MERGE=true
-                  fi
-                else
-                  echo "::error::Failed to downmerge to branch: $branch. Merge error."
-                  git merge --abort
-                  return 2
-                fi
-              done
-
-              if [ "$MANUAL_MERGE" = true ]; then
-                git commit -m "chore(*): auto-resolve version conflicts"
-                git push origin "$branch"
-                return 3
-              fi
+              echo "::error::Failed to downmerge to branch: $branch. Merge error."
+              git merge --abort
+              return 2
             fi
 
             return 0
@@ -161,7 +124,7 @@ jobs:
           # Iterate through branches and downmerge
           for branch in "${DOWNMERGE_BRANCHES[@]}"; do
             set +e
-            OUTPUT=$(process_branch "$branch" 2>&1)
+            OUTPUT=$(downmerge_branch "$branch" 2>&1)
             STATUS=$?
             set -e
 
@@ -171,31 +134,12 @@ jobs:
               DOWNMERGE_FAILED_BRANCHES+=("$branch")
             fi
 
-            if [ "$STATUS" -eq 3 ]; then
-              AUTO_RESOLVED_BRANCHES+=("$branch")
-            fi
-
             echo "::group::$DOWNMERGE_STATUS - Branch: $branch"
             echo "$OUTPUT"
             echo "::endgroup::"
           done
-          {
-            echo "auto-resolved-branches=$(IFS=', '; echo "${AUTO_RESOLVED_BRANCHES[*]}")"
-            echo "downmerge-failed-branches=$(IFS=', '; echo "${DOWNMERGE_FAILED_BRANCHES[*]}")"
-          } >> "$GITHUB_OUTPUT" 
-      
-      - name: Auto-resolved Conflicts Merge Notification
-        if: ${{ steps.downmerge.outputs.auto-resolved-branches != '' }}
-        run: |
-            IFS=',' read -ra BRANCHES <<< "${{ steps.downmerge.outputs.auto-resolved-branches }}"
-            MSG="::warning::Branches with auto-resolved conflicts:"
-            for b in "${BRANCHES[@]}"; do
-              MSG+="%0A- $b"
-            done
-            MSG+="%0AReview changes manually."
-
-            echo "$MSG"
-            exit 1
+          
+          echo "downmerge-failed-branches=$(IFS=', '; echo "${DOWNMERGE_FAILED_BRANCHES[*]}")" >> "$GITHUB_OUTPUT" 
       
       - name: Failed Merge Notification
         if: ${{ steps.downmerge.outputs.downmerge-failed-branches != '' }}
