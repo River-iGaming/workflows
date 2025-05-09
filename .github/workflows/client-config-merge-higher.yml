@@ -41,6 +41,14 @@ jobs:
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
 
+          echo "::group::concurrency group"
+          echo "::notice concurrency-group=${{ github.workflow }}"
+          echo "::notice concurrency-group-branch=${{ github.ref }}"
+          echo "::notice concurrency-group-run-id=${{ github.run_id }}"
+          echo "::notice concurrency-group-head-ref=${{ github.head_ref }}"
+          echo "::notice concurrency-group-triggering_actor=${{ github.triggering_actor }}"
+          echo "::endgroup::"
+
           BRANCH_PATTERN="${{ inputs.target-branch-pattern }}"
           
           CURRENT_BRANCH="$(git branch --show-current)"
