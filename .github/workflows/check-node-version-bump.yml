@@ -7,7 +7,6 @@ on:
         required: false
         type: boolean
         default: true
-
       compare-to:
         description: To what to compare the version bump. It can be set to "base branch" or "previous commit".
         required: false
