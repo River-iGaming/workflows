@@ -4,11 +4,18 @@ on:
     inputs:
       fail-on-match:
         description: Fail if the version in the pull request is the same as the base branch
+        required: true
         type: boolean
         default: true
+
+      compare-to:
+        description: To what to compare the version bump. It can be set to "base branch" or "previous commit".
+        required: false
+        type: string
+        default: "base branch"
     outputs:
       is-match:
-        description: Whether the version in the pull request is the same as the base branch
+        description: Whether the version in the pull request is the same as the compare to.
         value: ${{ jobs.check-version-bump.outputs.is-match }}
 jobs:
   check-version-bump:
@@ -28,25 +35,34 @@ jobs:
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Checkout base branch code
+        if: ${{ inputs.compare-to == 'base branch' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ github.base_ref }}
           sparse-checkout: package.json
           sparse-checkout-cone-mode: false
 
-      - name: Get the base branch version
-        id: base
+      - name: Checkout previous commit code
+        if: ${{ inputs.compare-to == 'previous commit' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.before }}
+          sparse-checkout: package.json
+          sparse-checkout-cone-mode: false
+
+      - name: Get the Comparable version
+        id: comparable
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Check version bump
         id: check-version
         run: |
           current_version="${{ steps.current.outputs.version }}"
-          base_version="${{ steps.base.outputs.version }}"
+          prev_version="${{ steps.comparable.outputs.version }}"
 
-          if [[ "$(printf '%s\n' "$current_version" "$base_version" | sort -V | tail -n 1)" == "$base_version" ]]; then
+          if [[ "$(printf '%s\n' "$current_version" "$prev_version" | sort -V | tail -n 1)" == "$prev_version" ]]; then
             echo "is-match=true" >> $GITHUB_OUTPUT
-            echo "package.json version is not greater than the base branch. Please bump the version."
+            echo "package.json version is not greater than the ${{ inputs.compare-to }}. Please bump the version."
             if ${{ inputs.fail-on-match == true }}; then
               exit 1
             fi
