@@ -97,12 +97,12 @@ jobs:
 
       - name: Downmerge
         id: downmerge
-        if: ${{ steps.check-downmerge.outputs.downmerge-branches != '' }}
+        if: ${{ steps.get-branches.outputs.downmerge-branches != '' }}
         run: |
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
 
-          IFS=',' read -ra DOWNMERGE_BRANCHES <<< "${{ steps.downmerge.outputs.downmerge-branches }}"
+          IFS=',' read -ra DOWNMERGE_BRANCHES <<< "${{ steps.get-branches.outputs.downmerge-branches }}"
           DOWNMERGE_FAILED_BRANCHES=()
 
           downmerge_branch() {
