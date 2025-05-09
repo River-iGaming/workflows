@@ -145,7 +145,7 @@ jobs:
                   echo "::warning::Failed to auto-resolve $file conflicts. Merge error."
                   git merge --abort
                   echo "manual_merge=true" >> $GITHUB_OUTPUT
-                  exit 1
+                  return 1
                 fi
 
                 git checkout --theirs $file
@@ -162,7 +162,7 @@ jobs:
                 git merge --abort
                 MANUAL_MERGE=true
                 echo "manual_merge=true" >> $GITHUB_OUTPUT
-                exit 1
+                return 1
               fi
             done
             git commit -m "chore(*): auto-resolve version conflicts"
