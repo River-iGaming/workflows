@@ -132,6 +132,7 @@ jobs:
                   git add "$file"
                   if [[ -z "$(git status --porcelain)" ]]; then
                     echo "::notice::Nothing to commit for branch: $branch."
+                    return 2
                   else
                     echo "::notice::Auto-resolve $VERSION_FILE version conflicts by choosing the HEAD version."
                     MANUAL_MERGE=true
@@ -190,6 +191,7 @@ jobs:
             MSG+="%0AReview changes manually."
             echo "$MSG"
             exit 1
+      
       - name: Failed Merge Notification
         if: ${{ steps.downmerge.outputs.downmerge-failed-branches != '' }}
         run: |
