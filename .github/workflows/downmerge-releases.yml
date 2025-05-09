@@ -160,14 +160,14 @@ jobs:
             STATUS=$?
             set -e # re-enable exit on error
 
-            DOWNMERGE_STATUS=$([ "$STATUS" -eq 0 ] && echo "✅" || echo "❌")
-
-            if [ "$STATUS" -eq 2 ]; then
-              DOWNMERGE_FAILED_BRANCHES+=("$branch")
-            fi
-
-            if [ "$STATUS" -eq 3 ]; then
+            if [ "$STATUS" -eq 0 ]; then
+              DOWNMERGE_STATUS="✅"
+            elif [ "$STATUS" -eq 3 ]; then
+              DOWNMERGE_STATUS="⚠️"
               AUTO_RESOLVED_BRANCHES+=("$branch")
+            else
+              DOWNMERGE_STATUS="❌"
+              DOWNMERGE_FAILED_BRANCHES+=("$branch")
             fi
 
             echo "::group::$DOWNMERGE_STATUS - Branch: $branch"
