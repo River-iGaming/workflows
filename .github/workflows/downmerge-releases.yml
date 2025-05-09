@@ -123,10 +123,10 @@ jobs:
 
           # Iterate through branches and downmerge
           for branch in "${DOWNMERGE_BRANCHES[@]}"; do
-            set +e
+            set +e # disable exit on error to prevent job from failing immediately
             OUTPUT=$(downmerge_branch "$branch" 2>&1)
             STATUS=$?
-            set -e
+            set -e # re-enable exit on error
 
             DOWNMERGE_STATUS=$([ "$STATUS" -eq 0 ] && echo "✅" || echo "❌")
 
