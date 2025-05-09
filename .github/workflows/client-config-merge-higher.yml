@@ -183,11 +183,12 @@ jobs:
       - name: Bump Patch Version
         id: bump
         if: ${{ steps.merge.outputs.manual-merge == 'false' }}
-        uses: River-iGaming/actions/auto-bump@feature/auto-bump-update-merge-higher
+        uses: River-iGaming/actions/auto-bump@feature/auto-bump-update-merge-higher-skip-checkout
         with:
           branch: ${{ matrix.branch }}
           semver: patch
           include-commit: 'false'
+          do-checkout: 'false'
           github-token: ${{ secrets.github-token }}
       
       - name: Commit and Push
