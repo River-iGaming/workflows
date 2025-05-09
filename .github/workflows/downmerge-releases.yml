@@ -104,6 +104,7 @@ jobs:
 
           IFS=',' read -ra DOWNMERGE_BRANCHES <<< "${{ steps.get-branches.outputs.downmerge-branches }}"
           DOWNMERGE_FAILED_BRANCHES=()
+          CURRENT_BRANCH="$(git branch --show-current)"
 
           downmerge_branch() {
             local branch="$1"
