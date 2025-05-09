@@ -63,13 +63,11 @@ jobs:
 
           echo "downmerge-allowed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Downmerge
-        id: downmerge
+      - name: Get Branches for Downmerge
+        id: get-branches
         if: ${{ steps.check-downmerge.outputs.downmerge-allowed == 'true' }}
         run: |
           git fetch
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
 
           # Determine the current branch and package version
           BASE_BRANCH="${{ inputs.base-branch }}"
@@ -95,6 +93,16 @@ jobs:
             fi
           done
 
+          echo "downmerge-branches=$(IFS=', '; echo "${DOWNMERGE_BRANCHES[*]}")" >> "$GITHUB_OUTPUT"
+
+      - name: Downmerge
+        id: downmerge
+        if: ${{ steps.check-downmerge.outputs.downmerge-branches != '' }}
+        run: |
+          git config user.email "deploy-bot@riverigaming.com"
+          git config user.name "rig-autobot"
+
+          IFS=',' read -ra DOWNMERGE_BRANCHES <<< "${{ steps.downmerge.outputs.downmerge-branches }}"
           DOWNMERGE_FAILED_BRANCHES=()
 
           downmerge_branch() {
