@@ -172,6 +172,13 @@ jobs:
         run: |
           echo "::error ::Conflicts occurred that couldn't be auto-resolved. Please resolve manually."
           exit 1
+
+      - name: Test Git Branch & Status
+        run: |
+          echo "::group::Git Branch & Status"
+          git branch
+          git status
+          echo "::endgroup::"
       
       - name: Bump Patch Version
         id: bump
@@ -180,7 +187,7 @@ jobs:
         with:
           branch: ${{ matrix.branch }}
           semver: patch
-          skipcp: 'true'
+          include-commit: 'false'
           github-token: ${{ secrets.github-token }}
       
       - name: Commit and Push
