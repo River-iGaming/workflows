@@ -29,8 +29,8 @@ jobs:
     outputs:
       all-branches: ${{ steps.branch-info.outputs.all-branches }}
       current-branch: ${{ steps.branch-info.outputs.current-branch }}
-      branch-skip: ${{ steps.branch-info.outputs.skip }}
-      commit-skip: ${{ steps.check-last-commit.outputs.skip }}
+      branch-skip: ${{ steps.branch-info.outputs.branch-skip }}
+      commit-skip: ${{ steps.check-last-commit.outputs.commit-skip }}
     steps:
       - name: Checkout full history
         uses: actions/checkout@v3
