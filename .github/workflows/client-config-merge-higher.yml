@@ -41,7 +41,7 @@ jobs:
         run: |
           msg=$(git log -1 --pretty=%B HEAD)
           echo "Last commit message: $msg"
-          chore(*): changes merged and with version bump to $NEW_VERSION
+          
           if [[ "$msg" == chore\(*\):\ changes\ merged\ and\ with\ version\ bump\ to* ]]; then
             echo "::notice ::No branches to merge. Exiting."
             exit 0
