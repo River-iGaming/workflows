@@ -41,7 +41,7 @@ jobs:
         run: |
           msg=$(git log -1 --pretty=%B HEAD)
           echo "Last commit message: $msg"
-          
+
           if [[ "$msg" == chore\(*\):\ changes\ merged\ and\ with\ version\ bump\ to* ]]; then
             echo "::notice ::No branches to merge. Exiting."
             exit 0
@@ -174,7 +174,7 @@ jobs:
                 git branch
                 git status
                 echo "::endgroup::"
-              else if [[ "$file" == "package-lock.json" ]]; then
+              elif [[ "$file" == "package-lock.json" ]]; then
                 git checkout --theirs $file
                 git add package-lock.json
                 git commit -m "chore(package lock): auto-resolve version conflict"
