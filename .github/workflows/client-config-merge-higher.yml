@@ -97,7 +97,7 @@ jobs:
 
           BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
 
-          if [[ "$BRANCHES" == "[]" ]]; then
+          if [[ $(echo "$BRANCHES" | jq 'length') -eq 0 ]]; then
             echo "::notice ::No branches to merge. Exiting."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 0
