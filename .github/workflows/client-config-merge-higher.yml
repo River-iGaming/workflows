@@ -35,6 +35,18 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Skip if last commit was an merge higher
+        id: check-last-commit
+        run: |
+          msg=$(git log -1 --pretty=%B HEAD)
+          echo "Last commit message: $msg"
+          chore(*): changes merged and with version bump to $NEW_VERSION
+          if [[ "$msg" == chore\(*\):\ changes\ merged\ and\ with\ version\ bump\ to* ]]; then
+            echo "::notice ::No branches to merge. Exiting."
+            exit 0
+          fi
+
       - name: Get branch info
         id: branch-info
         run: |
@@ -79,9 +91,14 @@ jobs:
 
           echo "::notice ::Branches to merge: ${FILTERED_BRANCHES[@]}"
 
-          json_array=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
+          BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
 
-          echo "all-branches=$json_array" >> $GITHUB_OUTPUT
+          if [[ "$BRANCHES" == "[]" ]]; then
+            echo "::notice ::No branches to merge. Exiting."
+            exit 0
+          fi
+
+          echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
           echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
     
   merge-up:
@@ -151,12 +168,17 @@ jobs:
                 git checkout --theirs $file
                 git add $file
                 git commit -m "chore(package): auto-resolve version conflict"
-                echo "::notice ::Resolved version conflict in $file, processed to version bump"
+                echo "::notice ::Resolved version conflict in $file"
 
                 echo "::group::Git Branch & Status chore(package)"
                 git branch
                 git status
                 echo "::endgroup::"
+              else if [[ "$file" == "package-lock.json" ]]; then
+                git checkout --theirs $file
+                git add package-lock.json
+                git commit -m "chore(package lock): auto-resolve version conflict"
+                echo "::notice ::Resolved version conflict in package-lock.json"
               else
                 echo "::error ::Conflict in $file - not auto-resolvable"
                 git merge --abort
@@ -214,5 +236,8 @@ jobs:
 
           # git add package.json
           git add -A
-          git commit -m "chore(package): auto bump version to $NEW_VERSION and change merged"
+          git commit -m "chore(*): changes merged and with version bump to $NEW_VERSION"
           git push origin ${{ matrix.branch }}
+
+          echo "::notice ::Pushing changes to ${{ matrix.branch }} with version bump to $NEW_VERSION"
+          exit 1
