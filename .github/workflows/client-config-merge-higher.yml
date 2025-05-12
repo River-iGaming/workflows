@@ -196,7 +196,7 @@ jobs:
               fi
             done
 
-            git commit -m "chore(*): auto-resolve version conflicts"
+            # git commit -m "chore(*): auto-resolve version conflicts"
           fi
 
           echo "::group::Git Branch & Status end one"
