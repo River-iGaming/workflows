@@ -29,6 +29,8 @@ jobs:
     outputs:
       all-branches: ${{ steps.branch-info.outputs.all-branches }}
       current-branch: ${{ steps.branch-info.outputs.current-branch }}
+      branch-skip: ${{ steps.branch-info.outputs.skip }}
+      commit-skip: ${{ steps.check-last-commit.outputs.skip }}
     steps:
       - name: Checkout full history
         uses: actions/checkout@v3
@@ -43,8 +45,9 @@ jobs:
           echo "Last commit message: $msg"
 
           if [[ "$msg" == chore\(*\):\ changes\ merged\ and\ with\ version\ bump\ to* ]]; then
-            echo "::notice ::No branches to merge. Exiting."
-            exit 0
+            echo "commit-skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "commit-skip=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Get branch info
@@ -68,6 +71,7 @@ jobs:
 
           if [[ ! "$CURRENT_BRANCH" =~ ^${BRANCH_PATTERN}$ ]]; then
             echo "::notice ::Not a versioned branch like '**.x'. Skipping."
+            echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 0
           fi
 
@@ -95,17 +99,19 @@ jobs:
 
           if [[ "$BRANCHES" == "[]" ]]; then
             echo "::notice ::No branches to merge. Exiting."
+            echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
           echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
+          echo "branch-skip=false" >> $GITHUB_OUTPUT
     
   merge-up:
     name: Merge and Bump for ${{ matrix.branch }}
     runs-on: ubuntu-latest
     needs: get-branches
-    if: ${{ needs.get-branches.outputs.all-branches != '[]' }}
+    if: ${{ needs.get-branches.outputs.branch-skip == 'false' && needs.get-branches.outputs.commit-skip == 'false' }}
     strategy:
       matrix:
         branch: ${{ fromJson(needs.get-branches.outputs.all-branches) }}
@@ -243,4 +249,3 @@ jobs:
           git push origin ${{ matrix.branch }}
 
           echo "::notice ::Pushing changes to ${{ matrix.branch }} with version bump to $NEW_VERSION"
-          exit 1
