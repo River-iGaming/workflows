@@ -192,7 +192,7 @@ jobs:
                 return 1
               fi
             done
-            
+
             echo "::group::Git Branch & Status auto-resolve"
             git branch
             git status
@@ -228,7 +228,6 @@ jobs:
           branch: ${{ matrix.branch }}
           semver: patch
           include-commit: 'false'
-          do-checkout: 'false'
           github-token: ${{ secrets.github-token }}
       
       - name: Commit and Push
