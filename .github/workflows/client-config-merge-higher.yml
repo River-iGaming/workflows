@@ -19,8 +19,6 @@ on:
     secrets:
       github-token:
         required: true
-concurrency:
-  group: ${{ github.workflow }}
 
 jobs:
   get-branches:
