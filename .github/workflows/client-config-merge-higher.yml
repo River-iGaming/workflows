@@ -171,7 +171,7 @@ jobs:
 
                 git checkout --theirs $file
                 git add $file
-                git commit -m "chore(package): auto-resolve version conflict"
+                # git commit -m "chore(package): auto-resolve version conflict"
                 echo "::notice ::Resolved version conflict in $file"
 
                 echo "::group::Git Branch & Status chore(package)"
@@ -182,7 +182,7 @@ jobs:
               elif [[ "$file" == "package-lock.json" ]]; then
                 git checkout --theirs $file
                 git add package-lock.json
-                git commit -m "chore(package lock): auto-resolve version conflict"
+                # git commit -m "chore(package lock): auto-resolve version conflict"
                 echo "::notice ::Resolved version conflict in package-lock.json"
 
               else
@@ -194,7 +194,7 @@ jobs:
               fi
             done
 
-            # git commit -m "chore(*): auto-resolve version conflicts"
+            git commit -m "chore(package): auto-resolve version conflict"
           fi
 
           echo "::group::Git Branch & Status end one"
