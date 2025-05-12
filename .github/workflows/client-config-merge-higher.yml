@@ -141,7 +141,7 @@ jobs:
             if [[ (-z "$(git status --porcelain)") ]]; then
               echo "::notice ::Nothing to commit for branch: $TARGET_BRANCH"
             else
-              echo "::notice ::Merged committed for branch $TARGET_BRANCH, processed to version bump"
+              echo "::notice ::Merged to branch $TARGET_BRANCH"
             fi
             echo "::group::Git Branch & Status --no-edit"
             git branch
@@ -166,7 +166,7 @@ jobs:
                   echo "::warning::Failed to auto-resolve $file conflicts. Merge error."
                   git merge --abort
                   echo "manual_merge=true" >> $GITHUB_OUTPUT
-                  return 1
+                  exit 0
                 fi
 
                 git checkout --ours $file
@@ -188,7 +188,7 @@ jobs:
                 git merge --abort
                 MANUAL_MERGE=true
                 echo "manual_merge=true" >> $GITHUB_OUTPUT
-                return 1
+                exit 0
               fi
             done
 
