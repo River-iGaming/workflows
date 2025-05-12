@@ -50,6 +50,7 @@ jobs:
 
       - name: Get branch info
         id: branch-info
+        if: ${{ steps.check-last-commit.outputs.commit-skip == 'false' }}
         run: |
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
@@ -169,7 +170,7 @@ jobs:
                   return 1
                 fi
 
-                git checkout --theirs $file
+                git checkout --ours $file
                 git add $file
                 # git commit -m "chore(package): auto-resolve version conflict"
                 echo "::notice ::Resolved version conflict in $file"
@@ -180,7 +181,7 @@ jobs:
                 echo "::endgroup::"
 
               elif [[ "$file" == "package-lock.json" ]]; then
-                git checkout --theirs $file
+                git checkout --ours $file
                 git add package-lock.json
                 # git commit -m "chore(package lock): auto-resolve version conflict"
                 echo "::notice ::Resolved version conflict in package-lock.json"
