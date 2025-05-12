@@ -141,7 +141,6 @@ jobs:
             if [[ (-z "$(git status --porcelain)") ]]; then
               echo "::notice ::Nothing to commit for branch: $TARGET_BRANCH"
             else
-              git commit --no-edit
               echo "::notice ::Merged committed for branch $TARGET_BRANCH, processed to version bump"
             fi
             echo "::group::Git Branch & Status --no-edit"
