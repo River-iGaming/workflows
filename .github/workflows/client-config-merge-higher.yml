@@ -2,11 +2,11 @@ name: Merge to Higher Branches
 on:
   workflow_call:
     inputs:
-      version-file:
+      version-files:
         description: File containing the app version
         required: false
         type: string
-        default: "package.json"
+        default: "package.json,package-lock.json"
       target-branch-pattern:
         description: Regex pattern for target branches
         required: false
@@ -20,7 +20,7 @@ on:
       github-token:
         required: true
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ inputs.target-branches}}
 
 jobs:
   get-branches:
@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Skip if last commit was an merge higher
+      - name: Skip if last commit was an merge up
         id: check-last-commit
         run: |
           msg=$(git log -1 --pretty=%B HEAD)
@@ -46,6 +46,7 @@ jobs:
 
           if [[ "$msg" == chore\(*\):\ changes\ merged\ and\ with\ version\ bump\ to* ]]; then
             echo "commit-skip=true" >> $GITHUB_OUTPUT
+            echo "::error:: ❌ Merge is not allowed, the changes are already merged."
           else
             echo "commit-skip=false" >> $GITHUB_OUTPUT
           fi
@@ -71,7 +72,7 @@ jobs:
           echo "::notice ::Current Branch: $CURRENT_BRANCH"
 
           if [[ ! "$CURRENT_BRANCH" =~ ^${BRANCH_PATTERN}$ ]]; then
-            echo "::notice ::Not a versioned branch like '**.x'. Skipping."
+            echo "::error :: ❌ Not a versioned branch like '**.x'. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -99,7 +100,7 @@ jobs:
           BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
 
           if [[ $(echo "$BRANCHES" | jq 'length') -eq 0 ]]; then
-            echo "::notice ::No branches to merge. Exiting."
+            echo "::error :: ❌ No higher branches to merge into. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -151,10 +152,20 @@ jobs:
             echo "::endgroup::"
           else
             CONFLICTS=$(git diff --name-only --diff-filter=U)
-            VERSION_FILE="${{ inputs.version-file }}"
+            VERSION_FILES="${{ inputs.version-files }}"
+            IFS=',' read -ra VERSION_FILE_LIST <<< "$VERSION_FILES"
 
+            echo "::warning::Conflicts: $CONFLICTS"
             for file in $CONFLICTS; do
-              if [[ "$file" == "$VERSION_FILE" ]]; then
+
+              for vfile in "${VERSION_FILE_LIST[@]}"; do
+                if [[ "$file" == "$vfile" ]]; then
+                  IS_VERSION_FILE=true
+                  break
+                fi
+              done
+
+              if [[ "$IS_VERSION_FILE" == true ]]; then
                 echo "::notice ::Auto-resolving $file version conflicts."
 
                 CONFLICT_CONTENT=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
@@ -179,11 +190,6 @@ jobs:
                 git branch
                 git status
                 echo "::endgroup::"
-
-              elif [[ "$file" == "package-lock.json" ]]; then
-                git checkout --ours $file
-                git add package-lock.json
-                echo "::notice ::Resolved version conflict in package-lock.json"
 
               else
                 echo "::error ::Conflict in $file - not auto-resolvable"
@@ -224,7 +230,7 @@ jobs:
       - name: Bump Patch Version
         id: bump
         if: ${{ steps.merge.outputs.manual-merge == 'false' }}
-        uses: River-iGaming/actions/auto-bump@feature/auto-bump-update-merge-higher
+        uses: River-iGaming/actions/auto-bump@main
         with:
           branch: ${{ matrix.branch }}
           semver: patch
