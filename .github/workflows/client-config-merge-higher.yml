@@ -21,7 +21,6 @@ on:
         required: true
 concurrency:
   group: ${{ github.workflow }}
-  cancel-in-progress: true
 
 jobs:
   get-branches:
