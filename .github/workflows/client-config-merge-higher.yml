@@ -152,7 +152,7 @@ jobs:
                 echo "::notice ::Auto-resolving $file version conflicts."
 
                 CONFLICT_CONTENT=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
-                cho "::notice::Conflict content: $CONFLICT_CONTENT"
+                echo "::notice::Conflict content: $CONFLICT_CONTENT"
 
                 NON_VERSION_CONFLICT_LINES=$(echo "$CONFLICT_CONTENT" | \
                   grep -vE '<<<<<<<|=======|>>>>>>>' | \
@@ -174,11 +174,13 @@ jobs:
                 git branch
                 git status
                 echo "::endgroup::"
+
               elif [[ "$file" == "package-lock.json" ]]; then
                 git checkout --theirs $file
                 git add package-lock.json
                 git commit -m "chore(package lock): auto-resolve version conflict"
                 echo "::notice ::Resolved version conflict in package-lock.json"
+
               else
                 echo "::error ::Conflict in $file - not auto-resolvable"
                 git merge --abort
@@ -187,6 +189,7 @@ jobs:
                 return 1
               fi
             done
+
             git commit -m "chore(*): auto-resolve version conflicts"
           fi
 
