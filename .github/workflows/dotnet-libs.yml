@@ -73,7 +73,7 @@ jobs:
 
       - name: Generate Version Number
         id: version-builder
-        uses: River-iGaming/actions/dotnet/versions@releaseflow
+        uses: River-iGaming/actions/dotnet/versions@v4
         with:
           type: lib
           package-version: ${{ env.PACKAGE_VERSION }}
@@ -84,7 +84,7 @@ jobs:
           app-version: ${{ steps.version-builder.outputs.app-version }}
           package-version: ${{ env.PACKAGE_VERSION }}
         # env:
-        uses: River-iGaming/actions/dotnet/tag-check@releaseflow
+        uses: River-iGaming/actions/dotnet/tag-check@v4
 
       - name: Setup Build Tools
         run: |
