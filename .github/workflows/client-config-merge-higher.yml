@@ -96,7 +96,7 @@ jobs:
           git fetch --all
 
           if [[ -n "${{ inputs.target-branches }}" ]]; then
-            IFS=',' read -r -a ALL_BRANCHES <<< "${{ inputs.target-branches }}"
+            readarray -t ALL_BRANCHES <<< "${{ inputs.target-branches }}"
           else
             mapfile -t ALL_BRANCHES < <(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
           fi
@@ -106,13 +106,16 @@ jobs:
           FILTERED_BRANCHES=()
           for BRANCH in "${ALL_BRANCHES[@]}"; do
             BRANCH_MAJOR=$(echo "$BRANCH" | cut -d'.' -f1)
+            echo "::notice ::Current Branch: $CURRENT_MAJOR"
+            echo "::notice ::Current Branch: $BRANCH_MAJOR"
             if [[ "$BRANCH" != "$CURRENT_BRANCH" && "$BRANCH_MAJOR" -gt "$CURRENT_MAJOR" ]]; then
               FILTERED_BRANCHES+=("$BRANCH")
             fi
           done
 
-          echo "::notice ::Branches to merge: ${FILTERED_BRANCHES[@]}"
+          echo "::notice::Branches to merge: ${FILTERED_BRANCHES[*]}"
 
+          # Format the array into a JSON array string
           BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
 
           if [[ $(echo "$BRANCHES" | jq 'length') -eq 0 ]]; then
