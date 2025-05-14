@@ -6,7 +6,9 @@ on:
         description: File containing the app version
         required: false
         type: string
-        default: "package.json,package-lock.json"
+        default: |
+          package.json
+          package-lock.json"
       target-branch-pattern:
         description: Regex pattern for target branches
         required: false
@@ -139,6 +141,7 @@ jobs:
         with:
           source-branch: ${{ needs.get-branches.outputs.current-branch }}
           target-branch: ${{ matrix.branch }}
+          version-files: ${{ inputs.version-files }}
           include-commit: 'false'
           github-token: ${{ secrets.github-token }}
 
