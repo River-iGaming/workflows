@@ -8,7 +8,7 @@ on:
         type: string
         default: |
           package.json
-          package-lock.json"
+          package-lock.json
       target-branch-pattern:
         description: Regex pattern for target branches
         required: false
