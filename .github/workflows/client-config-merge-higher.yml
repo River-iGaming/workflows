@@ -134,6 +134,7 @@ jobs:
     needs: get-branches
     if: ${{ needs.get-branches.outputs.branch-skip == 'false' }}
     strategy:
+      fail-fast: false
       matrix:
         branch: ${{ fromJson(needs.get-branches.outputs.all-branches) }}
     
