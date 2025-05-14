@@ -118,13 +118,19 @@ jobs:
           echo "::notice::Branches to merge: ${FILTERED_BRANCHES[*]}"
 
           # Format the array into a JSON array string
+          
           BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
 
-          if [[ $(echo "$BRANCHES" | jq 'length') -eq 0 ]]; then
+          
+          echo "::notice::Branches length: $(echo "$BRANCHES" | jq 'length')}"
+          echo "::notice::Branches length: $(echo "$FILTERED_BRANCHES" | jq 'length')}"
+
+          if [[ $(echo "$FILTERED_BRANCHES" | jq 'length') -eq 0 ]]; then
             echo "::error :: ❌ No higher branches to merge into. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 1
           fi
+          
 
           echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
           echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
