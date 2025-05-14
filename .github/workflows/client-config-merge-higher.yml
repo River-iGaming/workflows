@@ -103,13 +103,12 @@ jobs:
           fi
 
           CURRENT_MAJOR=$(echo "$CURRENT_BRANCH" | cut -d'.' -f1)
-
           FILTERED_BRANCHES=()
+
           for BRANCH in "${ALL_BRANCHES[@]}"; do
             [[ -z "$BRANCH" ]] && continue
+            
             BRANCH_MAJOR=$(echo "$BRANCH" | cut -d'.' -f1)
-            echo "::notice ::Current Branch: $CURRENT_MAJOR"
-            echo "::notice ::BRANCH_MAJOR Branch: $BRANCH_MAJOR"
             if [[ "$BRANCH" != "$CURRENT_BRANCH" && "$BRANCH_MAJOR" -gt "$CURRENT_MAJOR" ]]; then
               FILTERED_BRANCHES+=("$BRANCH")
             fi
@@ -117,20 +116,14 @@ jobs:
 
           echo "::notice::Branches to merge: ${FILTERED_BRANCHES[*]}"
 
-          # Format the array into a JSON array string
-          
-          BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
-
-          
-          echo "::notice::Branches length: $(echo "$BRANCHES" | jq 'length')}"
-          echo "::notice::Branches length: $(echo "$FILTERED_BRANCHES" | jq 'length')}"
-
           if [[ $(echo "$FILTERED_BRANCHES" | jq 'length') -eq 0 ]]; then
             echo "::error :: ❌ No higher branches to merge into. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 1
           fi
-          
+
+          # Format the array into a JSON array string
+          BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
 
           echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
           echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
@@ -162,13 +155,6 @@ jobs:
         run: |
           echo "::error ::Conflicts occurred that couldn't be auto-resolved. Please resolve manually."
           exit 1
-
-      - name: Test Git Branch & Status
-        run: |
-          echo "::group::Git Branch & Status"
-          git branch
-          git status
-          echo "::endgroup::"
       
       - name: Bump Patch Version
         id: bump
@@ -186,17 +172,9 @@ jobs:
         if: ${{ steps.merge.outputs.manual-merge == 'false' }}
         run: |
           NEW_VERSION=$(echo '${{ steps.bump.outputs.all }}' | jq -r '.new_version')
-          
           echo "::notice ::Bumped version : $NEW_VERSION"
 
-          echo "::group::Git Branch & Status"
-          git branch
-          git status
-          echo "::endgroup::"
-
-          # git add package.json
           git add -A
           git commit -m "chore(*): changes merged and with version bump $NEW_VERSION"
           git push origin ${{ matrix.branch }}
-
           echo "::notice ::Pushing changes to ${{ matrix.branch }} with version bump $NEW_VERSION"
