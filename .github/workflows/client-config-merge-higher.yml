@@ -97,6 +97,7 @@ jobs:
 
           if [[ -n "${{ inputs.target-branches }}" ]]; then
             readarray -t ALL_BRANCHES <<< "${{ inputs.target-branches }}"
+            ALL_BRANCHES=($(printf "%s\n" "${ALL_BRANCHES[@]}" | sed '/^\s*$/d'))
           else
             mapfile -t ALL_BRANCHES < <(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
           fi
@@ -107,7 +108,7 @@ jobs:
           for BRANCH in "${ALL_BRANCHES[@]}"; do
             BRANCH_MAJOR=$(echo "$BRANCH" | cut -d'.' -f1)
             echo "::notice ::Current Branch: $CURRENT_MAJOR"
-            echo "::notice ::Current Branch: $BRANCH_MAJOR"
+            echo "::notice ::BRANCH_MAJOR Branch: $BRANCH_MAJOR"
             if [[ "$BRANCH" != "$CURRENT_BRANCH" && "$BRANCH_MAJOR" -gt "$CURRENT_MAJOR" ]]; then
               FILTERED_BRANCHES+=("$BRANCH")
             fi
@@ -146,7 +147,7 @@ jobs:
           source-branch: ${{ needs.get-branches.outputs.current-branch }}
           target-branch: ${{ matrix.branch }}
           version-files: ${{ inputs.version-files }}
-          # include-commit: 'false'
+          include-commit: 'false'
           github-token: ${{ secrets.github-token }}
 
       - name: Manual Merge Notification
@@ -188,7 +189,7 @@ jobs:
 
           # git add package.json
           git add -A
-          git commit -m "chore(*): changes merged and with version bump to $NEW_VERSION"
+          git commit -m "chore(*): changes merged and with version bump $NEW_VERSION"
           git push origin ${{ matrix.branch }}
 
-          echo "::notice ::Pushing changes to ${{ matrix.branch }} with version bump to $NEW_VERSION"
+          echo "::notice ::Pushing changes to ${{ matrix.branch }} with version bump $NEW_VERSION"
