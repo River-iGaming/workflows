@@ -35,14 +35,14 @@ jobs:
     name: Check Merge
     runs-on: ubuntu-latest
     steps:      
-      - name: Check Commit Type match
+      - name: Skip if commit type matched
         id: check-commit-type
         uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
         with:
           commit-types: ${{ inputs.commit-types }}
           github-token: ${{ secrets.github-token }}
       
-      - name: Commit Type Failed
+      - name: Commit type failed
         if: steps.check-commit-type.outputs.commit-type-allowed == 'false'
         run: |          
           echo "::error:: ❌ Merge is not allowed, the commit type does not match."
@@ -132,101 +132,15 @@ jobs:
       matrix:
         branch: ${{ fromJson(needs.get-branches.outputs.all-branches) }}
     
-    steps:
-      - name: Checkout full history
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.github-token }}
-      
+    steps:      
       - name: Merge ${{ needs.get-branches.outputs.current-branch }} into ${{ matrix.branch }}
         id: merge
-        run: |
-          git fetch --all
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
-
-          CURRENT_BRANCH="${{ needs.get-branches.outputs.current-branch }}"
-          TARGET_BRANCH="${{ matrix.branch }}"
-          MANUAL_MERGE=false
-
-          echo "::notice ::Attempting to merge $CURRENT_BRANCH → $TARGET_BRANCH"
-          
-          git checkout $TARGET_BRANCH
-
-          if git merge --no-commit --no-ff --no-edit ${CURRENT_BRANCH}; then
-            if [[ (-z "$(git status --porcelain)") ]]; then
-              echo "::notice ::Nothing to commit for branch: $TARGET_BRANCH"
-            else
-              echo "::notice ::Merged to branch $TARGET_BRANCH"
-            fi
-            echo "::group::Git Branch & Status --no-edit"
-            git branch
-            git status
-            echo "::endgroup::"
-          else
-            CONFLICTS=$(git diff --name-only --diff-filter=U)
-            VERSION_FILES="${{ inputs.version-files }}"
-            IFS=',' read -ra VERSION_FILE_LIST <<< "$VERSION_FILES"
-
-            echo "::warning::Conflicts: $CONFLICTS"
-            for file in $CONFLICTS; do
-
-              for vfile in "${VERSION_FILE_LIST[@]}"; do
-                if [[ "$file" == "$vfile" ]]; then
-                  IS_VERSION_FILE=true
-                  break
-                fi
-              done
-
-              if [[ "$IS_VERSION_FILE" == true ]]; then
-                echo "::notice ::Auto-resolving $file version conflicts."
-                  # set -e          skips
-                CONFLICT_CONTENT=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
-                echo "::notice::Conflict content: $CONFLICT_CONTENT"
-
-                NON_VERSION_CONFLICT_LINES=$(echo "$CONFLICT_CONTENT" | \
-                  grep -vE '<<<<<<<|=======|>>>>>>>' | \
-                  grep -vE '^\s*"version"\s*:' || true)
-
-                if [[ -n "$NON_VERSION_CONFLICT_LINES" ]]; then
-                  echo "::warning::Failed to auto-resolve $file conflicts. Merge error."
-                  git merge --abort
-                  echo "manual-merge=true" >> $GITHUB_OUTPUT
-                  exit 0
-                fi
-
-                git checkout --ours $file
-                git add $file
-                echo "::notice ::Resolved version conflict in $file"
-
-                echo "::group::Git Branch & Status chore(package)"
-                git branch
-                git status
-                echo "::endgroup::"
-
-              else
-                echo "::error ::Conflict in $file - not auto-resolvable"
-                git merge --abort
-                MANUAL_MERGE=true
-                echo "manual-merge=true" >> $GITHUB_OUTPUT
-                exit 0
-              fi
-            done
-
-            echo "::group::Git Branch & Status auto-resolve"
-            git branch
-            git status
-            echo "::endgroup::"
-            git commit -m "chore(*): auto-resolve version conflict"
-          fi
-
-          echo "::group::Git Branch & Status end one"
-          git branch
-          git status
-          echo "::endgroup::"
-
-          echo "manual-merge=$MANUAL_MERGE" >> $GITHUB_OUTPUT
+        uses: River-iGaming/actions/merge@feature/merge-branch
+        with:
+          source-branch: ${{ needs.get-branches.outputs.current-branch }}
+          target-branch: ${{ matrix.branch }}
+          include-commit: 'false'
+          github-token: ${{ secrets.github-token }}
 
       - name: Manual Merge Notification
         if: ${{ steps.merge.outputs.manual-merge == 'true' }}
