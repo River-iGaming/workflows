@@ -145,7 +145,7 @@ jobs:
           source-branch: ${{ needs.get-branches.outputs.current-branch }}
           target-branch: ${{ matrix.branch }}
           version-files: ${{ inputs.version-files }}
-          include-commit: 'false'
+          # include-commit: 'false'
           github-token: ${{ secrets.github-token }}
 
       - name: Manual Merge Notification
