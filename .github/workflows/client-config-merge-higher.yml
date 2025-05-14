@@ -16,6 +16,14 @@ on:
         description: Explicit list of target branches
         required: false
         type: string
+      commit-types:
+          description: Allowed commit types for downmerge
+          required: false
+          type: string
+          default: |
+            feat
+            fix
+            release
     secrets:
       github-token:
         required: true
@@ -23,21 +31,23 @@ concurrency:
   group: ${{ github.workflow }}-${{ inputs.target-branches}}
 
 jobs:
-  get-branches:
-    name: Merge to Higher Branches
+  check-merge:
+    name: Check Merge
     runs-on: ubuntu-latest
-    outputs:
-      all-branches: ${{ steps.branch-info.outputs.all-branches }}
-      current-branch: ${{ steps.branch-info.outputs.current-branch }}
-      branch-skip: ${{ steps.branch-info.outputs.branch-skip }}
-      commit-skip: ${{ steps.check-last-commit.outputs.commit-skip }}
-    steps:
-      - name: Checkout full history
-        uses: actions/checkout@v3
+    steps:      
+      - name: Check Commit Type match
+        id: check-commit-type
+        uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-types: ${{ inputs.commit-types }}
+          github-token: ${{ secrets.github-token }}
       
+      - name: Commit Type Failed
+        if: steps.check-commit-type.outputs.commit-type-allowed == 'false'
+        run: |          
+          echo "::error:: ❌ Merge is not allowed, the commit type does not match."
+          exit 1
+
       - name: Skip if last commit was an merge up
         id: check-last-commit
         run: |
@@ -45,26 +55,30 @@ jobs:
           echo "Last commit message: $msg"
 
           if [[ "$msg" == chore\(*\):\ changes\ merged\ and\ with\ version\ bump\ to* ]]; then
-            echo "commit-skip=true" >> $GITHUB_OUTPUT
             echo "::error:: ❌ Merge is not allowed, the changes are already merged."
-          else
-            echo "commit-skip=false" >> $GITHUB_OUTPUT
+            exit 1
           fi
+
+  get-branches:
+    name: Merge to Higher Branches
+    needs: check-merge
+    runs-on: ubuntu-latest
+    outputs:
+      all-branches: ${{ steps.branch-info.outputs.all-branches }}
+      current-branch: ${{ steps.branch-info.outputs.current-branch }}
+      branch-skip: ${{ steps.branch-info.outputs.branch-skip }}
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get branch info
         id: branch-info
-        if: ${{ steps.check-last-commit.outputs.commit-skip == 'false' }}
         run: |
           git config user.email "deploy-bot@riverigaming.com"
           git config user.name "rig-autobot"
-
-          echo "::group::concurrency group"
-          echo "::notice concurrency-group=${{ github.workflow }}"
-          echo "::notice concurrency-group-branch=${{ github.ref }}"
-          echo "::notice concurrency-group-run-id=${{ github.run_id }}"
-          echo "::notice concurrency-group-head-ref=${{ github.head_ref }}"
-          echo "::notice concurrency-group-triggering_actor=${{ github.triggering_actor }}"
-          echo "::endgroup::"
 
           BRANCH_PATTERN="${{ inputs.target-branch-pattern }}"
           
@@ -74,7 +88,7 @@ jobs:
           if [[ ! "$CURRENT_BRANCH" =~ ^${BRANCH_PATTERN}$ ]]; then
             echo "::error :: ❌ Not a versioned branch like '**.x'. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
-            exit 0
+            exit 1
           fi
 
           git fetch --all
@@ -102,7 +116,7 @@ jobs:
           if [[ $(echo "$BRANCHES" | jq 'length') -eq 0 ]]; then
             echo "::error :: ❌ No higher branches to merge into. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
-            exit 0
+            exit 1
           fi
 
           echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
@@ -113,7 +127,7 @@ jobs:
     name: Merge and Bump for ${{ matrix.branch }}
     runs-on: ubuntu-latest
     needs: get-branches
-    if: ${{ needs.get-branches.outputs.branch-skip == 'false' && needs.get-branches.outputs.commit-skip == 'false' }}
+    if: ${{ needs.get-branches.outputs.branch-skip == 'false' }}
     strategy:
       matrix:
         branch: ${{ fromJson(needs.get-branches.outputs.all-branches) }}
@@ -167,7 +181,7 @@ jobs:
 
               if [[ "$IS_VERSION_FILE" == true ]]; then
                 echo "::notice ::Auto-resolving $file version conflicts."
-
+                  # set -e          skips
                 CONFLICT_CONTENT=$(awk '/^<<<<<<< HEAD/,/^>>>>>>>/' "$file" || true)
                 echo "::notice::Conflict content: $CONFLICT_CONTENT"
 
