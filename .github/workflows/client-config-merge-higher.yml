@@ -106,6 +106,7 @@ jobs:
 
           FILTERED_BRANCHES=()
           for BRANCH in "${ALL_BRANCHES[@]}"; do
+            [[ -z "$BRANCH" ]] && continue
             BRANCH_MAJOR=$(echo "$BRANCH" | cut -d'.' -f1)
             echo "::notice ::Current Branch: $CURRENT_MAJOR"
             echo "::notice ::BRANCH_MAJOR Branch: $BRANCH_MAJOR"
