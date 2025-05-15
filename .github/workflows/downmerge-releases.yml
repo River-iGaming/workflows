@@ -34,7 +34,7 @@ jobs:
           github-token: ${{ secrets.github-token }}
 
       - name: Downmerge is not allowed
-        if: ${{ steps.check-commit-type.outputs.commit-type-allowed == 'false' }}
+        if: ${{ steps.check-commit-type.outputs.allowed == 'false' }}
         run: |
           echo "::error::Downmerge is not allowed for this commit type."
           exit 1
@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       downmerge-branches: ${{ steps.get-branches.outputs.downmerge-branches }}
+      current-branch: ${{ steps.get-branches.outputs.current-branch }}
     steps:  
       - name: Get Branches
         id: get-branches
-        if: ${{ steps.check-commit-type.outputs.commit-type-allowed == 'true' }}
         run: |
           git fetch
           git config user.email "deploy-bot@riverigaming.com"
