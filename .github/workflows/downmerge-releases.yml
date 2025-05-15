@@ -26,7 +26,7 @@ jobs:
       - name: Downmerge is not allowed
         if: ${{ steps.check-commit-type.outputs.allowed == 'false' }}
         run: |
-          echo "::error::Downmerge is not allowed for this commit type."
+          echo "::error::❌ Downmerge is not allowed for this commit type."
           exit 1
 
   get-branches:
@@ -97,3 +97,13 @@ jobs:
             package.json
             pnpm-lock.yaml
           github-token: ${{ secrets.github-token }}
+      - name: Failed Merge Notification
+        if: ${{ steps.downmerge.outputs.manual-merge == 'true' }}
+        run: |
+            echo "::error::❌ Merge failed. Review logs manually."
+            exit 1
+      - name: Auto-resolve Merge Notification
+        if: ${{ steps.downmerge.outputs.auto-resolved == 'true' }}
+        run: |
+            echo "::error::⚠️ Auto merged conflicts. Review Changes Manually."
+            exit 1
