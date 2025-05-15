@@ -135,19 +135,19 @@ jobs:
         with:
           source-branch: ${{ needs.get-branches.outputs.current-branch }}
           target-branch: ${{ matrix.branch }}
-          version-files: ${{ inputs.conflict-auto-keep-files }}
+          conflict-auto-keep-files: ${{ inputs.conflict-auto-keep-files }}
           include-commit: 'false'
           github-token: ${{ secrets.github-token }}
 
       - name: Manual Merge Notification
-        if: ${{ steps.merge.outputs.manual-merge == 'true' }}
+        if: ${{ steps.merge.outputs.merge-failed == 'true' }}
         run: |
           echo "::error ::Conflicts occurred that couldn't be auto-resolved. Please resolve manually."
           exit 1
       
       - name: Bump Patch Version
         id: bump
-        if: ${{ steps.merge.outputs.manual-merge == 'false' }}
+        if: ${{ steps.merge.outputs.merge-failed == 'false' }}
         uses: River-iGaming/actions/auto-bump@main
         with:
           branch: ${{ matrix.branch }}
@@ -158,7 +158,7 @@ jobs:
       
       - name: Commit and Push
         id: commit-push
-        if: ${{ steps.merge.outputs.manual-merge == 'false' }}
+        if: ${{ steps.merge.outputs.merge-failed == 'false' }}
         run: |
           NEW_VERSION=$(echo '${{ steps.bump.outputs.all }}' | jq -r '.new_version')
           echo "::notice ::Bumped version : $NEW_VERSION"
