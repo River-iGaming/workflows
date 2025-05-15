@@ -104,7 +104,7 @@ jobs:
           done
 
           echo "::notice::Branches to merge: ${FILTERED_BRANCHES[*]}"
-
+          echo "DEBUG: FILTERED_BRANCHES count: ${#FILTERED_BRANCHES[@]}"
           if [[ [ ${#FILTERED_BRANCHES[@]} -eq 0 ] ]]; then
             echo "::error :: ❌ No higher branches to merge into. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
