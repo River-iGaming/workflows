@@ -2,8 +2,8 @@ name: Merge to Higher Branches
 on:
   workflow_call:
     inputs:
-      version-files:
-        description: File containing the app version
+      conflict-auto-keep-files:
+        description: 'Files where merge conflicts are automatically resolved by keeping the target branch version'
         required: false
         type: string
         default: |
@@ -135,7 +135,7 @@ jobs:
         with:
           source-branch: ${{ needs.get-branches.outputs.current-branch }}
           target-branch: ${{ matrix.branch }}
-          version-files: ${{ inputs.version-files }}
+          version-files: ${{ inputs.conflict-auto-keep-files }}
           include-commit: 'false'
           github-token: ${{ secrets.github-token }}
 
