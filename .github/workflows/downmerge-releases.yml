@@ -8,20 +8,12 @@ on:
           required: false
           type: string
           default: "master"
-        commit-types:
-          description: Allowed commit types for downmerge
-          required: false
-          type: string
-          default: |
-            feat
-            fix
-            release
     secrets:
       github-token:
         required: true
 
 jobs:
-  checks:
+  check-allowed:
     name: Downmerge to a base and release branches
     runs-on: ubuntu-latest
     steps:
@@ -32,56 +24,48 @@ jobs:
           token: ${{ secrets.github-token }}
 
       - name: Check if Downmerge Allowed
-        id: check-downmerge
-        run: |        
-          # Check if commit type matches
-          COMMIT_TYPE_MATCHED=false
-          readarray -t COMMIT_TYPES <<< "${{ inputs.commit-types }}"
-          COMMIT_TYPES=($(printf "%s\n" "${COMMIT_TYPES[@]}" | sed '/^\s*$/d')) # Remove empty and whitespace-only lines
-          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-          for type in "${COMMIT_TYPES[@]}"; do
-            if [[ "$COMMIT_MESSAGE" == "$type"* ]]; then
-              echo "::notice::Matched commit type: $type"
-              COMMIT_TYPE_MATCHED=true
-              break
-            fi
-          done
-          if [ "$COMMIT_TYPE_MATCHED" = false ]; then
-            ALLOWED_TYPES=$(IFS=", "; echo "${COMMIT_TYPES[*]}")
-            echo "::error::No commit types matched for \"$COMMIT_MESSAGE\" | Allowed types: [$ALLOWED_TYPES]"
-            echo "downmerge-allowed=false" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
+        id: check-commit-type
+        uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
+        with:
+          commit-types: |
+            feat
+            fix
+            release
+          github-token: ${{ secrets.github-token }}
 
-          # Check for prerelease or metadata in package version
-          PACKAGE_VERSION=$(jq -r '.version' package.json)
-          if [[ "$PACKAGE_VERSION" == *"-"* || "$PACKAGE_VERSION" == *"+"* ]]; then 
-            echo "::error::Downmerge is not allowed for prerelease versions or versions with metadata."
-            echo "downmerge-allowed=false" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
+      - name: Downmerge is not allowed
+        if: ${{ steps.check-commit-type.outputs.commit-type-allowed == 'false' }}
+        run: |
+          echo "::error::Downmerge is not allowed for this commit type."
+          exit 1
 
-          echo "downmerge-allowed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Get Branches for Downmerge
+  get-branches:
+    name: Get Branches for Downmerge
+    needs: check-allowed
+    runs-on: ubuntu-latest
+    outputs:
+      downmerge-branches: ${{ steps.get-branches.outputs.downmerge-branches }}
+    steps:  
+      - name: Get Branches
         id: get-branches
-        if: ${{ steps.check-downmerge.outputs.downmerge-allowed == 'true' }}
+        if: ${{ steps.check-commit-type.outputs.commit-type-allowed == 'true' }}
         run: |
           git fetch
+          git config user.email "deploy-bot@riverigaming.com"
+          git config user.name "rig-autobot"
 
           # Determine the current branch and package version
           BASE_BRANCH="${{ inputs.base-branch }}"
           CURRENT_BRANCH="$(git branch --show-current)"
-          PACKAGE_VERSION=$(jq -r '.version' package.json)
 
           if [[ "$CURRENT_BRANCH" =~ "release" ]]; then
             BASE_PACKAGE_VERSION=$(echo $CURRENT_BRANCH | cut -d'/' -f2)
           else
-            BASE_PACKAGE_VERSION=$PACKAGE_VERSION
+            BASE_PACKAGE_VERSION=$(jq -r '.version' package.json)
           fi
 
           # Get a list of branches for downmerge
-          BRANCHES=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/*' "refs/remotes/origin/$BASE_BRANCH")
+          BRANCHES=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release-test/*' "refs/remotes/origin/$BASE_BRANCH")
           DOWNMERGE_BRANCHES=()
           for branch in $BRANCHES; do
             branch="${branch#origin/}" # Remove the 'origin/' prefix
@@ -93,115 +77,27 @@ jobs:
             fi
           done
 
-          echo "downmerge-branches=$(IFS=', '; echo "${DOWNMERGE_BRANCHES[*]}")" >> "$GITHUB_OUTPUT"
+          echo "::notice::Branches to merge: ${DOWNMERGE_BRANCHES[*]}"
 
-      - name: Downmerge
+          BRANCHES=$(printf '%s\n' "${DOWNMERGE_BRANCHES[@]}" | jq -R . | jq -cs .)
+          echo "downmerge-branches=$(IFS=', '; echo "${BRANCHES[*]}")" >> "$GITHUB_OUTPUT"
+          echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
+  downmerge:
+    name: Downmerge to ${{ matrix.branch }}
+    needs: get-branches
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJson(needs.get-branches.outputs.downmerge-branches) }}
+    steps:
+      - name: Merge ${{ needs.get-branches.outputs.current-branch }} to ${{ matrix.branch }}
         id: downmerge
-        if: ${{ steps.get-branches.outputs.downmerge-branches != '' }}
-        run: |
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
-
-          IFS=',' read -ra DOWNMERGE_BRANCHES <<< "${{ steps.get-branches.outputs.downmerge-branches }}"
-          AUTO_RESOLVED_BRANCHES=()
-          DOWNMERGE_FAILED_BRANCHES=()
-          CURRENT_BRANCH="$(git branch --show-current)"
-
-          downmerge_branch() {
-            local branch="$1"
-            echo "::notice::Downmerging branch: $branch from: $CURRENT_BRANCH"
-
-            git checkout "$branch"
-
-            if git merge --no-commit --no-ff --no-edit "$CURRENT_BRANCH"; then
-              if [[ -z "$(git status --porcelain)" ]]; then
-                echo "::notice::Nothing to commit for branch: $branch"
-              else
-                git commit --no-edit
-                git push origin "$branch"
-              fi
-            else
-              CONFLICTS="$(git diff --name-only --diff-filter=U)"
-              MANUAL_MERGE=false
-              echo "::warning::Conflicts: $CONFLICTS"
-              for file in $CONFLICTS; do
-                if [[ "$file" == "package.json" || "$file" == "pnpm-lock.yaml" ]]; then
-                  echo "::notice::Auto-resolving $file version conflicts."
-
-                  git checkout --ours "$file"
-                  git add "$file"
-                  if [[ -z "$(git status --porcelain)" ]]; then
-                    echo "::notice::Nothing to commit for branch: $branch."
-                    return 2
-                  else
-                    echo "::notice::Auto-resolve $VERSION_FILE version conflicts by choosing the HEAD version."
-                    MANUAL_MERGE=true
-                  fi
-                else
-                  echo "::error::Failed to downmerge to branch: $branch. Merge error."
-                  git merge --abort
-                  return 2
-                fi
-              done
-              if [ "$MANUAL_MERGE" = true ]; then
-                git commit -m "chore(*): auto-resolve version conflicts"
-                git push origin "$branch"
-                return 3
-              fi
-            fi
-
-            return 0
-          }
-
-          # Iterate through branches and downmerge
-          for branch in "${DOWNMERGE_BRANCHES[@]}"; do
-            set +e # disable exit on error to prevent job from failing immediately
-            OUTPUT=$(downmerge_branch "$branch" 2>&1)
-            STATUS=$?
-            set -e # re-enable exit on error
-
-            if [ "$STATUS" -eq 0 ]; then
-              DOWNMERGE_STATUS="✅"
-            elif [ "$STATUS" -eq 3 ]; then
-              DOWNMERGE_STATUS="⚠️"
-              AUTO_RESOLVED_BRANCHES+=("$branch")
-            else
-              DOWNMERGE_STATUS="❌"
-              DOWNMERGE_FAILED_BRANCHES+=("$branch")
-            fi
-
-            echo "::group::$DOWNMERGE_STATUS - Branch: $branch"
-            echo "$OUTPUT"
-            echo "::endgroup::"
-          done
-          
-          {
-            echo "auto-resolved-branches=$(IFS=', '; echo "${AUTO_RESOLVED_BRANCHES[*]}")"
-            echo "downmerge-failed-branches=$(IFS=', '; echo "${DOWNMERGE_FAILED_BRANCHES[*]}")"
-          } >> "$GITHUB_OUTPUT" 
-      
-      - name: Auto-resolved Conflicts Merge Notification
-        if: ${{ steps.downmerge.outputs.auto-resolved-branches != '' }}
-        run: |
-            IFS=',' read -ra BRANCHES <<< "${{ steps.downmerge.outputs.auto-resolved-branches }}"
-            MSG="::warning::Branches with auto-resolved conflicts:"
-            for b in "${BRANCHES[@]}"; do
-              MSG+="%0A- $b"
-            done
-            MSG+="%0AReview changes manually."
-            echo "$MSG"
-            exit 1
-      
-      - name: Failed Merge Notification
-        if: ${{ steps.downmerge.outputs.downmerge-failed-branches != '' }}
-        run: |
-            IFS=',' read -ra BRANCHES <<< "${{ steps.downmerge.outputs.downmerge-failed-branches }}"
-            MSG="::error::Failed to downmerge the following branches:"
-            for b in "${BRANCHES[@]}"; do
-              MSG+="%0A- $b"
-            done
-            MSG+="%0AReview logs manually."
-
-            echo "$MSG"
-            exit 1
-            
+        uses: River-iGaming/actions/merge@feature/merge-branch
+        with:
+          source-branch: ${{ needs.get-branches.outputs.current-branch }}
+          target-branch: ${{ matrix.branch }}
+          version-files: |
+            package.json
+            pnpm-lock.yaml
+          github-token: ${{ secrets.github-token }}
