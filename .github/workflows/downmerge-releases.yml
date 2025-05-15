@@ -17,12 +17,6 @@ jobs:
     name: Downmerge to a base and release branches
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.github-token }}
-
       - name: Check if Downmerge Allowed
         id: check-commit-type
         uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
@@ -47,6 +41,12 @@ jobs:
       downmerge-branches: ${{ steps.get-branches.outputs.downmerge-branches }}
       current-branch: ${{ steps.get-branches.outputs.current-branch }}
     steps:  
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.github-token }}
+      
       - name: Get Branches
         id: get-branches
         run: |
