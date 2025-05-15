@@ -21,10 +21,6 @@ jobs:
         id: check-commit-type
         uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
         with:
-          commit-types: |
-            feat
-            fix
-            release
           github-token: ${{ secrets.github-token }}
 
       - name: Downmerge is not allowed
