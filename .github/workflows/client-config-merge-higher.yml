@@ -105,7 +105,7 @@ jobs:
 
           echo "::notice::Branches to merge: ${FILTERED_BRANCHES[*]}"
 
-          if [[ $(echo "$FILTERED_BRANCHES" | jq 'length') -eq 0 ]]; then
+          if [[ [ ${#FILTERED_BRANCHES[@]} -eq 0 ] ]]; then
             echo "::error :: ❌ No higher branches to merge into. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 1
