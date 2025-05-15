@@ -45,7 +45,7 @@ jobs:
           github-token: ${{ secrets.github-token }}
       
       - name: Commit type failed
-        if: steps.check-commit-type.outputs.commit-type-allowed == 'false'
+        if: steps.check-commit-type.outputs.allowed == 'false'
         run: |          
           echo "::error:: ❌ Merge is not allowed, the commit type does not match."
           exit 1
