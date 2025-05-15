@@ -8,16 +8,11 @@ on:
         type: string
         default: |
           package.json
-          package-lock.json
       target-branch-pattern:
         description: Regex pattern for target branches
         required: false
         type: string
         default: "[0-9]+\\.x"
-      target-branches:
-        description: Explicit list of target branches
-        required: false
-        type: string
       commit-types:
           description: Allowed commit types for downmerge
           required: false
@@ -30,7 +25,7 @@ on:
       github-token:
         required: true
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.target-branches}}
+  group: ${{ github.workflow }}
 
 jobs:
   check-merge:
@@ -95,13 +90,7 @@ jobs:
 
           git fetch --all
 
-          if [[ -n "${{ inputs.target-branches }}" ]]; then
-            readarray -t ALL_BRANCHES <<< "${{ inputs.target-branches }}"
-            ALL_BRANCHES=($(printf "%s\n" "${ALL_BRANCHES[@]}" | sed '/^\s*$/d'))
-          else
-            mapfile -t ALL_BRANCHES < <(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
-          fi
-
+          mapfile -t ALL_BRANCHES < <(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
           CURRENT_MAJOR=$(echo "$CURRENT_BRANCH" | cut -d'.' -f1)
           FILTERED_BRANCHES=()
 
@@ -142,7 +131,7 @@ jobs:
     steps:      
       - name: Merge ${{ needs.get-branches.outputs.current-branch }} into ${{ matrix.branch }}
         id: merge
-        uses: River-iGaming/actions/merge@feature/merge-branch
+        uses: River-iGaming/actions/merge-branch@feature/merge-branch
         with:
           source-branch: ${{ needs.get-branches.outputs.current-branch }}
           target-branch: ${{ matrix.branch }}
