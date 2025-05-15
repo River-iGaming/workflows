@@ -14,10 +14,10 @@ on:
 
 jobs:
   check-allowed:
-    name: Downmerge to a base and release branches
+    name: Check if downmerge is allowed
     runs-on: ubuntu-latest
     steps:
-      - name: Check if Downmerge Allowed
+      - name: Check if Commit Type is Allowed
         id: check-commit-type
         uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
         with:
@@ -93,7 +93,7 @@ jobs:
     steps:
       - name: Merge ${{ needs.get-branches.outputs.current-branch }} to ${{ matrix.branch }}
         id: downmerge
-        uses: River-iGaming/actions/merge@feature/merge-branch
+        uses: River-iGaming/actions/merge-branch@feature/merge-branch
         with:
           source-branch: ${{ needs.get-branches.outputs.current-branch }}
           target-branch: ${{ matrix.branch }}
