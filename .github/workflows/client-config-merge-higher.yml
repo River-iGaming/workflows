@@ -34,7 +34,7 @@ jobs:
     steps:      
       - name: Skip if commit type matched
         id: check-commit-type
-        uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
+        uses: River-iGaming/actions/commit-type-check@feature/commit-type-check-in-auto-bump-for-skip
         with:
           commit-types: ${{ inputs.commit-types }}
           github-token: ${{ secrets.github-token }}
