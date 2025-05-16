@@ -174,7 +174,7 @@ jobs:
             fi
 
             git add -A
-            git commit -m " and with version bump $NEW_VERSION"
+            git commit -m "$MSG"
             git push origin ${{ matrix.branch }}
             echo "::notice :: $MSG"
           else 
