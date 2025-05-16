@@ -160,10 +160,23 @@ jobs:
         id: commit-push
         if: ${{ steps.merge.outputs.merge-failed == 'false' }}
         run: |
-          NEW_VERSION=$(echo '${{ steps.bump.outputs.all }}' | jq -r '.new_version')
-          echo "::notice ::Bumped version : $NEW_VERSION"
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git config user.email "deploy-bot@riverigaming.com"
+            git config user.name "rig-autobot"
 
-          git add -A
-          git commit -m "chore(*): changes merged and with version bump $NEW_VERSION"
-          git push origin ${{ matrix.branch }}
-          echo "::notice ::Pushing changes to ${{ matrix.branch }} with version bump $NEW_VERSION"
+            NEW_VERSION=$(echo '${{ steps.bump.outputs.all }}' | jq -r '.new_version')
+            echo "::notice ::Bumped version : $NEW_VERSION"
+
+            MSG="chore(*): merged ${{ needs.get-branches.outputs.current-branch }} into ${{ matrix.branch }}"
+
+            if [[ -n "$NEW_VERSION" ]]; then
+              MSG+=" and with version bump to $NEW_VERSION"
+            fi
+
+            git add -A
+            git commit -m " and with version bump $NEW_VERSION"
+            git push origin ${{ matrix.branch }}
+            echo "::notice :: $MSG"
+          else 
+            echo "::notice ::No changes to commit. Skipping commit and push."
+          fi
