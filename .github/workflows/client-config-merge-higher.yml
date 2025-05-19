@@ -14,7 +14,7 @@ on:
         type: string
         default: "[0-9]+\\.x"
       commit-types:
-          description: Allowed commit types for downmerge
+          description: Allowed commit types for merge
           required: false
           type: string
           default: |
@@ -34,7 +34,7 @@ jobs:
     steps:      
       - name: Skip if commit type matched
         id: check-commit-type
-        uses: River-iGaming/actions/commit-type-check@feature/commit-type-check-in-auto-bump-for-skip
+        uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
         with:
           commit-types: ${{ inputs.commit-types }}
           github-token: ${{ secrets.github-token }}
@@ -83,7 +83,7 @@ jobs:
           echo "::notice ::Current Branch: $CURRENT_BRANCH"
 
           if [[ ! "$CURRENT_BRANCH" =~ ^${BRANCH_PATTERN}$ ]]; then
-            echo "::error :: ❌ Not a versioned branch like '**.x'. Skipping."
+            echo "::error::❌ Not a versioned branch like '**.x'. Skipping."
             echo "branch-skip=true" >> $GITHUB_OUTPUT
             exit 1
           fi
@@ -111,7 +111,7 @@ jobs:
             exit 1
           fi
 
-          # Format the array into a JSON array string
+          # Format the array into a JSON array string for matrix
           BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
 
           echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
@@ -142,13 +142,13 @@ jobs:
       - name: Manual Merge Notification
         if: ${{ steps.merge.outputs.merge-failed == 'true' }}
         run: |
-          echo "::error ::Conflicts occurred that couldn't be auto-resolved. Please resolve manually."
+          echo "::error::❌ Conflicts occurred that couldn't be auto-resolved. Please resolve manually."
           exit 1
       
       - name: Bump Patch Version
         id: bump
         if: ${{ steps.merge.outputs.merge-failed == 'false' }}
-        uses: River-iGaming/actions/auto-bump@feature/commit-type-check-in-auto-bump-for-skip
+        uses: River-iGaming/actions/auto-bump@main
         with:
           branch: ${{ matrix.branch }}
           semver: patch
