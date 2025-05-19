@@ -36,15 +36,8 @@ jobs:
         id: check-commit-type
         uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
         with:
-          error-on-match: 'true'
-          commit-types: 'chore(package): auto bump version to'
+          commit-types: ${{ inputs.commit-types }}
           github-token: ${{ secrets.github-token }}
-      
-      - name: Commit type failed
-        if: steps.check-commit-type.outputs.allowed == 'false'
-        run: |          
-          echo "::error:: ❌ Merge is not allowed, the commit type does not match."
-          exit 1
 
       - name: Skip if last commit was an merge up
         id: check-last-commit
@@ -149,7 +142,7 @@ jobs:
       - name: Bump Patch Version
         id: bump
         if: ${{ steps.merge.outputs.merge-failed == 'false' }}
-        uses: River-iGaming/actions/auto-bump@feature/commit-type-check
+        uses: River-iGaming/actions/auto-bump@main
         with:
           branch: ${{ matrix.branch }}
           semver: patch
