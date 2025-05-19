@@ -36,7 +36,8 @@ jobs:
         id: check-commit-type
         uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
         with:
-          commit-types: ${{ inputs.commit-types }}
+          error-on-match: 'true'
+          commit-types: 'chore(package): auto bump version to'
           github-token: ${{ secrets.github-token }}
       
       - name: Commit type failed
