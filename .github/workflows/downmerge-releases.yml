@@ -8,26 +8,38 @@ on:
           required: false
           type: string
           default: "master"
+        commit-types:
+          description: Allowed commit types for downmerge
+          required: false
+          type: string
+          default: |
+            feat
+            fix
+            release
+        conflict-auto-keep-files:
+          description: 'Files where merge conflicts are automatically resolved by keeping the target branch version'
+          required: false
+          type: string
+          default: |
+            package.json
+            pnpm-lock.yaml
     secrets:
       github-token:
         required: true
+concurrency:
+  group: ${{ github.workflow }}
 
 jobs:
   check-allowed:
-    name: Check if downmerge is allowed
+    name: Check if Downmerge is allowed
     runs-on: ubuntu-latest
     steps:
       - name: Check if Commit Type is Allowed
         id: check-commit-type
-        uses: River-iGaming/actions/commit-type-check@feature/commit-type-check
+        uses: River-iGaming/actions/commit-type-check@v4
         with:
+          commit-types: ${{ inputs.commit-types }}
           github-token: ${{ secrets.github-token }}
-
-      - name: Downmerge is not allowed
-        if: ${{ steps.check-commit-type.outputs.allowed == 'false' }}
-        run: |
-          echo "::error::❌ Downmerge is not allowed for this commit type."
-          exit 1
 
   get-branches:
     name: Get Branches for Downmerge
@@ -47,8 +59,6 @@ jobs:
         id: get-branches
         run: |
           git fetch
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
 
           # Determine the current branch and package version
           BASE_BRANCH="${{ inputs.base-branch }}"
@@ -87,18 +97,16 @@ jobs:
       matrix:
         branch: ${{ fromJson(needs.get-branches.outputs.downmerge-branches) }}
     steps:
-      - name: Merge ${{ needs.get-branches.outputs.current-branch }} to ${{ matrix.branch }}
+      - name: Merge ${{ needs.get-branches.outputs.current-branch }} into ${{ matrix.branch }}
         id: downmerge
-        uses: River-iGaming/actions/merge-branch@feature/merge-branch
+        uses: River-iGaming/actions/merge-branch@v4
         with:
           source-branch: ${{ needs.get-branches.outputs.current-branch }}
           target-branch: ${{ matrix.branch }}
-          version-files: |
-            package.json
-            pnpm-lock.yaml
+          conflict-auto-keep-files: ${{ inputs.conflict-auto-keep-files }}
           github-token: ${{ secrets.github-token }}
       - name: Failed Merge Notification
-        if: ${{ steps.downmerge.outputs.manual-merge == 'true' }}
+        if: ${{ steps.downmerge.outputs.merge-failed == 'true' }}
         run: |
             echo "::error::❌ Merge failed. Review logs manually."
             exit 1
