@@ -71,7 +71,7 @@ jobs:
           fi
 
           # Get a list of branches for downmerge
-          BRANCHES=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release-test/*' "refs/remotes/origin/$BASE_BRANCH")
+          BRANCHES=$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/*' "refs/remotes/origin/$BASE_BRANCH")
           DOWNMERGE_BRANCHES=()
           for branch in $BRANCHES; do
             branch="${branch#origin/}" # Remove the 'origin/' prefix
