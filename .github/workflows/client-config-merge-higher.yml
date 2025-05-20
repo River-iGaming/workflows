@@ -39,17 +39,6 @@ jobs:
           commit-types: ${{ inputs.commit-types }}
           github-token: ${{ secrets.github-token }}
 
-      - name: Skip if last commit was an merge up
-        id: check-last-commit
-        run: |
-          msg=$(git log -1 --pretty=%B HEAD)
-          echo "Last commit message: $msg"
-
-          if [[ "$msg" == chore\(*\):\ changes\ merged\ and\ with\ version\ bump\ to* ]]; then
-            echo "::error:: ❌ Merge is not allowed, the changes are already merged."
-            exit 1
-          fi
-
   get-branches:
     name: Merge to Higher Branches
     needs: check-merge
