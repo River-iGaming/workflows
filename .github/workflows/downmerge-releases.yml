@@ -54,7 +54,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.github-token }}
-      
+
       - name: Get Branches
         id: get-branches
         run: |
