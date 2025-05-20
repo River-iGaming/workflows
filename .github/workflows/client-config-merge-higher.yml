@@ -32,7 +32,7 @@ jobs:
     name: Check Merge
     runs-on: ubuntu-latest
     steps:      
-      - name: Skip if commit type matched
+      - name: Skip if commit type not matched
         id: check-commit-type
         uses: River-iGaming/actions/commit-type-check@v4
         with:
@@ -56,9 +56,6 @@ jobs:
       - name: Get branch info
         id: branch-info
         run: |
-          git config user.email "deploy-bot@riverigaming.com"
-          git config user.name "rig-autobot"
-
           BRANCH_PATTERN="${{ inputs.target-branch-pattern }}"
           
           CURRENT_BRANCH="$(git branch --show-current)"
