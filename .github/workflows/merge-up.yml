@@ -1,0 +1,157 @@
+name: Merge to Higher Branches
+on:
+  workflow_call:
+    inputs:
+      conflict-auto-keep-files:
+        description: 'Files where merge conflicts are automatically resolved by keeping the target branch version'
+        required: false
+        type: string
+        default: |
+          package.json
+      target-branch-pattern:
+        description: Regex pattern for target branches
+        required: false
+        type: string
+        default: "[0-9]+\\.x"
+      commit-types:
+          description: Allowed commit types for merge
+          required: false
+          type: string
+          default: |
+            feat
+            fix
+            release
+    secrets:
+      github-token:
+        required: true
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  check-merge:
+    name: Check Merge
+    runs-on: ubuntu-latest
+    steps:      
+      - name: Skip if commit type not matched
+        id: check-commit-type
+        uses: River-iGaming/actions/commit-type-check@v4
+        with:
+          commit-types: ${{ inputs.commit-types }}
+          github-token: ${{ secrets.github-token }}
+
+  get-branches:
+    name: Merge to Higher Branches
+    needs: check-merge
+    runs-on: ubuntu-latest
+    outputs:
+      all-branches: ${{ steps.branch-info.outputs.all-branches }}
+      current-branch: ${{ steps.branch-info.outputs.current-branch }}
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get branch info
+        id: branch-info
+        run: |
+          BRANCH_PATTERN="${{ inputs.target-branch-pattern }}"
+          
+          CURRENT_BRANCH="$(git branch --show-current)"
+          echo "::notice ::Current Branch: $CURRENT_BRANCH"
+
+          if [[ ! "$CURRENT_BRANCH" =~ ^${BRANCH_PATTERN}$ ]]; then
+            echo "::error::❌ Not a versioned branch like '**.x'. Skipping."
+            exit 1
+          fi
+
+          git fetch --all
+
+          mapfile -t ALL_BRANCHES < <(git branch -r | grep -oE "origin/${BRANCH_PATTERN}" | sed 's|origin/||' | sort -V)
+          CURRENT_MAJOR=$(echo "$CURRENT_BRANCH" | cut -d'.' -f1)
+          FILTERED_BRANCHES=()
+
+          for BRANCH in "${ALL_BRANCHES[@]}"; do
+            [[ -z "$BRANCH" ]] && continue
+            
+            BRANCH_MAJOR=$(echo "$BRANCH" | cut -d'.' -f1)
+            if [[ "$BRANCH" != "$CURRENT_BRANCH" && "$BRANCH_MAJOR" -gt "$CURRENT_MAJOR" ]]; then
+              FILTERED_BRANCHES+=("$BRANCH")
+            fi
+          done
+
+          echo "::notice::Branches to merge: ${FILTERED_BRANCHES[*]}"
+
+          if [[ ${#FILTERED_BRANCHES[@]} -eq 0 ]]; then
+            echo "::error :: ❌ No higher branches to merge into. Skipping."
+            exit 1
+          fi
+
+          # Format the array into a JSON array string for matrix
+          BRANCHES=$(printf '%s\n' "${FILTERED_BRANCHES[@]}" | jq -R . | jq -cs .)
+
+          echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
+          echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
+    
+  merge-up:
+    name: Merge and Bump for ${{ matrix.branch }}
+    runs-on: ubuntu-latest
+    needs: get-branches
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJson(needs.get-branches.outputs.all-branches) }}
+    
+    steps:      
+      - name: Merge ${{ needs.get-branches.outputs.current-branch }} into ${{ matrix.branch }}
+        id: merge
+        uses: River-iGaming/actions/merge-branch@v4
+        with:
+          source-branch: ${{ needs.get-branches.outputs.current-branch }}
+          target-branch: ${{ matrix.branch }}
+          conflict-auto-keep-files: ${{ inputs.conflict-auto-keep-files }}
+          include-commit: 'false'
+          github-token: ${{ secrets.github-token }}
+
+      - name: Manual Merge Notification
+        if: ${{ steps.merge.outputs.merge-failed == 'true' }}
+        run: |
+          echo "::error::❌ Conflicts occurred that couldn't be auto-resolved. Please resolve manually."
+          exit 1
+      
+      - name: Bump Patch Version
+        id: bump
+        if: ${{ steps.merge.outputs.merge-failed == 'false' }}
+        uses: River-iGaming/actions/auto-bump@v4
+        with:
+          branch: ${{ matrix.branch }}
+          semver: patch
+          include-commit: 'false'
+          skip-checkout: 'true'
+          github-token: ${{ secrets.github-token }}
+      
+      - name: Commit and Push
+        id: commit-push
+        if: ${{ steps.merge.outputs.merge-failed == 'false' }}
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git config user.email "deploy-bot@riverigaming.com"
+            git config user.name "rig-autobot"
+
+            NEW_VERSION=$(echo '${{ steps.bump.outputs.all }}' | jq -r '.new_version')
+            echo "::notice ::Bumped version : $NEW_VERSION"
+
+            MSG="chore(*): merged ${{ needs.get-branches.outputs.current-branch }} into ${{ matrix.branch }}"
+
+            if [[ -n "$NEW_VERSION" ]]; then
+              MSG+=" and with version bump to $NEW_VERSION"
+            fi
+
+            git add -A
+            git commit -m "$MSG"
+            git push origin ${{ matrix.branch }}
+            echo "::notice :: $MSG"
+          else 
+            echo "::notice ::No changes to commit. Skipping commit and push."
+          fi
