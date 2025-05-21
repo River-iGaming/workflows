@@ -1,4 +1,4 @@
-name: Merge to Higher Branches
+name: Merge into the higher versioned branches
 on:
   workflow_call:
     inputs:
