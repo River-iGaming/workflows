@@ -40,7 +40,7 @@ jobs:
           github-token: ${{ secrets.github-token }}
 
   get-branches:
-    name: Get Branches for up merge
+    name: Get Branches for upmerge
     needs: check-merge
     runs-on: ubuntu-latest
     outputs:
@@ -94,7 +94,7 @@ jobs:
           echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
           echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
     
-  up-merge:
+  upmerge:
     name: Merge and Bump for ${{ matrix.branch }}
     runs-on: ubuntu-latest
     needs: get-branches
