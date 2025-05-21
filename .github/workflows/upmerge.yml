@@ -1,4 +1,4 @@
-name: Merge to Higher Branches
+name: Merge into the higher versioned branches
 on:
   workflow_call:
     inputs:
@@ -40,7 +40,7 @@ jobs:
           github-token: ${{ secrets.github-token }}
 
   get-branches:
-    name: Merge to Higher Branches
+    name: Get Branches for upmerge
     needs: check-merge
     runs-on: ubuntu-latest
     outputs:
@@ -94,7 +94,7 @@ jobs:
           echo "all-branches=$BRANCHES" >> $GITHUB_OUTPUT
           echo "current-branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
     
-  merge-up:
+  upmerge:
     name: Merge and Bump for ${{ matrix.branch }}
     runs-on: ubuntu-latest
     needs: get-branches
