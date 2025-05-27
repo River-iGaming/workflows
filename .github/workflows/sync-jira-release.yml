@@ -1,0 +1,29 @@
+name: Sync Jira Release
+
+on:
+  workflow_call:
+    inputs:
+      jira-url:
+        description: 'Jira instance URL'
+        required: true
+        type: string
+        default: https://rivertechnologies.atlassian.net
+    secrets:
+      jira-token:
+        description: 'Jira API token'
+        required: true
+      jira-user:
+        description: 'Jira user email'
+        required: true
+
+jobs:
+  sync-jira-release:
+    name: Sync Jira Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Jira Release
+        uses: River-iGaming/actions/sync-jira-releases@sync-jira-rels
+        with:
+          jira-url: ${{ inputs.jira-url }}
+          jira-api-token: ${{ secrets.jira-token }}
+          jira-user: ${{ secrets.jira-user }}
