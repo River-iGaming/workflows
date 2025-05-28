@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       jira-url:
-        description: 'Jira instance URL'
+        description: 'Jira instance URL '
         required: false
         type: string
         default: https://rivertechnologies.atlassian.net
