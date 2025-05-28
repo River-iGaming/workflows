@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Sync Jira Release
-        uses: River-iGaming/actions/sync-jira-releases@sync-jira-rels
+        uses: River-iGaming/actions/sync-jira-releases@feature/sync-jira-rels
         with:
           jira-url: ${{ inputs.jira-url }}
           jira-api-token: ${{ secrets.jira-token }}
