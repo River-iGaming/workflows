@@ -5,7 +5,7 @@ on:
     inputs:
       jira-url:
         description: 'Jira instance URL'
-        required: true
+        required: false
         type: string
         default: https://rivertechnologies.atlassian.net
     secrets:
