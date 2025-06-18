@@ -62,8 +62,8 @@ jobs:
           echo "::notice ::Current Branch: $CURRENT_BRANCH"
 
           if [[ ! "$CURRENT_BRANCH" =~ ^${BRANCH_PATTERN}$ ]]; then
-            echo "::error::❌ Not a versioned branch like '**.x'. Skipping."
-            exit 1
+            echo "Not a versioned branch like '**.x'. Skipping."
+            exit 0
           fi
 
           git fetch --all
@@ -84,8 +84,8 @@ jobs:
           echo "::notice::Branches to merge: ${FILTERED_BRANCHES[*]}"
 
           if [[ ${#FILTERED_BRANCHES[@]} -eq 0 ]]; then
-            echo "::error :: ❌ No higher branches to merge into. Skipping."
-            exit 1
+            echo "No higher branches to merge into. Skipping."
+            exit 0
           fi
 
           # Format the array into a JSON array string for matrix
