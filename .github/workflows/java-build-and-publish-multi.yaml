@@ -117,7 +117,7 @@ jobs:
             Dockerfile
             dockerfile
             docker-compose.*
-            **/target/*-exec.jar
+            **/target/*.jar
         
   package:
     name: Publish
@@ -157,7 +157,7 @@ jobs:
         run: |
           DATE=$(date --utc +%FT%TZ)
           docker buildx build \
-          --build-arg JAR_FILE=$EXEC_PROJECT/target/*-exec.jar \
+          --build-arg JAR_FILE=$EXEC_PROJECT/target/*.jar \
           --build-arg GIT_HASH=${{ github.sha }} \
           --build-arg DATE="$DATE" \
           --build-arg GIT_REPO=$GITHUB_REPOSITORY \
