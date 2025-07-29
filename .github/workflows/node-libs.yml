@@ -197,7 +197,7 @@ jobs:
         env:
           BRANCH_NAME: ${{ steps.git.outputs.branch-name }}
         run: |
-          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" == release* ]] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
+          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" == release* ]] || [[ "$BRANCH_NAME" == masters* ]] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
             PUBLISHABLE=false
             echo "::notice ::Non-publishable branch."
           else
@@ -245,7 +245,8 @@ jobs:
 
       - name: Generate Version Number
         id: version-builder
-        uses: River-iGaming/actions/dotnet/versions@v4
+        uses: River-iGaming/actions/dotnet/versions@feature/version-masters
+        # uses: River-iGaming/actions/dotnet/versions@v4
         if: ${{ steps.versioning.conclusion == 'success' }}
         with:
           type: fe-lib
