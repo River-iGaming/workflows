@@ -37,7 +37,7 @@ jobs:
         run: npm install -g @redocly/cli
 
       - name: Create html output directory
-        run: mkdir html/
+        run: mkdir ${{ inputs.publish_dir }}/
 
       - name: Build HTML from YAML
         run: |
