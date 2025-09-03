@@ -1,0 +1,54 @@
+name: Build and Deploy Redocly Docs
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        description: 'Environment to publish'
+        required: true
+        type: string
+        default: 'dev'
+      api_file_path:
+        description: 'Path to the API YAML file'
+        required: true
+        type: string
+      publish_dir:
+        description: 'Directory to publish'
+        required: true
+        default: 'html'
+        type: string
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # important so we can push to another branch
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Redocly
+        run: npm install -g @redocly/cli
+
+      - name: Create html output directory
+        run: mkdir html/
+
+      - name: Build HTML from YAML
+        run: |
+          redocly build-docs ${{ inputs.api_file_path }} -o=${{ inputs.publish_dir }}/redoc-static.html
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./${{ inputs.publish_dir }}
+          force_orphan: true
+          cname: '' # optional if you have a custom domain
+          commit_message: ${{ github.event.head_commit.message }}
+          destination_dir: ${{ inputs.env }}
