@@ -31,8 +31,9 @@ jobs:
       - name: Install Redocly
         run: npm install -g @redocly/cli
 
-      - name: Create html output directory
-        run: mkdir ${{ inputs.publish_dir }}/
+      - name: Lint YAML file
+        run: |
+          redocly lint ${{ inputs.api_file_path }}
 
       - name: Build HTML from YAML
         run: |
