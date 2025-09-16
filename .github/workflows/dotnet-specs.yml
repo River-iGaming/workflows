@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: net7.0
+      service-name:
+        description: service-name to build in docker.compose file
+        required: false
+        type: string
+        default: build
       solution:
         description: path to project solution
         required: true
@@ -102,7 +107,7 @@ jobs:
           ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
           GIT_COMMIT: ${{ github.sha }}
         run: |
-          docker buildx bake -f docker-compose.yml build --progress plain --push
+          docker buildx bake -f docker-compose.yml ${{inputs.service-name}} --progress plain --push
 
       - name: Create git tag for release
         env:
