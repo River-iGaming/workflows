@@ -2,12 +2,13 @@
 
 ## Tags
 
-| Tag        | Description                                  |
-| ---------- | -------------------------------------------- |
-| dotnet-v3  | .NET libs/microservice/specs                 |
-| node-v1    | node e.g. libs for node/lerna/cli/ngx etc... |
-| fe-v6      | frontend app                                 |
-| vor-v1     | vor config checks                            |
+| Tag             | Description                                  |
+| --------------- | -------------------------------------------- |
+| dotnet-v5       | .NET libs/microservice                       |
+| dotnet-specs-v1 | .NET specs                                   |
+| node-v1         | node e.g. libs for node/lerna/cli/ngx etc... |
+| fe-v6           | frontend app                                 |
+| vor-v1          | vor config checks                            |
 
 
 ```bash

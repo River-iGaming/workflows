@@ -4,20 +4,20 @@ on:
   workflow_call:
     inputs:
       dotnet-version:
-        description: dotnet version to use (defaults to 7.0.x)
+        description: dotnet version to use (defaults to 8.0.x)
         required: false
         type: string
-        default: "7.0.x"
+        default: "8.0.x"
       dotnet-publish-version:
-        description: dotnet version to use for publish (defaults to net7.0)
+        description: dotnet version to use for publish (defaults to net8.0)
         required: false
         type: string
-        default: net7.0
+        default: net8.0
       docker-service-name:
         description: docker-service-name to build in docker.compose file
         required: false
         type: string
-        default: build
+        default: app
       solution:
         description: path to project solution
         required: true
