@@ -7,6 +7,10 @@ on:
         required: false
         type: string
         default: "18"
+      node-version-file:
+        description: "File containing the version Spec of the version to use. Examples: package.json, .nvmrc, .node-version, .tool-versions."
+        required: false
+        type: string
       npm-registry:
         description: "The url for npm registry"
         required: false
@@ -129,6 +133,7 @@ jobs:
         with:
           always-auth: true
           node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version-file }}
           cache: ${{ inputs.package-manager }}
 
       - name: Setup Environment
