@@ -3,14 +3,14 @@ on:
   workflow_call:
     inputs:
       node-version:
-        description: Node version to use (defaults to 18)
+        description: Node version to use
         required: false
         type: string
-        default: "18"
       node-version-file:
         description: "File containing the version Spec of the version to use. Examples: package.json, .nvmrc, .node-version, .tool-versions."
         required: false
         type: string
+        default: "package.json"
       npm-registry:
         description: The url for npm registry
         required: false
