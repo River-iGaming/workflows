@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       node-version:
-        description: Node version to use
+        description: "Node version to use."
         required: false
         type: string
       node-version-file:
