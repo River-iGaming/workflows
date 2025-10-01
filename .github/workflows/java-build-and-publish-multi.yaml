@@ -60,8 +60,8 @@ jobs:
         uses: whelk-io/maven-settings-xml-action@v22
         with:
           servers: '[{ "id": "river-nexus", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" },{ "id": "platform-snapshots", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" },{ "id": "platform-releases", "username": "${{ secrets.nexus-username }}", "password": "${{ secrets.nexus-password }}" }]'
-          mirrors: '[{ "id": "river-nexus", "mirrorOf": "*", "url": "https://nexus.riverigaming.tech/repository/maven-public/" }]'
-          repositories: '[{ "id": "river-nexus", "url": "https://nexus.riverigaming.tech/repository/platform-releases" }]'
+          mirrors: '[{ "id": "river-nexus", "mirrorOf": "*", "url": "${{ vars.MAVEN_REPOSITORY_BASE_URL }}maven-public/" }]'
+          repositories: '[{ "id": "river-nexus", "url": "${{ vars.MAVEN_REPOSITORY_BASE_URL }}platform-releases" }]'
 
       - name: Cache
         if: ${{ github.run_attempt == 1 }}
