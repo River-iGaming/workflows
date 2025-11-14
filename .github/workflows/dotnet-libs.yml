@@ -124,7 +124,7 @@ jobs:
           mkdir ./nuget
           dotnet pack $SOLUTION --no-build -p:PackageVersion=$VERSION -o ./nuget -c Release
 
-          ls -lah .nuget
+          find ./nuget -type f
 
           # find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
           dotnet nuget push ./nuget --skip-duplicate -s ${{ inputs.nuget-publish-url }}
