@@ -123,7 +123,11 @@ jobs:
         run: |
           mkdir ./nuget
           dotnet pack $SOLUTION --no-build -p:PackageVersion=$VERSION -o ./nuget -c Release
-          find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
+
+          ls -lah .nuget
+
+          # find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
+          dotnet nuget push ./nuget --skip-duplicate -s ${{ inputs.nuget-publish-url }}
 
       - name: Git Tag
         if: inputs.publishable
