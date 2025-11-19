@@ -275,14 +275,25 @@ jobs:
         run: |
           echo "Publishing version $PACKAGE_VERSION..."
           
+          # Show package.json details
+          echo "Package details:"
+          cat package.json | grep -E '"name"|"version"|"publishConfig"' || true
+          
+          # Show .npmrc configuration
+          echo "Registry configuration:"
+          cat .npmrc
+          
           # Show what will be published
           echo "Package contents:"
-          ls -la
+          ls -la dist/ || echo "No dist directory"
           
-          # Publish using bun
-          # Note: bun publish will run scripts in package.json unless we temporarily remove them
-          # Since we already have the built artifacts, we can publish directly
-          bun publish
+          # Publish using bun with verbose output
+          echo "Running bun publish..."
+          bun publish 2>&1 || {
+            echo "::error ::Bun publish failed with exit code $?"
+            echo "Attempting to get more details..."
+            exit 1
+          }
           
           echo "::notice ::Published: $PACKAGE_VERSION"
 
