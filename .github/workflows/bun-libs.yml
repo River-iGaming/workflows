@@ -263,14 +263,26 @@ jobs:
           node -e "const pkg = require('./package.json'); pkg.version = '${{ needs.build.outputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
           echo "Package version set to ${{ needs.build.outputs.version }}"
 
+      - name: Remove lifecycle scripts
+        run: |
+          # Remove prepublish scripts to prevent rebuilding since we already have the build artifacts
+          node -e "const pkg = require('./package.json'); delete pkg.scripts.prepublish; delete pkg.scripts.prepublishOnly; delete pkg.scripts.prepack; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          echo "Removed lifecycle scripts from package.json"
+
       - name: Publish
         env:
           PACKAGE_VERSION: ${{ needs.build.outputs.version }}
         run: |
-          echo "Publishing ..."
+          echo "Publishing version $PACKAGE_VERSION..."
           
-          # Publish using bun with --ignore-scripts to skip build hooks since we already have the build artifacts
-          bun publish --ignore-scripts --no-summary
+          # Show what will be published
+          echo "Package contents:"
+          ls -la
+          
+          # Publish using bun
+          # Note: bun publish will run scripts in package.json unless we temporarily remove them
+          # Since we already have the built artifacts, we can publish directly
+          bun publish
           
           echo "::notice ::Published: $PACKAGE_VERSION"
 
