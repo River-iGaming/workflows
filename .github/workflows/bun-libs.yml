@@ -22,31 +22,11 @@ on:
         required: false
         type: string
         default: "@odin"
-      junit-report-path:
-        description: "The path to unit test report (defaults: ./junit/)"
-        required: false
-        type: string
-        default: ./junit/
-      junit-report-name:
-        description: "The file name for unit test report (defaults: test-results.xml)"
-        required: false
-        type: string
-        default: test-results.xml
       aws-region:
         description: "Which AWS region to use for publish storybook (defaults: eu-west-1)"
         required: false
         type: string
         default: eu-west-1
-      has-storybook:
-        description: "Whether storybook exists in project (defaults: false)"
-        required: false
-        type: boolean
-        default: false
-      repo-template:
-        description: "Specify which template to use for repo e.g. 'lerna', 'node' (defaults: 'lerna')"
-        required: false
-        type: string
-        default: lerna
       publish-command:
         description: "Command to run to publish packages (defaults: `bun run release` NOTE: NOT `bun publish`)"
         type: string
@@ -87,7 +67,6 @@ jobs:
     outputs:
       version: ${{ steps.version-builder.outputs.version }}
       should-publish: ${{ steps.check-publish.outputs.publish }}
-      should-publish-storybook: ${{ steps.check-publish.outputs.storybook-publish }}
       branch-name: ${{ steps.git.outputs.branch-name }}
     steps:
       - name: Checkout
@@ -165,14 +144,6 @@ jobs:
       - name: Test
         run: bun run test:ci --if-present
 
-      - name: Store tests artifact
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: ${{ inputs.junit-report-name }}
-          path: ${{ inputs.junit-report-path }}
-          retention-days: 2
-
       - name: Store bun artifact
         uses: actions/upload-artifact@v4
         if: failure()
@@ -180,10 +151,6 @@ jobs:
           name: bun-logs
           path: ~/.bun/install/cache/*
           retention-days: 2
-
-      - name: Build storybook
-        if: inputs.has-storybook
-        run: bun run build:storybook
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -229,23 +196,13 @@ jobs:
         env:
           PUBLISHABLE: ${{ (inputs.skip-publish-branch-check || steps.check-branch.outputs.publishable == 'true') && steps.commit.outputs.publishable == 'true' }}
         run: |
-          STORYBOOK_PUBLISHABLE=${{ inputs.has-storybook && env.PUBLISHABLE }}
           echo "publish=$PUBLISHABLE" >> $GITHUB_OUTPUT
-          echo "storybook-publish=$STORYBOOK_PUBLISHABLE" >> $GITHUB_OUTPUT
 
       - name: Get package version
         id: versioning
         if: ${{ steps.check-publish.outputs.publish == 'true' }}
         run: |
-          if [[ ${{ inputs.repo-template }} == "lerna" ]]; then
-            VERSION_FILE=lerna
-          elif [[ ${{ inputs.repo-template }} == "node" ]]; then
-            VERSION_FILE=package
-          else
-            echo "::error ::Repo template '${{ inputs.repo-template }}' not handled!"
-            exit 1
-          fi
-          PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
           echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate Version Number
@@ -318,47 +275,6 @@ jobs:
         run: |
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
-
-      - name: Configure AWS credentials
-        if: ${{ needs.build.outputs.should-publish-storybook == 'true' }}
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.aws-access-key-id }}
-          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
-          aws-region: ${{ inputs.aws-region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        if: ${{ needs.build.outputs.should-publish-storybook == 'true' }}
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Setup Docker buildx
-        id: buildx-setup
-        uses: docker/setup-buildx-action@v3
-        if: ${{ steps.login-ecr.conclusion == 'success' }}
-
-      - name: Publish storybook
-        if: ${{ steps.login-ecr.conclusion == 'success' }}
-        env:
-          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
-          BRANCH_NAME: ${{ needs.build.outputs.branch-name }}
-          TAG: ${{ needs.build.outputs.version }}
-        run: |
-          STORYBOOK_NAME=$(node -p "require('./storybook/package.json').name")
-          echo "Storybook Docker Repo Name: $STORYBOOK_NAME"
-
-          [[ $ECR_HOST =~ ^([0-9]*) ]] && REGISTRY=${BASH_REMATCH[1]}
-
-          if aws ecr describe-images --repository-name=$STORYBOOK_NAME --registry-id $REGISTRY --image-ids=imageTag=$TAG > /dev/null 2>&1; then
-            echo "::notice ::$TAG already exists on remote... skipping..."
-            exit 0
-          fi
-
-          TAG=$TAG docker buildx bake -f docker-compose.yml web --progress plain --push
-
-      - name: Logout of Amazon ECR
-        if: ${{ steps.login-ecr.conclusion == 'success' }}
-        run: docker logout ${{ steps.login-ecr.outputs.registry }}
 
       - name: Publish
         env:
