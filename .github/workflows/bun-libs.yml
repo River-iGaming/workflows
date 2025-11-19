@@ -1,0 +1,373 @@
+name: Bun library build/publish
+on:
+  workflow_call:
+    inputs:
+      bun-version:
+        description: "Bun version to use (defaults: latest)"
+        required: false
+        type: string
+        default: "latest"
+      npm-registry:
+        description: "The url for npm registry"
+        required: false
+        type: string
+        default: //nexus.rivertech.dev/repository/npm/
+      npm-registry-publish:
+        description: "The address for npm registry publish"
+        required: false
+        type: string
+        default: //nexus.rivertech.dev/repository/odin-npm/
+      npm-registry-scope:
+        description: "The name of the npm scope (defaults: @odin)"
+        required: false
+        type: string
+        default: "@odin"
+      junit-report-path:
+        description: "The path to unit test report (defaults: ./junit/)"
+        required: false
+        type: string
+        default: ./junit/
+      junit-report-name:
+        description: "The file name for unit test report (defaults: test-results.xml)"
+        required: false
+        type: string
+        default: test-results.xml
+      aws-region:
+        description: "Which AWS region to use for publish storybook (defaults: eu-west-1)"
+        required: false
+        type: string
+        default: eu-west-1
+      has-storybook:
+        description: "Whether storybook exists in project (defaults: false)"
+        required: false
+        type: boolean
+        default: false
+      repo-template:
+        description: "Specify which template to use for repo e.g. 'lerna', 'node' (defaults: 'lerna')"
+        required: false
+        type: string
+        default: lerna
+      publish-command:
+        description: "Command to run to publish packages (defaults: `bun run release` NOTE: NOT `bun publish`)"
+        type: string
+        default: bun run release
+        required: false
+      skip-lint:
+        description: "Determines whether to skip linting (defaults: false)"
+        type: boolean
+        default: false
+        required: false
+      skip-publish-branch-check:
+        description: "Determine whether to publish even when doesn't meet branch criteria. (defaults: false)"
+        type: boolean
+        default: false
+        required: false
+    secrets:
+      npm-token:
+        required: false
+      nexus-username:
+        required: false
+      nexus-password:
+        required: false
+      aws-access-key-id:
+        required: true
+      aws-secret-access-key:
+        required: true
+      github-token:
+        required: true
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version-builder.outputs.version }}
+      should-publish: ${{ steps.check-publish.outputs.publish }}
+      should-publish-storybook: ${{ steps.check-publish.outputs.storybook-publish }}
+      branch-name: ${{ steps.git.outputs.branch-name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # needed for commit-message in PRs
+
+      # - name: Debug Action Contexts
+      #   uses: henrygriffiths/debug_action@v1
+      #   with:
+      #     secrets_context: ${{ toJson(secrets) }}
+      #     needs_context: ${{ toJson(needs) }}
+
+      - name: NPM TOKEN
+        id: npm_token
+        run: |
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          else
+            echo "Error: Neither npm-token nor nexus-username/nexus-password provided." >&2
+            exit 1
+          fi
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ inputs.bun-version }}
+
+      - name: Setup Environment
+        run: |
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            bun config set ${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}
+            bun config set ${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            bun config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
+            bun config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          fi
+
+          bun config set registry=https:${{ inputs.npm-registry }}
+          bun config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+
+      - name: Print environment versions
+        run: |
+          BUN_V=$(bun --version)
+          echo bun version':' $BUN_V
+
+      - name: Get commit message and branch name
+        id: git
+        env:
+          COMMIT_MESSAGE_ENV: ${{ github.event.pull_request.title || github.event.head_commit.message }}
+          EVENT_NAME_ENV: ${{ github.event_name }}
+          BRANCH_NAME_ENV: ${{ github.head_ref || github.ref_name }}
+        run: |
+          LOG=$COMMIT_MESSAGE_ENV
+          EOF_MARKER=$GITHUB_SHA
+          BRANCH_NAME=$BRANCH_NAME_ENV
+          COMMIT_MSG="commit-message<<${EOF_MARKER}"$'\n'"${LOG}"$'\n'"${EOF_MARKER}"
+          echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+      - name: Restore dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        if: ${{!inputs.skip-lint}}
+        run: bun run lint --if-present
+
+      - name: Build
+        run: bun run build
+
+      - name: Test
+        run: bun run test:ci --if-present
+
+      - name: Store tests artifact
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ inputs.junit-report-name }}
+          path: ${{ inputs.junit-report-path }}
+          retention-days: 2
+
+      - name: Store bun artifact
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: bun-logs
+          path: ~/.bun/install/cache/*
+          retention-days: 2
+
+      - name: Build storybook
+        if: inputs.has-storybook
+        run: bun run build:storybook
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            lib/
+            build/
+            storybook-static/
+          retention-days: 1
+
+      - name: Check if branch is publishable
+        id: check-branch
+        if: ${{ !inputs.skip-publish-branch-check }}
+        env:
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name }}
+        run: |
+          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" == release* ]] || [[ "$BRANCH_NAME" == masters* ]] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
+            PUBLISHABLE=false
+            echo "::notice ::Non-publishable branch."
+          else
+            PUBLISHABLE=true
+          fi
+          echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
+
+      - name: Check if commit is publishable
+        id: commit
+        env:
+          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message }}
+        run: |
+          # todo: for PR should we use PR title instead?
+          if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
+            PUBLISHABLE=false
+            echo "::notice ::Commit doesn't need to be published."
+          else
+            PUBLISHABLE=true
+          fi
+          echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
+
+      - name: Determine publish
+        id: check-publish
+        env:
+          PUBLISHABLE: ${{ (inputs.skip-publish-branch-check || steps.check-branch.outputs.publishable == 'true') && steps.commit.outputs.publishable == 'true' }}
+        run: |
+          STORYBOOK_PUBLISHABLE=${{ inputs.has-storybook && env.PUBLISHABLE }}
+          echo "publish=$PUBLISHABLE" >> $GITHUB_OUTPUT
+          echo "storybook-publish=$STORYBOOK_PUBLISHABLE" >> $GITHUB_OUTPUT
+
+      - name: Get package version
+        id: versioning
+        if: ${{ steps.check-publish.outputs.publish == 'true' }}
+        run: |
+          if [[ ${{ inputs.repo-template }} == "lerna" ]]; then
+            VERSION_FILE=lerna
+          elif [[ ${{ inputs.repo-template }} == "node" ]]; then
+            VERSION_FILE=package
+          else
+            echo "::error ::Repo template '${{ inputs.repo-template }}' not handled!"
+            exit 1
+          fi
+          PACKAGE_VERSION=$(node -p "require('./$VERSION_FILE.json').version")
+          echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate Version Number
+        id: version-builder
+        uses: River-iGaming/actions/dotnet/versions@v4
+        if: ${{ steps.versioning.conclusion == 'success' }}
+        with:
+          type: fe-lib
+          package-version: ${{ steps.versioning.outputs.version }}
+
+      - name: Update package version
+        if: ${{ steps.versioning.conclusion == 'success' && steps.version-builder.outputs.version != steps.versioning.outputs.version }}
+        run: |
+          bun version ${{ steps.version-builder.outputs.version }} --no-git-tag-version
+          echo "Package version updated to ${{ steps.version-builder.outputs.version }}"
+
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ needs.build.outputs.should-publish == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: NPM TOKEN
+        id: npm_token
+        run: |
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          else
+            echo "Error: Neither npm-token nor nexus-username/nexus-password provided." >&2
+            exit 1
+          fi
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ inputs.bun-version }}
+
+      - name: Setup Environment
+        run: |
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            bun config set ${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}
+            bun config set ${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}\" ]]; then
+            bun config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
+            bun config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          fi
+
+          bun config set registry=https:${{ inputs.npm-registry }}
+          bun config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Check if tag exists
+        id: tag
+        uses: mukunku/tag-exists-action@v1.6.0
+        with:
+          tag: ${{ needs.build.outputs.version }}
+
+      - name: Error if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "::error ::Tag already exists. Please make sure you bump version!"
+          exit 1
+
+      - name: Configure AWS credentials
+        if: ${{ needs.build.outputs.should-publish-storybook == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        if: ${{ needs.build.outputs.should-publish-storybook == 'true' }}
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Setup Docker buildx
+        id: buildx-setup
+        uses: docker/setup-buildx-action@v3
+        if: ${{ steps.login-ecr.conclusion == 'success' }}
+
+      - name: Publish storybook
+        if: ${{ steps.login-ecr.conclusion == 'success' }}
+        env:
+          ECR_HOST: ${{ steps.login-ecr.outputs.registry }}
+          BRANCH_NAME: ${{ needs.build.outputs.branch-name }}
+          TAG: ${{ needs.build.outputs.version }}
+        run: |
+          STORYBOOK_NAME=$(node -p "require('./storybook/package.json').name")
+          echo "Storybook Docker Repo Name: $STORYBOOK_NAME"
+
+          [[ $ECR_HOST =~ ^([0-9]*) ]] && REGISTRY=${BASH_REMATCH[1]}
+
+          if aws ecr describe-images --repository-name=$STORYBOOK_NAME --registry-id $REGISTRY --image-ids=imageTag=$TAG > /dev/null 2>&1; then
+            echo "::notice ::$TAG already exists on remote... skipping..."
+            exit 0
+          fi
+
+          TAG=$TAG docker buildx bake -f docker-compose.yml web --progress plain --push
+
+      - name: Logout of Amazon ECR
+        if: ${{ steps.login-ecr.conclusion == 'success' }}
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}
+
+      - name: Publish
+        env:
+          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          echo "Publishing ..."
+          ${{ inputs.publish-command }}
+          echo "::notice ::Published: $PACKAGE_VERSION"
+
+          echo "Tagging code base"
+          git tag $PACKAGE_VERSION
+          git push origin $PACKAGE_VERSION
