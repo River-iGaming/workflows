@@ -269,31 +269,34 @@ jobs:
           node -e "const pkg = require('./package.json'); delete pkg.scripts.prepublish; delete pkg.scripts.prepublishOnly; delete pkg.scripts.prepack; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
           echo "Removed lifecycle scripts from package.json"
 
+      - name: Get auth token
+        id: auth
+        run: |
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          fi
+          echo "token=${AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
       - name: Publish
         env:
           PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+          NPM_CONFIG_REGISTRY: https:${{ inputs.npm-registry }}
+          NPM_CONFIG__AUTH: ${{ steps.auth.outputs.token }}
+          NODE_AUTH_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
           echo "Publishing version $PACKAGE_VERSION..."
           
-          # Show package.json details
-          echo "Package details:"
-          cat package.json | grep -E '"name"|"version"|"publishConfig"' || true
+          # Set registry in package.json publishConfig
+          node -e "const pkg = require('./package.json'); pkg.publishConfig = pkg.publishConfig || {}; pkg.publishConfig.registry = 'https:${{ inputs.npm-registry-publish }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
           
-          # Show .npmrc configuration
-          echo "Registry configuration:"
-          cat .npmrc
+          echo "Package configuration:"
+          cat package.json | grep -A 5 '"publishConfig"' || true
           
-          # Show what will be published
-          echo "Package contents:"
-          ls -la dist/ || echo "No dist directory"
-          
-          # Publish using bun with verbose output
+          # Publish using bun with authentication via environment variables
           echo "Running bun publish..."
-          bun publish 2>&1 || {
-            echo "::error ::Bun publish failed with exit code $?"
-            echo "Attempting to get more details..."
-            exit 1
-          }
+          bun publish
           
           echo "::notice ::Published: $PACKAGE_VERSION"
 
