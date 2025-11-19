@@ -100,16 +100,18 @@ jobs:
 
       - name: Setup Environment
         run: |
-          if [[ "${{ secrets.npm-token }}" ]]; then
-            bun config set ${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}
-            bun config set ${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}
-          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
-            bun config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
-            bun config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
-          fi
+          cat > .npmrc << EOF
+          registry=https:${{ inputs.npm-registry }}
+          ${{ inputs.npm-registry-scope }}:registry=https:${{ inputs.npm-registry-publish }}
+          EOF
 
-          bun config set registry=https:${{ inputs.npm-registry }}
-          bun config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            echo "${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}" >> .npmrc
+            echo "${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}" >> .npmrc
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            echo "${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}" >> .npmrc
+            echo "${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}" >> .npmrc
+          fi
 
       - name: Print environment versions
         run: |
@@ -248,16 +250,18 @@ jobs:
 
       - name: Setup Environment
         run: |
-          if [[ "${{ secrets.npm-token }}" ]]; then
-            bun config set ${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}
-            bun config set ${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}
-          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}\" ]]; then
-            bun config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
-            bun config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
-          fi
+          cat > .npmrc << EOF
+          registry=https:${{ inputs.npm-registry }}
+          ${{ inputs.npm-registry-scope }}:registry=https:${{ inputs.npm-registry-publish }}
+          EOF
 
-          bun config set registry=https:${{ inputs.npm-registry }}
-          bun config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            echo "${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}" >> .npmrc
+            echo "${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}" >> .npmrc
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            echo "${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}" >> .npmrc
+            echo "${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}" >> .npmrc
+          fi
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
