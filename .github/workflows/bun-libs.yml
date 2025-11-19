@@ -240,46 +240,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: NPM TOKEN
-        id: npm_token
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Environment
         run: |
           if [[ "${{ secrets.npm-token }}" ]]; then
-            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
+            AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
           elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
-            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+            AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
           else
             echo "Error: Neither npm-token nor nexus-username/nexus-password provided." >&2
             exit 1
           fi
-          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ inputs.bun-version }}
-
-      - name: Setup Environment
-        run: |
           cat > .npmrc << EOF
           registry=https:${{ inputs.npm-registry }}
           ${{ inputs.npm-registry-scope }}:registry=https:${{ inputs.npm-registry-publish }}
           EOF
 
           if [[ "${{ secrets.npm-token }}" ]]; then
-            echo "${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}" >> .npmrc
-            echo "${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}" >> .npmrc
+            echo "${{inputs.npm-registry}}:_authToken=${AUTH_TOKEN}" >> .npmrc
+            echo "${{inputs.npm-registry-publish}}:_authToken=${AUTH_TOKEN}" >> .npmrc
           elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
-            echo "${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}" >> .npmrc
-            echo "${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}" >> .npmrc
+            echo "${{inputs.npm-registry}}:_auth=${AUTH_TOKEN}" >> .npmrc
+            echo "${{inputs.npm-registry-publish}}:_auth=${AUTH_TOKEN}" >> .npmrc
           fi
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-
-      - name: Restore dependencies
-        run: bun install --frozen-lockfile
 
       - name: Check if tag exists
         id: tag
@@ -293,20 +286,19 @@ jobs:
           echo "::error ::Tag already exists. Please make sure you bump version!"
           exit 1
 
+      - name: Update package version
+        run: |
+          npm version ${{ needs.build.outputs.version }} --no-git-tag-version --allow-same-version
+          echo "Package version set to ${{ needs.build.outputs.version }}"
+
       - name: Publish
         env:
           PACKAGE_VERSION: ${{ needs.build.outputs.version }}
         run: |
           echo "Publishing ..."
-          PUBLISH_CMD="${{ inputs.publish-command }}"
-          SCRIPT_NAME=$(echo "$PUBLISH_CMD" | sed 's/bun run //')
           
-          if grep -q "\"$SCRIPT_NAME\"" package.json; then
-            $PUBLISH_CMD
-          else
-            echo "::warning ::Publish script '$SCRIPT_NAME' not found in package.json, skipping publish..."
-            exit 0
-          fi
+          # Publish using npm with --ignore-scripts to skip build hooks since we already have the build artifacts
+          npm publish --ignore-scripts
           
           echo "::notice ::Published: $PACKAGE_VERSION"
 
