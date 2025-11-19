@@ -295,7 +295,16 @@ jobs:
           PACKAGE_VERSION: ${{ needs.build.outputs.version }}
         run: |
           echo "Publishing ..."
-          ${{ inputs.publish-command }}
+          PUBLISH_CMD="${{ inputs.publish-command }}"
+          SCRIPT_NAME=$(echo "$PUBLISH_CMD" | sed 's/bun run //')
+          
+          if grep -q "\"$SCRIPT_NAME\"" package.json; then
+            $PUBLISH_CMD
+          else
+            echo "::warning ::Publish script '$SCRIPT_NAME' not found in package.json, skipping publish..."
+            exit 0
+          fi
+          
           echo "::notice ::Published: $PACKAGE_VERSION"
 
           echo "Tagging code base"
