@@ -216,6 +216,11 @@ jobs:
         with:
           bun-version: ${{ inputs.bun-version }}
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Setup Environment
         run: |
           if [[ "${{ secrets.npm-token }}" ]]; then
@@ -268,37 +273,20 @@ jobs:
         id: auth
         run: |
           if [[ "${{ secrets.npm-token }}" ]]; then
-            AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
+            # For npm-token, use it directly as NODE_AUTH_TOKEN expects the raw token
+            echo "token=${{ secrets.npm-token }}" >> "$GITHUB_OUTPUT"
           elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            # For username/password, create base64 encoded auth string
             AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+            echo "token=${AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
           fi
-          echo "token=${AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
 
       - name: Publish
         run: |
-          PACKAGE_VERSION="${{ needs.build.outputs.version }}"
-          echo "Publishing version $PACKAGE_VERSION..."
-          
           # Set registry in package.json publishConfig
           node -e "const pkg = require('./package.json'); pkg.publishConfig = pkg.publishConfig || {}; pkg.publishConfig.registry = 'https:${{ inputs.npm-registry-publish }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
           
-          echo "=== Package Configuration ==="
-          cat package.json | grep -A 5 '"publishConfig"' || echo "No publishConfig found"
-          
-          echo ""
-          echo "=== .npmrc Contents ==="
-          cat .npmrc
-          
-          echo ""
-          echo "=== Running bun publish ==="
-          bun publish --registry https:${{ inputs.npm-registry-publish }} 2>&1 || {
-            EXIT_CODE=$?
-            echo ""
-            echo "::error ::Bun publish failed with exit code $EXIT_CODE"
-            exit $EXIT_CODE
-          }
-          
-          echo "::notice ::Published: $PACKAGE_VERSION"
+          pnpm publish --registry https:${{ inputs.npm-registry-publish }} --no-git-checks
 
           echo "Tagging code base"
           git tag $PACKAGE_VERSION
