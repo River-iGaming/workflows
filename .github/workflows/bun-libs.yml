@@ -34,12 +34,6 @@ on:
         required: false
       nexus-password:
         required: false
-      aws-access-key-id:
-        required: true
-      aws-secret-access-key:
-        required: true
-      github-token:
-        required: true
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
