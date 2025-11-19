@@ -219,7 +219,8 @@ jobs:
       - name: Setup Environment
         run: |
           if [[ "${{ secrets.npm-token }}" ]]; then
-            AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
+            # For npm tokens, encode in base64 format as Bun expects _auth format
+            AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}" | openssl base64 -e)
           elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
             AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
           else
@@ -230,15 +231,9 @@ jobs:
           cat > .npmrc << EOF
           registry=https:${{ inputs.npm-registry }}
           ${{ inputs.npm-registry-scope }}:registry=https:${{ inputs.npm-registry-publish }}
+          ${{inputs.npm-registry}}:_auth=${AUTH_TOKEN}
+          ${{inputs.npm-registry-publish}}:_auth=${AUTH_TOKEN}
           EOF
-
-          if [[ "${{ secrets.npm-token }}" ]]; then
-            echo "${{inputs.npm-registry}}:_authToken=${AUTH_TOKEN}" >> .npmrc
-            echo "${{inputs.npm-registry-publish}}:_authToken=${AUTH_TOKEN}" >> .npmrc
-          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
-            echo "${{inputs.npm-registry}}:_auth=${AUTH_TOKEN}" >> .npmrc
-            echo "${{inputs.npm-registry-publish}}:_auth=${AUTH_TOKEN}" >> .npmrc
-          fi
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -280,42 +275,26 @@ jobs:
           echo "token=${AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
 
       - name: Publish
-        env:
-          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
-          NPM_CONFIG_REGISTRY: https:${{ inputs.npm-registry }}
-          NPM_CONFIG__AUTH: ${{ steps.auth.outputs.token }}
-          NODE_AUTH_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
+          PACKAGE_VERSION="${{ needs.build.outputs.version }}"
           echo "Publishing version $PACKAGE_VERSION..."
           
           # Set registry in package.json publishConfig
           node -e "const pkg = require('./package.json'); pkg.publishConfig = pkg.publishConfig || {}; pkg.publishConfig.registry = 'https:${{ inputs.npm-registry-publish }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
           
           echo "=== Package Configuration ==="
-          cat package.json | grep -A 10 '"publishConfig"' || echo "No publishConfig found"
-          cat package.json | grep -E '"name"|"version"'
-          
-          echo ""
-          echo "=== Environment Variables ==="
-          echo "NPM_CONFIG_REGISTRY=${NPM_CONFIG_REGISTRY}"
-          echo "NODE_AUTH_TOKEN is set: $([ -n "$NODE_AUTH_TOKEN" ] && echo 'yes' || echo 'no')"
-          echo "NPM_CONFIG__AUTH is set: $([ -n "$NPM_CONFIG__AUTH" ] && echo 'yes' || echo 'no')"
+          cat package.json | grep -A 5 '"publishConfig"' || echo "No publishConfig found"
           
           echo ""
           echo "=== .npmrc Contents ==="
           cat .npmrc
           
           echo ""
-          echo "=== Directory Contents ==="
-          ls -la
-          
-          echo ""
           echo "=== Running bun publish ==="
-          bun publish 2>&1 || {
+          bun publish --registry https:${{ inputs.npm-registry-publish }} 2>&1 || {
             EXIT_CODE=$?
             echo ""
             echo "::error ::Bun publish failed with exit code $EXIT_CODE"
-            echo "Full error output above"
             exit $EXIT_CODE
           }
           
