@@ -22,21 +22,6 @@ on:
         required: false
         type: string
         default: "@odin"
-      aws-region:
-        description: "Which AWS region to use for publish storybook (defaults: eu-west-1)"
-        required: false
-        type: string
-        default: eu-west-1
-      publish-command:
-        description: "Command to run to publish packages (defaults: `bun run release` NOTE: NOT `bun publish`)"
-        type: string
-        default: bun run release
-        required: false
-      skip-lint:
-        description: "Determines whether to skip linting (defaults: false)"
-        type: boolean
-        default: false
-        required: false
       skip-publish-branch-check:
         description: "Determine whether to publish even when doesn't meet branch criteria. (defaults: false)"
         type: boolean
@@ -135,15 +120,6 @@ jobs:
 
       - name: Restore dependencies
         run: bun install --frozen-lockfile
-
-      - name: Lint
-        if: ${{!inputs.skip-lint}}
-        run: |
-          if grep -q '"lint"' package.json; then
-            bun run lint
-          else
-            echo "Lint script not found, skipping..."
-          fi
 
       - name: Build
         run: bun run build
