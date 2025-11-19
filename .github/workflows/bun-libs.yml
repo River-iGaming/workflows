@@ -291,12 +291,33 @@ jobs:
           # Set registry in package.json publishConfig
           node -e "const pkg = require('./package.json'); pkg.publishConfig = pkg.publishConfig || {}; pkg.publishConfig.registry = 'https:${{ inputs.npm-registry-publish }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
           
-          echo "Package configuration:"
-          cat package.json | grep -A 5 '"publishConfig"' || true
+          echo "=== Package Configuration ==="
+          cat package.json | grep -A 10 '"publishConfig"' || echo "No publishConfig found"
+          cat package.json | grep -E '"name"|"version"'
           
-          # Publish using bun with authentication via environment variables
-          echo "Running bun publish..."
-          bun publish
+          echo ""
+          echo "=== Environment Variables ==="
+          echo "NPM_CONFIG_REGISTRY=${NPM_CONFIG_REGISTRY}"
+          echo "NODE_AUTH_TOKEN is set: $([ -n "$NODE_AUTH_TOKEN" ] && echo 'yes' || echo 'no')"
+          echo "NPM_CONFIG__AUTH is set: $([ -n "$NPM_CONFIG__AUTH" ] && echo 'yes' || echo 'no')"
+          
+          echo ""
+          echo "=== .npmrc Contents ==="
+          cat .npmrc
+          
+          echo ""
+          echo "=== Directory Contents ==="
+          ls -la
+          
+          echo ""
+          echo "=== Running bun publish ==="
+          bun publish 2>&1 || {
+            EXIT_CODE=$?
+            echo ""
+            echo "::error ::Bun publish failed with exit code $EXIT_CODE"
+            echo "Full error output above"
+            exit $EXIT_CODE
+          }
           
           echo "::notice ::Published: $PACKAGE_VERSION"
 
