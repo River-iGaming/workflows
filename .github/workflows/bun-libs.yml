@@ -278,6 +278,9 @@ jobs:
         with:
           name: build-artifacts
 
+      - name: Restore dependencies
+        run: bun install --frozen-lockfile
+
       - name: Check if tag exists
         id: tag
         uses: mukunku/tag-exists-action@v1.6.0
