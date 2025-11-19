@@ -138,13 +138,23 @@ jobs:
 
       - name: Lint
         if: ${{!inputs.skip-lint}}
-        run: bun run lint --if-present
+        run: |
+          if grep -q '"lint"' package.json; then
+            bun run lint
+          else
+            echo "Lint script not found, skipping..."
+          fi
 
       - name: Build
         run: bun run build
 
       - name: Test
-        run: bun run test:ci --if-present
+        run: |
+          if grep -q '"test:ci"' package.json; then
+            bun run test:ci
+          else
+            echo "Test:ci script not found, skipping..."
+          fi
 
       - name: Store bun artifact
         uses: actions/upload-artifact@v4
