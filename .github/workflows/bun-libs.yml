@@ -198,7 +198,8 @@ jobs:
       - name: Update package version
         if: ${{ steps.versioning.conclusion == 'success' && steps.version-builder.outputs.version != steps.versioning.outputs.version }}
         run: |
-          bun version ${{ steps.version-builder.outputs.version }} --no-git-tag-version
+          # Update version in package.json using node
+          node -e "const pkg = require('./package.json'); pkg.version = '${{ steps.version-builder.outputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
           echo "Package version updated to ${{ steps.version-builder.outputs.version }}"
 
   publish:
@@ -258,7 +259,8 @@ jobs:
 
       - name: Update package version
         run: |
-          bun version ${{ needs.build.outputs.version }} --no-git-tag-version
+          # Update version in package.json using node
+          node -e "const pkg = require('./package.json'); pkg.version = '${{ needs.build.outputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
           echo "Package version set to ${{ needs.build.outputs.version }}"
 
       - name: Publish
