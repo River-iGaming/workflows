@@ -42,7 +42,7 @@ on:
         value: ${{ jobs.build.outputs.final-version }}
 jobs:
   build:
-    name: Build projects
+    name: Build
     runs-on: ubuntu-latest
     outputs:
       project-version: ${{ steps.versioning.outputs.project-version }}
