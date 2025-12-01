@@ -1,0 +1,291 @@
+name: Bun library build/publish
+on:
+  workflow_call:
+    inputs:
+      bun-version:
+        description: "Bun version to use (defaults: latest)"
+        required: false
+        type: string
+        default: "latest"
+      npm-registry:
+        description: "The url for npm registry"
+        required: false
+        type: string
+        default: //nexus.rivertech.dev/repository/npm/
+      npm-registry-publish:
+        description: "The address for npm registry publish"
+        required: false
+        type: string
+        default: //nexus.rivertech.dev/repository/odin-npm/
+      npm-registry-scope:
+        description: "The name of the npm scope (defaults: @odin)"
+        required: false
+        type: string
+        default: "@odin"
+      skip-publish-branch-check:
+        description: "Determine whether to publish even when doesn't meet branch criteria. (defaults: false)"
+        type: boolean
+        default: false
+        required: false
+    secrets:
+      npm-token:
+        required: false
+      nexus-username:
+        required: false
+      nexus-password:
+        required: false
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version-builder.outputs.version }}
+      should-publish: ${{ steps.check-publish.outputs.publish }}
+      branch-name: ${{ steps.git.outputs.branch-name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # needed for commit-message in PRs
+
+      # - name: Debug Action Contexts
+      #   uses: henrygriffiths/debug_action@v1
+      #   with:
+      #     secrets_context: ${{ toJson(secrets) }}
+      #     needs_context: ${{ toJson(needs) }}
+
+      - name: NPM TOKEN
+        id: npm_token
+        run: |
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          else
+            echo "Error: Neither npm-token nor nexus-username/nexus-password provided." >&2
+            exit 1
+          fi
+          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ inputs.bun-version }}
+
+      - name: Setup Environment
+        run: |
+          cat > .npmrc << EOF
+          registry=https:${{ inputs.npm-registry }}
+          ${{ inputs.npm-registry-scope }}:registry=https:${{ inputs.npm-registry-publish }}
+          EOF
+
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            echo "${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}" >> .npmrc
+            echo "${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}" >> .npmrc
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            echo "${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}" >> .npmrc
+            echo "${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}" >> .npmrc
+          fi
+
+      - name: Print environment versions
+        run: |
+          BUN_V=$(bun --version)
+          echo bun version':' $BUN_V
+
+      - name: Get commit message and branch name
+        id: git
+        env:
+          COMMIT_MESSAGE_ENV: ${{ github.event.pull_request.title || github.event.head_commit.message }}
+          EVENT_NAME_ENV: ${{ github.event_name }}
+          BRANCH_NAME_ENV: ${{ github.head_ref || github.ref_name }}
+        run: |
+          LOG=$COMMIT_MESSAGE_ENV
+          EOF_MARKER=$GITHUB_SHA
+          BRANCH_NAME=$BRANCH_NAME_ENV
+          COMMIT_MSG="commit-message<<${EOF_MARKER}"$'\n'"${LOG}"$'\n'"${EOF_MARKER}"
+          echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+      - name: Restore dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Test
+        run: |
+          if grep -q '"test:ci"' package.json; then
+            bun run test:ci
+          else
+            echo "Test:ci script not found, skipping..."
+          fi
+
+      - name: Store bun artifact
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: bun-logs
+          path: ~/.bun/install/cache/*
+          retention-days: 2
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            lib/
+            build/
+            storybook-static/
+          retention-days: 1
+
+      - name: Check if branch is publishable
+        id: check-branch
+        if: ${{ !inputs.skip-publish-branch-check }}
+        env:
+          BRANCH_NAME: ${{ steps.git.outputs.branch-name }}
+        run: |
+          if ! ([ $BRANCH_NAME = "master" ] || [ $BRANCH_NAME = "vnext" ] || [[ "$BRANCH_NAME" == release* ]] || [[ "$BRANCH_NAME" == masters* ]] || [[ "$BRANCH_NAME" =~ ^([0-9].*)\.x$ ]]); then
+            PUBLISHABLE=false
+            echo "::notice ::Non-publishable branch."
+          else
+            PUBLISHABLE=true
+          fi
+          echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
+
+      - name: Check if commit is publishable
+        id: commit
+        env:
+          COMMIT_MESSAGE: ${{ steps.git.outputs.commit-message }}
+        run: |
+          # todo: for PR should we use PR title instead?
+          if [[ "$COMMIT_MESSAGE" =~ ^(style|test|docs) ]]; then
+            PUBLISHABLE=false
+            echo "::notice ::Commit doesn't need to be published."
+          else
+            PUBLISHABLE=true
+          fi
+          echo "publishable=$PUBLISHABLE" >> $GITHUB_OUTPUT
+
+      - name: Determine publish
+        id: check-publish
+        env:
+          PUBLISHABLE: ${{ (inputs.skip-publish-branch-check || steps.check-branch.outputs.publishable == 'true') && steps.commit.outputs.publishable == 'true' }}
+        run: |
+          echo "publish=$PUBLISHABLE" >> $GITHUB_OUTPUT
+
+      - name: Get package version
+        id: versioning
+        if: ${{ steps.check-publish.outputs.publish == 'true' }}
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate Version Number
+        id: version-builder
+        uses: River-iGaming/actions/dotnet/versions@v4
+        if: ${{ steps.versioning.conclusion == 'success' }}
+        with:
+          type: fe-lib
+          package-version: ${{ steps.versioning.outputs.version }}
+
+      - name: Update package version
+        if: ${{ steps.versioning.conclusion == 'success' && steps.version-builder.outputs.version != steps.versioning.outputs.version }}
+        run: |
+          # Update version in package.json using node
+          node -e "const pkg = require('./package.json'); pkg.version = '${{ steps.version-builder.outputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          echo "Package version updated to ${{ steps.version-builder.outputs.version }}"
+
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ needs.build.outputs.should-publish == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ inputs.bun-version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Environment
+        run: |
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            # For npm tokens, encode in base64 format as Bun expects _auth format
+            AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}" | openssl base64 -e)
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          else
+            echo "Error: Neither npm-token nor nexus-username/nexus-password provided." >&2
+            exit 1
+          fi
+
+          cat > .npmrc << EOF
+          registry=https:${{ inputs.npm-registry }}
+          ${{ inputs.npm-registry-scope }}:registry=https:${{ inputs.npm-registry-publish }}
+          ${{inputs.npm-registry}}:_auth=${AUTH_TOKEN}
+          ${{inputs.npm-registry-publish}}:_auth=${AUTH_TOKEN}
+          EOF
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Check if tag exists
+        id: tag
+        uses: mukunku/tag-exists-action@v1.6.0
+        with:
+          tag: ${{ needs.build.outputs.version }}
+
+      - name: Error if tag exists
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: |
+          echo "::error ::Tag already exists. Please make sure you bump version!"
+          exit 1
+
+      - name: Update package version
+        run: |
+          # Update version in package.json using node
+          node -e "const pkg = require('./package.json'); pkg.version = '${{ needs.build.outputs.version }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          echo "Package version set to ${{ needs.build.outputs.version }}"
+
+      - name: Remove lifecycle scripts
+        run: |
+          # Remove prepublish scripts to prevent rebuilding since we already have the build artifacts
+          node -e "const pkg = require('./package.json'); delete pkg.scripts.prepublish; delete pkg.scripts.prepublishOnly; delete pkg.scripts.prepack; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          echo "Removed lifecycle scripts from package.json"
+
+      - name: Get auth token
+        id: auth
+        run: |
+          if [[ "${{ secrets.npm-token }}" ]]; then
+            # For npm-token, use it directly as NODE_AUTH_TOKEN expects the raw token
+            echo "token=${{ secrets.npm-token }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+            # For username/password, create base64 encoded auth string
+            AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+            echo "token=${AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        run: |
+          # Set registry in package.json publishConfig
+          node -e "const pkg = require('./package.json'); pkg.publishConfig = pkg.publishConfig || {}; pkg.publishConfig.registry = 'https:${{ inputs.npm-registry-publish }}'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          
+          pnpm publish --registry https:${{ inputs.npm-registry-publish }} --no-git-checks
+
+          echo "Tagging code base"
+          git tag $PACKAGE_VERSION
+          git push origin $PACKAGE_VERSION
