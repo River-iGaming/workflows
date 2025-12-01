@@ -174,20 +174,26 @@ jobs:
       - name: Create .npmrc for pnpm
         if: inputs.package-manager == 'pnpm'
         run: |
-          # Base registries (Nexus for install)
-          echo "registry=https:${{ inputs.npm-registry }}" > .npmrc
-          echo "${{ inputs.npm-registry-scope }}:registry=https:${{ inputs.npm-registry }}" >> .npmrc
+          INSTALL_REG="https:${{ inputs.npm-registry }}"
+          PUBLISH_REG="https:${{ inputs.npm-registry-publish }}"
+          DEFAULT_PUBLISH="${{ inputs.npm-registry-publish.default }}"
+          echo "registry=$INSTALL_REG" > .npmrc
+          echo "${{ inputs.npm-registry-scope }}:registry=$INSTALL_REG" >> .npmrc
 
-          # Nexus auth
-          if [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
+          if [[ -n "${{ secrets.npm-token }}" ]]; then
+            echo "${{ inputs.npm-registry }}:_authToken=${{ secrets.npm-token }}" >> .npmrc
+            if [[ "${{ inputs.npm-registry-publish }}" != "$DEFAULT_PUBLISH" ]]; then
+              echo "${{ inputs.npm-registry-publish }}:_authToken=${{ secrets.npm-token }}" >> .npmrc
+            fi
+          fi
+
+          if [[ -n "${{ secrets.nexus-username }}" && -n "${{ secrets.nexus-password }}" ]]; then
             AUTH=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | base64)
             echo "${{ inputs.npm-registry }}:_auth=${AUTH}" >> .npmrc
             echo "always-auth=true" >> .npmrc
-          fi
-
-          # npmjs publish token (only for publish)
-          if [[ "${{ secrets.npm-token }}" ]]; then
-            echo "${{ inputs.npm-registry-publish }}:_authToken=${{ secrets.npm-token }}" >> .npmrc
+            if [[ "${{ inputs.npm-registry-publish }}" != "$DEFAULT_PUBLISH" ]]; then
+              echo "${{ inputs.npm-registry-publish }}:_auth=${AUTH}" >> .npmrc
+            fi
           fi
 
       - name: Restore dependencies
