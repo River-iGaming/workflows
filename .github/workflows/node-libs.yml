@@ -144,16 +144,22 @@ jobs:
 
       - name: Setup Environment
         run: |
-          if [[ "${{ secrets.npm-token }}" ]]; then
-            npm config set ${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}
-            npm config set ${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}
-          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
-            npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
-            npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          INSTALL_REG="https:${{ inputs.npm-registry }}"
+          PUBLISH_REG="https:${{ inputs.npm-registry-publish }}"
+          if [[ -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
+            npm config set ${{ inputs.npm-registry }}:_auth=${{ steps.npm_token.outputs.install-token }}
+            npm config set ${{ inputs.npm-registry }}:always-auth=true
+          fi
+          if [[ -n "${{ steps.npm_token.outputs.publish-token }}" ]]; then
+            npm config set ${{ inputs.npm-registry-publish }}:_authToken=${{ steps.npm_token.outputs.publish-token }}
+            npm config set ${{ inputs.npm-registry-publish }}:always-auth=true
+          fi
+          if [[ -z "${{ steps.npm_token.outputs.publish-token }}" && -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
+            npm config set ${{ inputs.npm-registry-publish }}:_auth=${{ steps.npm_token.outputs.install-token }}
           fi
 
-          npm config set registry=https:${{ inputs.npm-registry }}
-          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+          npm config set registry=$INSTALL_REG
+          npm config set ${{ inputs.npm-registry-scope }}:registry=$PUBLISH_REG
 
       - name: Print environment versions
         run: |
@@ -176,30 +182,6 @@ jobs:
           echo "::notice ::Branch name: $BRANCH_NAME :: Commit message: $COMMIT_MSG"
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
-
-      - name: Create .npmrc for pnpm
-        if: inputs.package-manager == 'pnpm'
-        run: |
-          INSTALL_REG="https:${{ inputs.npm-registry }}"
-          PUBLISH_REG="https:${{ inputs.npm-registry-publish }}"
-          DEFAULT_PUBLISH="${{ inputs.npm-registry-publish.default }}"
-          echo "registry=$INSTALL_REG" > .npmrc
-          echo "${{ inputs.npm-registry-scope }}:registry=$INSTALL_REG" >> .npmrc
-
-          if [[ -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
-            echo "${{ inputs.npm-registry }}:_auth=${{ steps.npm_token.outputs.install-token }}" >> .npmrc
-            echo "always-auth=true" >> .npmrc
-          fi
-          if [[ -n "${{ steps.npm_token.outputs.publish-token }}" ]]; then
-            if [[ "${{ inputs.npm-registry-publish }}" != "$DEFAULT_PUBLISH" ]]; then
-              echo "${{ inputs.npm-registry-publish }}:_authToken=${{ steps.npm_token.outputs.publish-token }}" >> .npmrc
-            fi
-          fi
-          if [[ -z "${{ steps.npm_token.outputs.publish-token }}" && -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
-            if [[ "${{ inputs.npm-registry-publish }}" == "$DEFAULT_PUBLISH" ]]; then
-              echo "${{ inputs.npm-registry-publish }}:_auth=${{ steps.npm_token.outputs.install-token }}" >> .npmrc
-            fi
-          fi
 
       - name: Restore dependencies
         run: |
