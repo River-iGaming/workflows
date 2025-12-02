@@ -114,15 +114,21 @@ jobs:
       - name: NPM TOKEN
         id: npm_token
         run: |
-          if [[ "${{ secrets.npm-token }}" ]]; then
-            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
-          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
-            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          if [[ -n "${{ secrets.npm-token }}" ]]; then
+            echo "publish-token=${{ secrets.npm-token }}" >> $GITHUB_OUTPUT
+          fi
+          if [[ -n "${{ secrets.nexus-username }}" && -n "${{ secrets.nexus-password }}" ]]; then
+            NEXUS_AUTH=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+            echo "install-token=${NEXUS_AUTH}" >> $GITHUB_OUTPUT
+          fi
+          if [[ -n "${{ secrets.npm-token }}" ]]; then
+            echo "token=${{ secrets.npm-token }}" >> $GITHUB_OUTPUT
+          elif [[ -n "${{ secrets.nexus-username }}" && -n "${{ secrets.nexus-password }}" ]]; then
+            echo "token=${NEXUS_AUTH}" >> $GITHUB_OUTPUT
           else
             echo "Error: Neither npm-token nor nexus-username/nexus-password provided." >&2
             exit 1
           fi
-          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -180,19 +186,18 @@ jobs:
           echo "registry=$INSTALL_REG" > .npmrc
           echo "${{ inputs.npm-registry-scope }}:registry=$INSTALL_REG" >> .npmrc
 
-          if [[ -n "${{ secrets.npm-token }}" ]]; then
-            echo "${{ inputs.npm-registry }}:_authToken=${{ secrets.npm-token }}" >> .npmrc
+          if [[ -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
+            echo "${{ inputs.npm-registry }}:_auth=${{ steps.npm_token.outputs.install-token }}" >> .npmrc
+            echo "always-auth=true" >> .npmrc
+          fi
+          if [[ -n "${{ steps.npm_token.outputs.publish-token }}" ]]; then
             if [[ "${{ inputs.npm-registry-publish }}" != "$DEFAULT_PUBLISH" ]]; then
-              echo "${{ inputs.npm-registry-publish }}:_authToken=${{ secrets.npm-token }}" >> .npmrc
+              echo "${{ inputs.npm-registry-publish }}:_authToken=${{ steps.npm_token.outputs.publish-token }}" >> .npmrc
             fi
           fi
-
-          if [[ -n "${{ secrets.nexus-username }}" && -n "${{ secrets.nexus-password }}" ]]; then
-            AUTH=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | base64)
-            echo "${{ inputs.npm-registry }}:_auth=${AUTH}" >> .npmrc
-            echo "always-auth=true" >> .npmrc
-            if [[ "${{ inputs.npm-registry-publish }}" != "$DEFAULT_PUBLISH" ]]; then
-              echo "${{ inputs.npm-registry-publish }}:_auth=${AUTH}" >> .npmrc
+          if [[ -z "${{ steps.npm_token.outputs.publish-token }}" && -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
+            if [[ "${{ inputs.npm-registry-publish }}" == "$DEFAULT_PUBLISH" ]]; then
+              echo "${{ inputs.npm-registry-publish }}:_auth=${{ steps.npm_token.outputs.install-token }}" >> .npmrc
             fi
           fi
 
