@@ -148,11 +148,9 @@ jobs:
           PUBLISH_REG="https:${{ inputs.npm-registry-publish }}"
           if [[ -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
             npm config set ${{ inputs.npm-registry }}:_auth=${{ steps.npm_token.outputs.install-token }}
-            npm config set ${{ inputs.npm-registry }}:always-auth=true
           fi
           if [[ -n "${{ steps.npm_token.outputs.publish-token }}" ]]; then
             npm config set ${{ inputs.npm-registry-publish }}:_authToken=${{ steps.npm_token.outputs.publish-token }}
-            npm config set ${{ inputs.npm-registry-publish }}:always-auth=true
           fi
           if [[ -z "${{ steps.npm_token.outputs.publish-token }}" && -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
             npm config set ${{ inputs.npm-registry-publish }}:_auth=${{ steps.npm_token.outputs.install-token }}
