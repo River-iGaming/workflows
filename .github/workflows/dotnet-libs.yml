@@ -57,7 +57,7 @@ jobs:
       - name: Pre-build stats
         run: |
           du -h -d 1 | sort -h 
-          du -h / | sort -h 
+          df -h
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -112,7 +112,7 @@ jobs:
       - name: Pre-restore stats
         run: |
           du -h -d 1 | sort -h 
-          du -h / | sort -h 
+          df -h
         
       - name: Restore
         run: |
@@ -121,7 +121,7 @@ jobs:
       - name: Pre-build stats
         run: |
           du -h -d 1 | sort -h 
-          du -h / | sort -h 
+          df -h
       
       - name: Build
         env:
@@ -152,4 +152,4 @@ jobs:
         if: always()
         run: |
           du -h -d 1 | sort -h 
-          du -h / | sort -h 
+          df -h
