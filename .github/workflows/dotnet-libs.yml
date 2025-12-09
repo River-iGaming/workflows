@@ -54,6 +54,8 @@ jobs:
           secrets_context: ${{ toJson(secrets) }}
           needs_context: ${{ toJson(needs) }}
 
+      - name: Pre-build stats
+        run: du -h -d 1 | sort -h 
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -104,10 +106,16 @@ jobs:
             -p ${{ secrets.nexus-password }} \
             --store-password-in-clear-text
 
+      - name: Pre-restore stats
+        run: du -h -d 1 | sort -h 
+        
       - name: Restore
         run: |
           dotnet restore $SOLUTION /p:Configuration=Release
-
+      
+      - name: Pre-build stats
+        run: du -h -d 1 | sort -h 
+      
       - name: Build
         env:
           VERSION: ${{ steps.version-builder.outputs.version }}
@@ -124,7 +132,7 @@ jobs:
           mkdir ./nuget
           dotnet pack $SOLUTION --no-build -p:PackageVersion=$VERSION -o ./nuget -c Release
           find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
-
+      
       - name: Git Tag
         if: inputs.publishable
         env:
@@ -132,3 +140,7 @@ jobs:
         run: |
           git tag $VERSION
           git push origin $VERSION
+      
+      - name: Final stats
+        if: always()
+        run: du -h -d 1 | sort -h 
