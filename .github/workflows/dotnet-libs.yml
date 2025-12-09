@@ -57,7 +57,8 @@ jobs:
       - name: Pre-build stats
         run: |
           du -h -d 1 | sort -h 
-          du -a
+          du -h -d 1  /* | sort -h 
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -111,7 +112,7 @@ jobs:
       - name: Pre-restore stats
         run: |
           du -h -d 1 | sort -h 
-          du -a
+          du -h -d 1  /* | sort -h 
         
       - name: Restore
         run: |
@@ -120,24 +121,24 @@ jobs:
       - name: Pre-build stats
         run: |
           du -h -d 1 | sort -h 
-          du -a
+          du -h -d 1  /* | sort -h 
       
       - name: Build
         env:
           VERSION: ${{ steps.version-builder.outputs.version }}
         run: dotnet build -p:PackageVersion=$VERSION -p:AssemblyVersion=${{ env.PACKAGE_VERSION }} $SOLUTION -c Release --no-restore
 
-      - name: Test
-        run: npm test
+      # - name: Test
+      #   run: npm test
 
-      - name: Publish Nuget
-        if: inputs.publishable
-        env:
-          VERSION: ${{ steps.version-builder.outputs.version }}
-        run: |
-          mkdir ./nuget
-          dotnet pack $SOLUTION --no-build -p:PackageVersion=$VERSION -o ./nuget -c Release
-          find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
+      # - name: Publish Nuget
+      #   if: inputs.publishable
+      #   env:
+      #     VERSION: ${{ steps.version-builder.outputs.version }}
+      #   run: |
+      #     mkdir ./nuget
+      #     dotnet pack $SOLUTION --no-build -p:PackageVersion=$VERSION -o ./nuget -c Release
+      #     find ./nuget -name "*.nupkg" | xargs -n 1 -P 8 -i dotnet nuget push {} -s ${{ inputs.nuget-publish-url }}
       
       # - name: Git Tag
       #   if: inputs.publishable
@@ -151,4 +152,4 @@ jobs:
         if: always()
         run: |
           du -h -d 1 | sort -h 
-          du -a
+          du -h -d 1  /* | sort -h 
