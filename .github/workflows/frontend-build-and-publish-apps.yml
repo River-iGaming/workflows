@@ -299,6 +299,7 @@ jobs:
 
       - name: Setup Docker buildx
         id: buildx-setup
+        if: ${{ steps.metadata.outputs.publishable == 'true' }}
         uses: docker/setup-buildx-action@v3
 
       - name: Build, tag, and push image to Amazon ECR
