@@ -114,15 +114,21 @@ jobs:
       - name: NPM TOKEN
         id: npm_token
         run: |
-          if [[ "${{ secrets.npm-token }}" ]]; then
-            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.npm-token }}")
-          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
-            NODE_AUTH_TOKEN=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+          if [[ -n "${{ secrets.npm-token }}" ]]; then
+            echo "publish-token=${{ secrets.npm-token }}" >> $GITHUB_OUTPUT
+          fi
+          if [[ -n "${{ secrets.nexus-username }}" && -n "${{ secrets.nexus-password }}" ]]; then
+            NEXUS_AUTH=$(echo -n "${{ secrets.nexus-username }}:${{ secrets.nexus-password }}" | openssl base64 -e)
+            echo "install-token=${NEXUS_AUTH}" >> $GITHUB_OUTPUT
+          fi
+          if [[ -n "${{ secrets.npm-token }}" ]]; then
+            echo "token=${{ secrets.npm-token }}" >> $GITHUB_OUTPUT
+          elif [[ -n "${{ secrets.nexus-username }}" && -n "${{ secrets.nexus-password }}" ]]; then
+            echo "token=${NEXUS_AUTH}" >> $GITHUB_OUTPUT
           else
             echo "Error: Neither npm-token nor nexus-username/nexus-password provided." >&2
             exit 1
           fi
-          echo "token=${NODE_AUTH_TOKEN}" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -138,16 +144,20 @@ jobs:
 
       - name: Setup Environment
         run: |
-          if [[ "${{ secrets.npm-token }}" ]]; then
-            npm config set ${{inputs.npm-registry}}:_authToken=${{ steps.npm_token.outputs.token }}
-            npm config set ${{inputs.npm-registry-publish}}:_authToken=${{ steps.npm_token.outputs.token }}
-          elif [[ "${{ secrets.nexus-username }}" && "${{ secrets.nexus-password }}" ]]; then
-            npm config set ${{inputs.npm-registry}}:_auth=${{ steps.npm_token.outputs.token }}
-            npm config set ${{inputs.npm-registry-publish}}:_auth=${{ steps.npm_token.outputs.token }}
+          INSTALL_REG="https:${{ inputs.npm-registry }}"
+          PUBLISH_REG="https:${{ inputs.npm-registry-publish }}"
+          if [[ -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
+            npm config set ${{ inputs.npm-registry }}:_auth=${{ steps.npm_token.outputs.install-token }}
+          fi
+          if [[ -n "${{ steps.npm_token.outputs.publish-token }}" ]]; then
+            npm config set ${{ inputs.npm-registry-publish }}:_authToken=${{ steps.npm_token.outputs.publish-token }}
+          fi
+          if [[ -z "${{ steps.npm_token.outputs.publish-token }}" && -n "${{ steps.npm_token.outputs.install-token }}" ]]; then
+            npm config set ${{ inputs.npm-registry-publish }}:_auth=${{ steps.npm_token.outputs.install-token }}
           fi
 
-          npm config set registry=https:${{ inputs.npm-registry }}
-          npm config set @odin:registry=https:${{ inputs.npm-registry-publish }}
+          npm config set registry=$INSTALL_REG
+          npm config set ${{ inputs.npm-registry-scope }}:registry=$PUBLISH_REG
 
       - name: Print environment versions
         run: |
