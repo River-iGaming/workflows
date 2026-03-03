@@ -15,21 +15,10 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-      # - name: Prepare linter
-      #   run: |
-      #     npm install -g eslint@8.57.0 eslint-plugin-jsonc
-      #     echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Lint
         run: npm run lint
-      # - name: Lint JSON files
-      #   run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
-      - name: Output Report
-        if: ${{ failure() }}
-        uses: jwgmeligmeyling/checkstyle-github-action@master
-        with:
-          path: checkstyle-result.xml
       - name: Get version
         id: get-version
         run: |
