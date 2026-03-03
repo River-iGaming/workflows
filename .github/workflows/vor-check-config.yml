@@ -74,5 +74,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@river.tech"
           git add package.json
-          git commit -m "chore: bump version to ${{ steps.version-bump.outputs.new-version }}"
+          git commit -m "chore(version): bump version to ${{ steps.version-bump.outputs.new-version }}"
           git push
