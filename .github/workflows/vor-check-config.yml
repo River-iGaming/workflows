@@ -10,6 +10,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
       # - name: Prepare linter
