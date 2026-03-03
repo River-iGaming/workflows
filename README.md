@@ -8,7 +8,7 @@
 | dotnet-specs-v1 | .NET specs                                   |
 | node-v1         | node e.g. libs for node/lerna/cli/ngx etc... |
 | fe-v6           | frontend app                                 |
-| vor-v1          | vor config checks                            |
+| vor-v2          | vor config checks                            |
 
 
 ```bash
