@@ -61,5 +61,15 @@ jobs:
           else
               COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
               echo "::notice::$COMMENT"
+              echo "new-version=$NEW_PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
               echo "git-comment=$COMMENT" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Commit bumped version
+        if: ${{ steps.tag.outputs.exists == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@river.tech"
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.version-bump.outputs.new-version }}"
+          git push
