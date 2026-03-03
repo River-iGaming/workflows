@@ -9,13 +9,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - name: Prepare linter
-        run: |
-          npm install -g eslint@8.57.0 eslint-plugin-jsonc
-          echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
-      - name: Lint JSON files
-        run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
+        uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      # - name: Prepare linter
+      #   run: |
+      #     npm install -g eslint@8.57.0 eslint-plugin-jsonc
+      #     echo '{ "extends": ["plugin:jsonc/recommended-with-jsonc"] }' > .eslintrc.json
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: npm run lint
+      # - name: Lint JSON files
+      #   run: eslint config/** --ext .json -f checkstyle -o checkstyle-result.xml --resolve-plugins-relative-to=$(npm root -g)
       - name: Output Report
         if: ${{ failure() }}
         uses: jwgmeligmeyling/checkstyle-github-action@master
@@ -28,12 +34,12 @@ jobs:
           echo "::set-output name=package-version::$PACKAGE_VERSION"
 
       - name: Check if tag exists
-        uses: mukunku/tag-exists-action@v1.6.0
+        uses: mukunku/tag-exists-action@v1.7.0
         id: tag
         with:
           tag: ${{ steps.get-version.outputs.package-version }}
 
-      - uses: mshick/add-pr-comment@v1
+      - uses: mshick/add-pr-comment@v2
         name: Add PR comment
         if: ${{ steps.tag.outputs.exists == 'true' }}
         env:
@@ -47,14 +53,13 @@ jobs:
         id: version-bump
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
-          npm install -g bump
-          bump
+          npm version patch
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
           if git ls-remote --exit-code origin refs/tags/$NEW_PACKAGE_VERSION; then
               echo "::error::Attempted to bump version to [$NEW_PACKAGE_VERSION] but tag already exists"
               exit 1
           else
-              COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"                    
+              COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
               echo "::notice::$COMMENT"
               echo "::set-output name=git-comment::$COMMENT"
           fi
