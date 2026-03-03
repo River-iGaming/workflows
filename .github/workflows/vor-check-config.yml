@@ -53,18 +53,12 @@ jobs:
         id: version-bump
         if: ${{ steps.tag.outputs.exists == 'true' }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@river.tech"
           npm version patch --no-git-tag-version
           NEW_PACKAGE_VERSION=$(node -p "require('./package.json').version")
           if git ls-remote --exit-code origin refs/tags/$NEW_PACKAGE_VERSION; then
               echo "::error::Attempted to bump version to [$NEW_PACKAGE_VERSION] but tag already exists"
               exit 1
           else
-              git add package.json
-              git commit -m "chore(version): bump to $NEW_PACKAGE_VERSION [skip ci]"
-              git tag "$NEW_PACKAGE_VERSION"
-              git push --follow-tags
               COMMENT="Bumped version from [${{ steps.get-version.outputs.package-version }}] to [$NEW_PACKAGE_VERSION]"
               echo "::notice::$COMMENT"
               echo "git-comment=$COMMENT" >> "$GITHUB_OUTPUT"
