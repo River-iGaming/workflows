@@ -9,13 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Get version
         id: get-version
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "::set-output name=package-version::$PACKAGE_VERSION"
-      - name: Git Tag        
+          echo "package-version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Git Tag
         run: |
           git tag ${{ steps.get-version.outputs.package-version }}
           git push origin ${{ steps.get-version.outputs.package-version }}
